@@ -9,7 +9,6 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var selectedTab: Int = 0
-    @State private var useDarkMode: Bool = true
     @Environment(\.colorScheme) var systemColorScheme
     
     var body: some View {
@@ -42,7 +41,7 @@ struct ContentView: View {
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
             
-            // Custom tab bar
+            // Custom tab bar - reduced height
             HStack(spacing: 0) {
                 Spacer()
                 
@@ -82,35 +81,38 @@ struct ContentView: View {
                 
                 Spacer()
             }
-            .padding(.vertical, 12)
+            .padding(.vertical, 8) // Reduced padding for smaller height
             .background(
-                (useDarkMode ? Color(red: 0x1A/255, green: 0x1A/255, blue: 0x1F/255) : .white)
-                    .edgesIgnoringSafeArea(.bottom)
+                systemColorScheme == .dark 
+                    ? MendColors.darkCardBackground 
+                    : MendColors.cardBackground
             )
             .overlay(
                 Rectangle()
                     .frame(height: 0.5)
-                    .foregroundColor(useDarkMode ? Color.white.opacity(0.1) : Color.black.opacity(0.1)),
+                    .foregroundColor(systemColorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.1)),
                 alignment: .top
             )
+            .edgesIgnoringSafeArea(.bottom)
         }
         .tint(MendColors.primary)
-        .environment(\.colorScheme, useDarkMode ? .dark : .light)
     }
     
     private func tabButton(icon: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            VStack(spacing: 4) {
+            VStack(spacing: 3) { // Reduced spacing
                 Image(systemName: icon)
-                    .font(.system(size: 20))
-                    .foregroundColor(isSelected ? MendColors.primary : (useDarkMode ? .white.opacity(0.6) : .gray))
+                    .font(.system(size: 18)) // Smaller icon
+                    .foregroundColor(isSelected ? 
+                                     MendColors.primary : 
+                                     (systemColorScheme == .dark ? .white.opacity(0.6) : .gray))
                 
                 // Indicator dot for selected tab
                 Circle()
                     .fill(isSelected ? MendColors.primary : Color.clear)
-                    .frame(width: 4, height: 4)
+                    .frame(width: 3, height: 3) // Smaller dot
             }
-            .frame(height: 40)
+            .frame(height: 32) // Reduced height
         }
         .frame(maxWidth: .infinity)
     }

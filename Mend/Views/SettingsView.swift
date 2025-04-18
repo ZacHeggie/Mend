@@ -22,7 +22,7 @@ struct SettingsView: View {
     }
     
     private var secondaryTextColor: Color {
-        colorScheme == .dark ? MendColors.darkText.opacity(0.7) : MendColors.secondaryText
+        colorScheme == .dark ? MendColors.darkSecondaryText : MendColors.secondaryText
     }
     
     var body: some View {
@@ -70,15 +70,29 @@ struct SettingsView: View {
                 #if DEBUG
                 // Developer Options
                 sectionCard(title: "Developer Options") {
-                    Toggle("Use Simulated Data", isOn: $recoveryMetrics.useSimulatedData)
-                        .toggleStyle(SwitchToggleStyle(tint: MendColors.primary))
-                        .padding(.horizontal, MendSpacing.medium)
-                        .padding(.vertical, MendSpacing.medium)
-                        .onChange(of: recoveryMetrics.useSimulatedData) {
-                            Task {
-                                await recoveryMetrics.loadMetrics()
+                    VStack(spacing: 0) {
+                        NavigationLink(destination: SimulatedDataSettings()) {
+                            HStack {
+                                Image(systemName: "chart.line.uptrend.xyaxis")
+                                    .foregroundColor(MendColors.primary)
+                                    .frame(width: 24, height: 24)
+                                
+                                Text("Simulated Data Settings")
+                                    .foregroundColor(textColor)
+                                
+                                Spacer()
+                                
+                                Text(recoveryMetrics.useSimulatedData ? "On" : "Off")
+                                    .foregroundColor(secondaryTextColor)
+                                
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(secondaryTextColor)
                             }
+                            .padding(.horizontal, MendSpacing.medium)
+                            .padding(.vertical, MendSpacing.medium)
                         }
+                    }
                 }
                 #endif
                 
@@ -296,6 +310,106 @@ struct SettingsView: View {
             .padding(.horizontal, MendSpacing.medium)
             .padding(.vertical, MendSpacing.medium)
         }
+    }
+}
+
+// MARK: - Simulated Data Settings
+struct SimulatedDataSettings: View {
+    @EnvironmentObject var recoveryMetrics: RecoveryMetrics
+    @Environment(\.colorScheme) var colorScheme
+    
+    private var backgroundColor: Color {
+        colorScheme == .dark ? MendColors.darkBackground : MendColors.background
+    }
+    
+    private var cardBackgroundColor: Color {
+        colorScheme == .dark ? MendColors.darkCardBackground : MendColors.cardBackground
+    }
+    
+    private var textColor: Color {
+        colorScheme == .dark ? MendColors.darkText : MendColors.text
+    }
+    
+    private var secondaryTextColor: Color {
+        colorScheme == .dark ? MendColors.darkSecondaryText : MendColors.secondaryText
+    }
+    
+    var body: some View {
+        ScrollView {
+            VStack(spacing: MendSpacing.large) {
+                // Main simulated data toggle
+                VStack(spacing: 0) {
+                    Toggle("Use Simulated Data", isOn: $recoveryMetrics.useSimulatedData)
+                        .toggleStyle(SwitchToggleStyle(tint: MendColors.primary))
+                        .padding(.horizontal, MendSpacing.medium)
+                        .padding(.vertical, MendSpacing.medium)
+                        .onChange(of: recoveryMetrics.useSimulatedData) {
+                            Task {
+                                await recoveryMetrics.loadMetrics()
+                            }
+                        }
+                    
+                    if recoveryMetrics.useSimulatedData {
+                        Divider()
+                            .background(colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.1))
+                            .padding(.horizontal, MendSpacing.small)
+                        
+                        // Recovery state toggle
+                        Toggle("Show Low Recovery State", isOn: $recoveryMetrics.usePoorRecoveryData)
+                            .toggleStyle(SwitchToggleStyle(tint: MendColors.primary))
+                            .padding(.horizontal, MendSpacing.medium)
+                            .padding(.vertical, MendSpacing.medium)
+                            .onChange(of: recoveryMetrics.usePoorRecoveryData) {
+                                Task {
+                                    await recoveryMetrics.loadMetrics()
+                                }
+                            }
+                        
+                        // Info about the simulated data
+                        VStack(alignment: .leading, spacing: MendSpacing.small) {
+                            Text("Simulated Data Information:")
+                                .font(MendFont.subheadline.bold())
+                                .foregroundColor(textColor)
+                                .padding(.top, MendSpacing.small)
+                                
+                            Text("• Standard: Simulates a normal recovery state with typical metrics")
+                                .font(MendFont.footnote)
+                                .foregroundColor(secondaryTextColor)
+                                
+                            Text("• Low Recovery: Simulates a stressed or fatigued state with elevated heart rate, lower HRV, and reduced sleep quality")
+                                .font(MendFont.footnote)
+                                .foregroundColor(secondaryTextColor)
+                                .multilineTextAlignment(.leading)
+                        }
+                        .padding(.horizontal, MendSpacing.medium)
+                        .padding(.bottom, MendSpacing.medium)
+                    }
+                }
+                .background(cardBackgroundColor)
+                .cornerRadius(MendCornerRadius.medium)
+                
+                // Refresh button
+                Button {
+                    Task {
+                        await recoveryMetrics.refreshData()
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "arrow.clockwise")
+                        Text("Refresh Data")
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, MendSpacing.medium)
+                    .background(MendColors.primary)
+                    .foregroundColor(.white)
+                    .cornerRadius(MendCornerRadius.medium)
+                }
+                .padding(.top, MendSpacing.small)
+            }
+            .padding()
+        }
+        .background(backgroundColor.ignoresSafeArea())
+        .navigationTitle("Simulated Data")
     }
 }
 

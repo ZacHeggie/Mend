@@ -7,15 +7,16 @@ struct MendColors {
     static let secondary: Color = Color(red: 0x4D/255, green: 0xF7/255, blue: 0xA1/255) // Mint green for highlights
     
     // Background colors
-    static let background: Color = Color(red: 0xF5/255, green: 0xF5/255, blue: 0xF5/255) // Light gray background
-    static let darkBackground: Color = Color(red: 0x0A/255, green: 0x0A/255, blue: 0x0F/255) // Very dark background
+    static let background: Color = Color(red: 0xF2/255, green: 0xF2/255, blue: 0xF4/255) // Light gray background (more like Polycam)
+    static let darkBackground: Color = Color(red: 0x06/255, green: 0x06/255, blue: 0x0A/255) // Darker background for better contrast
     static let cardBackground: Color = .white
-    static let darkCardBackground: Color = Color(red: 0x1A/255, green: 0x1A/255, blue: 0x1F/255) // Dark card background
+    static let darkCardBackground: Color = Color(red: 0x15/255, green: 0x15/255, blue: 0x1A/255) // Slightly darker card background
     
     // Text colors
     static let text: Color = Color(red: 0x11/255, green: 0x11/255, blue: 0x11/255)
-    static let darkText: Color = .white
-    static let secondaryText: Color = Color(red: 0x88/255, green: 0x88/255, blue: 0x88/255)
+    static let darkText: Color = .white // Pure white for maximum contrast
+    static let secondaryText: Color = Color(red: 0x66/255, green: 0x66/255, blue: 0x66/255) // Darker for better contrast
+    static let darkSecondaryText: Color = Color(red: 0xE2/255, green: 0xE2/255, blue: 0xE2/255) // Lighter for better contrast in dark mode
     
     // Status colors
     static let positive: Color = Color(red: 0x4D/255, green: 0xF7/255, blue: 0xA1/255) // Mint green
@@ -43,18 +44,24 @@ enum MendCornerRadius {
     static let pill: CGFloat = 24
 }
 
+// MARK: - Font styles more like Polycam
 enum MendFont {
+    // Polycam uses SF Pro with more consistent weights
     static let largeTitle = Font.system(.largeTitle, design: .default).weight(.bold)
     static let title = Font.system(.title, design: .default).weight(.bold)
-    static let title2 = Font.system(.title2, design: .default).weight(.bold)
-    static let title3 = Font.system(.title3, design: .default).weight(.bold)
-    static let headline = Font.system(.headline, design: .default).weight(.semibold)
-    static let body = Font.system(.body, design: .default)
-    static let callout = Font.system(.callout, design: .default)
-    static let subheadline = Font.system(.subheadline, design: .default)
-    static let footnote = Font.system(.footnote, design: .default)
-    static let caption = Font.system(.caption, design: .default)
-    static let caption2 = Font.system(.caption2, design: .default)
+    static let title2 = Font.system(.title2, design: .default).weight(.semibold)
+    static let title3 = Font.system(.title3, design: .default).weight(.semibold)
+    static let headline = Font.system(.headline, design: .default).weight(.medium)
+    static let body = Font.system(.body, design: .default).weight(.regular)
+    static let callout = Font.system(.callout, design: .default).weight(.regular)
+    static let subheadline = Font.system(.subheadline, design: .default).weight(.regular)
+    static let footnote = Font.system(.footnote, design: .default).weight(.regular)
+    static let caption = Font.system(.caption, design: .default).weight(.medium)
+    static let caption2 = Font.system(.caption2, design: .default).weight(.medium)
+    
+    // Polycam-style text styles
+    static let sectionHeader = Font.system(.subheadline, design: .default).weight(.semibold)
+    static let tabLabel = Font.system(.caption, design: .default).weight(.medium)
 }
 
 // MARK: - View Extensions
@@ -74,6 +81,7 @@ extension View {
             .padding(MendSpacing.medium)
             .background(MendColors.darkCardBackground)
             .cornerRadius(MendCornerRadius.medium)
+            .shadow(color: Color.black.opacity(0.15), radius: 5, x: 0, y: 2) // Added shadow for better visibility
     }
     
     // Button style similar to Polycam
@@ -104,6 +112,11 @@ extension View {
         }
         
         return self.foregroundColor(color)
+    }
+    
+    // Helper function to get appropriate secondary text color based on color scheme
+    func adaptiveSecondaryTextColor(colorScheme: ColorScheme) -> Color {
+        colorScheme == .dark ? MendColors.darkSecondaryText : MendColors.secondaryText
     }
 }
 

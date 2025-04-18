@@ -4,6 +4,19 @@ import Charts
 struct MetricCard: View {
     let metric: MetricScore
     @State private var isExpanded: Bool = false
+    @Environment(\.colorScheme) var colorScheme
+    
+    private var backgroundColor: Color {
+        colorScheme == .dark ? MendColors.darkCardBackground : MendColors.cardBackground
+    }
+    
+    private var textColor: Color {
+        colorScheme == .dark ? MendColors.darkText : MendColors.text
+    }
+    
+    private var secondaryTextColor: Color {
+        colorScheme == .dark ? MendColors.darkSecondaryText : MendColors.secondaryText
+    }
     
     var body: some View {
         VStack(spacing: MendSpacing.medium) {
@@ -12,7 +25,7 @@ struct MetricCard: View {
                 VStack(alignment: .leading, spacing: MendSpacing.small) {
                     Text(metric.title)
                         .font(MendFont.headline)
-                        .foregroundColor(MendColors.text)
+                        .foregroundColor(textColor)
                     
                     // Color the delta text directly instead of using arrows
                     Text("\(metric.deltaFromAverage > 0 ? "+" : metric.deltaFromAverage < 0 ? "-" : "")\(String(format: "%.1f", abs(metric.deltaFromAverage))) from avg")
@@ -29,14 +42,14 @@ struct MetricCard: View {
             if isExpanded {
                 VStack(alignment: .leading, spacing: MendSpacing.medium) {
                     // Chart
-                    MetricChart(data: metric.dailyData, title: metric.title)
+                    MetricChart(data: metric.dailyData, title: metric.title, colorScheme: colorScheme)
                         .frame(height: 150)
                         .padding(.top, MendSpacing.small)
                     
                     // Description
                     Text(metric.description)
                         .font(MendFont.body)
-                        .foregroundColor(MendColors.text)
+                        .foregroundColor(textColor)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))
@@ -59,33 +72,43 @@ struct MetricCard: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, MendSpacing.small)
-                .background(MendColors.secondary.opacity(0.1))
+                .background(MendColors.secondary.opacity(colorScheme == .dark ? 0.2 : 0.1))
                 .cornerRadius(MendCornerRadius.small)
             }
         }
         .padding(MendSpacing.medium)
-        .background(MendColors.cardBackground)
+        .background(backgroundColor)
         .cornerRadius(MendCornerRadius.medium)
-        .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 5)
+        .shadow(color: colorScheme == .dark ? Color.black.opacity(0.3) : Color.black.opacity(0.05), radius: 8, x: 0, y: 4)
     }
 }
 
 struct MetricChart: View {
     let data: [RecoveryMetricData]
     let title: String
+    var colorScheme: ColorScheme
     
-    init(data: [RecoveryMetricData], title: String = "") {
+    init(data: [RecoveryMetricData], title: String = "", colorScheme: ColorScheme = .light) {
         self.data = data
         self.title = title
+        self.colorScheme = colorScheme
+    }
+    
+    private var textColor: Color {
+        colorScheme == .dark ? MendColors.darkText : MendColors.text
+    }
+    
+    private var secondaryTextColor: Color {
+        colorScheme == .dark ? MendColors.darkSecondaryText : MendColors.secondaryText
     }
     
     var body: some View {
         if data.isEmpty {
             Text("No data available")
                 .font(MendFont.caption)
-                .foregroundColor(.secondary)
+                .foregroundColor(secondaryTextColor)
                 .frame(maxWidth: .infinity, minHeight: 150)
-                .background(MendColors.secondary.opacity(0.1))
+                .background(MendColors.secondary.opacity(colorScheme == .dark ? 0.15 : 0.1))
                 .cornerRadius(MendCornerRadius.small)
         } else {
             Chart {
@@ -104,22 +127,29 @@ struct MetricChart: View {
                     .foregroundStyle(MendColors.primary)
                 }
             }
+            .chartForegroundStyleScale([
+                "Value": MendColors.primary
+            ])
             .chartXAxis {
                 AxisMarks(values: .stride(by: .day)) { value in
                     if let date = value.as(Date.self) {
                         AxisValueLabel {
                             Text(date, format: .dateTime.weekday(.narrow))
+                                .foregroundColor(secondaryTextColor)
                         }
                     }
                 }
             }
             .chartYAxis {
                 AxisMarks(position: .leading, values: .automatic(desiredCount: 5)) { value in
-                    AxisGridLine()
+                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [2, 2]))
+                        .foregroundStyle(colorScheme == .dark ? Color.white.opacity(0.2) : Color.black.opacity(0.1))
                     AxisTick()
+                        .foregroundStyle(secondaryTextColor)
                     AxisValueLabel {
                         if let doubleValue = value.as(Double.self) {
                             Text(formatYAxisValue(doubleValue))
+                                .foregroundColor(secondaryTextColor)
                         }
                     }
                 }
@@ -128,7 +158,7 @@ struct MetricChart: View {
             .overlay(alignment: .topLeading) {
                 Text(getYAxisTitle())
                     .font(MendFont.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(secondaryTextColor)
                     .padding(8)
             }
         }

@@ -6,6 +6,7 @@ struct TodayView: View {
     @State private var recentActivities: [Activity] = []
     @State private var personalizedRecommendations: [ActivityRecommendation] = []
     @Environment(\.colorScheme) var colorScheme
+    @State private var showingAddActivity = false
     
     // Computed properties for dynamic colors
     private var backgroundColor: Color {
@@ -17,7 +18,7 @@ struct TodayView: View {
     }
     
     private var secondaryTextColor: Color {
-        colorScheme == .dark ? MendColors.darkText.opacity(0.7) : MendColors.secondaryText
+        colorScheme == .dark ? MendColors.darkSecondaryText : MendColors.secondaryText
     }
     
     private var cardBackgroundColor: Color {
@@ -25,35 +26,63 @@ struct TodayView: View {
     }
     
     var body: some View {
-        ScrollView {
-            if recoveryMetrics.isLoading {
-                loadingView
-            } else if let recoveryScore = recoveryMetrics.currentRecoveryScore {
-                VStack(spacing: MendSpacing.large) {
-                    // Recovery Summary
-                    recoveryScoreView(score: recoveryScore)
-                    
-                    // Recent Activities
-                    if !recentActivities.isEmpty {
-                        recentActivitiesView
+        ZStack(alignment: .bottomTrailing) {
+            ScrollView {
+                if recoveryMetrics.isLoading {
+                    loadingView
+                } else if let recoveryScore = recoveryMetrics.currentRecoveryScore {
+                    VStack(spacing: MendSpacing.large) {
+                        // Recovery Summary
+                        recoveryScoreView(score: recoveryScore)
+                        
+                        // Recent Activities
+                        if !recentActivities.isEmpty {
+                            recentActivitiesView
+                        }
+                        
+                        // Activity Recommendations
+                        recommendationsView(score: recoveryScore)
                     }
-                    
-                    // Activity Recommendations
-                    recommendationsView(score: recoveryScore)
+                    .padding()
+                    .padding(.bottom, 80) // Add extra padding at bottom for the FAB
+                } else {
+                    noDataView
                 }
-                .padding()
-            } else {
-                noDataView
             }
+            .background(backgroundColor.ignoresSafeArea())
+            .navigationTitle("Today")
+            .navigationBarItems(trailing: notificationButton)
+            
+            // Floating Action Button for adding activity
+            Button(action: {
+                showingAddActivity = true
+            }) {
+                Image(systemName: "plus")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(width: 56, height: 56)
+                    .background(MendColors.primary)
+                    .clipShape(Circle())
+                    .shadow(color: colorScheme == .dark ? Color.black.opacity(0.4) : Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
+            }
+            .padding(.bottom, 70) // Position above tab bar
+            .padding(.trailing, 20)
         }
-        .background(backgroundColor.ignoresSafeArea())
-        .navigationTitle("Today")
-        .navigationBarItems(trailing: notificationButton)
         .onAppear {
             loadRecentActivities()
             
             Task {
                 await loadData()
+            }
+        }
+        .sheet(isPresented: $showingAddActivity) {
+            NavigationView {
+                AddActivityView(isPresented: $showingAddActivity)
+                    .navigationTitle("Add Activity")
+                    .navigationBarItems(trailing: Button("Cancel") {
+                        showingAddActivity = false
+                    })
+                    .environmentObject(activityManager)
             }
         }
     }
@@ -107,7 +136,7 @@ struct TodayView: View {
     
     private func recoveryScoreView(score: RecoveryScore) -> some View {
         VStack(alignment: .leading, spacing: MendSpacing.medium) {
-            Text("Recovery Score")
+            Text("Today's Recovery")
                 .font(MendFont.headline)
                 .foregroundColor(secondaryTextColor)
                 .padding(.horizontal, MendSpacing.medium)
@@ -117,7 +146,7 @@ struct TodayView: View {
                     .padding(.leading, MendSpacing.medium)
                 
                 VStack(alignment: .leading, spacing: MendSpacing.small) {
-                    Text("\(score.overallScore)%")
+                    Text("\(score.overallScore)")
                         .font(MendFont.title)
                         .foregroundColor(textColor)
                     
@@ -132,15 +161,28 @@ struct TodayView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(cardBackgroundColor)
             .cornerRadius(MendCornerRadius.medium)
+            .shadow(color: colorScheme == .dark ? Color.black.opacity(0.25) : Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
         }
     }
     
     private var recentActivitiesView: some View {
         VStack(alignment: .leading, spacing: MendSpacing.medium) {
-            Text("Today's Activities")
-                .font(MendFont.headline)
-                .foregroundColor(secondaryTextColor)
-                .padding(.horizontal, MendSpacing.medium)
+            HStack {
+                Text("Today's Activities")
+                    .font(MendFont.headline)
+                    .foregroundColor(secondaryTextColor)
+                
+                Spacer()
+                
+                Button(action: {
+                    showingAddActivity = true
+                }) {
+                    Text("Add")
+                        .font(MendFont.subheadline.weight(.medium))
+                        .foregroundColor(MendColors.primary)
+                }
+            }
+            .padding(.horizontal, MendSpacing.medium)
             
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: MendSpacing.medium) {
@@ -231,7 +273,7 @@ struct RecentActivityCard: View {
     }
     
     private var secondaryTextColor: Color {
-        colorScheme == .dark ? MendColors.darkText.opacity(0.7) : MendColors.secondaryText
+        colorScheme == .dark ? MendColors.darkSecondaryText : MendColors.secondaryText
     }
     
     var body: some View {
@@ -287,6 +329,7 @@ struct RecentActivityCard: View {
         .frame(height: 130)
         .background(cardBackgroundColor)
         .cornerRadius(MendCornerRadius.medium)
+        .shadow(color: colorScheme == .dark ? Color.black.opacity(0.3) : Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
     }
     
     private func formatRelativeDate(_ date: Date) -> String {
@@ -317,7 +360,7 @@ struct RecommendedActivityCard: View {
     }
     
     private var secondaryTextColor: Color {
-        colorScheme == .dark ? MendColors.darkText.opacity(0.7) : MendColors.secondaryText
+        colorScheme == .dark ? MendColors.darkSecondaryText : MendColors.secondaryText
     }
     
     var body: some View {
@@ -325,7 +368,7 @@ struct RecommendedActivityCard: View {
             // Activity Icon
             ZStack {
                 Circle()
-                    .fill(activity.intensity.color.opacity(0.2))
+                    .fill(activity.intensity.color.opacity(colorScheme == .dark ? 0.3 : 0.2))
                     .frame(width: 50, height: 50)
                 
                 Image(systemName: activity.icon)
@@ -357,6 +400,7 @@ struct RecommendedActivityCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(cardBackgroundColor)
         .cornerRadius(MendCornerRadius.medium)
+        .shadow(color: colorScheme == .dark ? Color.black.opacity(0.3) : Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
     }
 }
 

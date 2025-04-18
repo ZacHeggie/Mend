@@ -2,6 +2,19 @@ import SwiftUI
 
 struct DashboardView: View {
     @EnvironmentObject private var recoveryMetrics: RecoveryMetrics
+    @Environment(\.colorScheme) var colorScheme
+    
+    private var backgroundColor: Color {
+        colorScheme == .dark ? MendColors.darkBackground : MendColors.background
+    }
+    
+    private var textColor: Color {
+        colorScheme == .dark ? MendColors.darkText : MendColors.text
+    }
+    
+    private var secondaryTextColor: Color {
+        colorScheme == .dark ? MendColors.darkSecondaryText : MendColors.secondaryText
+    }
     
     var body: some View {
         ScrollView {
@@ -10,7 +23,7 @@ struct DashboardView: View {
                     ProgressView()
                         .padding()
                     Text("Loading recovery data...")
-                        .foregroundColor(.secondary)
+                        .foregroundColor(secondaryTextColor)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(.top, 100)
@@ -20,13 +33,13 @@ struct DashboardView: View {
                     VStack(spacing: MendSpacing.medium) {
                         Text("Today's Recovery")
                             .font(MendFont.title)
-                            .foregroundColor(MendColors.text)
+                            .foregroundColor(textColor)
                         
                         ScoreRing(score: recoveryScore.overallScore, size: 160, lineWidth: 15)
                         
                         Text("Your body is \(recoveryScoreDescription(for: recoveryScore))")
                             .font(MendFont.headline)
-                            .foregroundColor(MendColors.text)
+                            .foregroundColor(textColor)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
                     }
@@ -36,7 +49,7 @@ struct DashboardView: View {
                     VStack(spacing: MendSpacing.medium) {
                         Text("Your Metrics")
                             .font(MendFont.headline)
-                            .foregroundColor(MendColors.text)
+                            .foregroundColor(textColor)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         
                         MetricCard(metric: recoveryScore.heartRateScore)
@@ -68,28 +81,34 @@ struct DashboardView: View {
                 VStack {
                     Image(systemName: "exclamationmark.triangle")
                         .font(.largeTitle)
-                        .foregroundColor(.orange)
+                        .foregroundColor(MendColors.neutral)
                         .padding()
                     
                     Text("No recovery data available")
                         .font(.headline)
+                        .foregroundColor(textColor)
                     
                     Text("Try refreshing your data in Settings")
-                        .foregroundColor(.secondary)
+                        .foregroundColor(secondaryTextColor)
                     
                     Button("Refresh Now") {
                         Task {
                             await recoveryMetrics.refreshData()
                         }
                     }
-                    .buttonStyle(.bordered)
-                    .padding()
+                    .padding(.vertical, MendSpacing.medium)
+                    .padding(.horizontal, MendSpacing.large)
+                    .background(MendColors.primary)
+                    .foregroundColor(.white)
+                    .cornerRadius(MendCornerRadius.pill)
+                    .padding(.top, MendSpacing.medium)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(.top, 100)
             }
         }
-        .background(MendColors.background.ignoresSafeArea())
+        .background(backgroundColor.ignoresSafeArea())
+        .navigationTitle("Dashboard")
         .onAppear {
             Task {
                 await recoveryMetrics.refreshData()
