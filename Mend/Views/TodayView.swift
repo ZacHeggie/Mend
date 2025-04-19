@@ -5,104 +5,69 @@ struct TodayView: View {
     @StateObject private var activityManager = ActivityManager.shared
     @State private var recentActivities: [Activity] = []
     @State private var personalizedRecommendations: [ActivityRecommendation] = []
+    @Environment(\.colorScheme) var colorScheme
+    @State private var showingAddActivity = false
+    
+    // Computed properties for dynamic colors
+    private var backgroundColor: Color {
+        colorScheme == .dark ? MendColors.darkBackground : MendColors.background
+    }
+    
+    private var textColor: Color {
+        colorScheme == .dark ? MendColors.darkText : MendColors.text
+    }
+    
+    private var secondaryTextColor: Color {
+        colorScheme == .dark ? MendColors.darkSecondaryText : MendColors.secondaryText
+    }
+    
+    private var cardBackgroundColor: Color {
+        colorScheme == .dark ? MendColors.darkCardBackground : MendColors.cardBackground
+    }
     
     var body: some View {
-        ScrollView {
-            if recoveryMetrics.isLoading {
-                VStack {
-                    ProgressView()
-                        .padding()
-                    Text("Loading recovery data...")
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(.top, 100)
-            } else if let recoveryScore = recoveryMetrics.currentRecoveryScore {
-                VStack(spacing: MendSpacing.large) {
-                    // Recovery Summary
-                    VStack(spacing: MendSpacing.medium) {
-                        HStack(spacing: MendSpacing.medium) {
-                            ScoreRing(score: recoveryScore.overallScore, size: 80, lineWidth: 8)
-                            
-                            VStack(alignment: .leading, spacing: MendSpacing.small) {
-                                Text("Recovery Score")
-                                    .font(MendFont.headline)
-                                    .foregroundColor(MendColors.text)
-                                
-                                Text("Your body is \(recoveryScoreDescription(for: recoveryScore))")
-                                    .font(MendFont.body)
-                                    .foregroundColor(MendColors.text)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                        }
-                        .padding()
-                        .background(MendColors.cardBackground)
-                        .cornerRadius(MendCornerRadius.medium)
-                        .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 2)
-                    }
-                    
-                    // Recent Activities
-                    if !recentActivities.isEmpty {
-                        VStack(alignment: .leading, spacing: MendSpacing.medium) {
-                            Text("Today's Activities")
-                                .font(MendFont.headline)
-                                .foregroundColor(MendColors.text)
-                            
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: MendSpacing.medium) {
-                                    ForEach(recentActivities) { activity in
-                                        RecentActivityCard(activity: activity)
-                                            .frame(width: 200)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    
-                    // Activity Recommendations
-                    VStack(alignment: .leading, spacing: MendSpacing.medium) {
-                        Text("Recommended Activities")
-                            .font(MendFont.headline)
-                            .foregroundColor(MendColors.text)
+        ZStack(alignment: .bottomTrailing) {
+            ScrollView {
+                if recoveryMetrics.isLoading {
+                    loadingView
+                } else if let recoveryScore = recoveryMetrics.currentRecoveryScore {
+                    VStack(spacing: MendSpacing.large) {
+                        // Recovery Summary
+                        recoveryScoreView(score: recoveryScore)
                         
-                        // Show personalized recommendations if available, otherwise use basic recommendations
-                        let recommendationsToShow = !personalizedRecommendations.isEmpty ? 
-                                                   personalizedRecommendations : 
-                                                   recoveryScore.recommendedActivities
-                                                   
-                        ForEach(recommendationsToShow) { activity in
-                            RecommendedActivityCard(activity: activity)
+                        // Recent Activities
+                        if !recentActivities.isEmpty {
+                            recentActivitiesView
                         }
+                        
+                        // Activity Recommendations
+                        recommendationsView(score: recoveryScore)
                     }
-                }
-                .padding()
-            } else {
-                VStack {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.largeTitle)
-                        .foregroundColor(.orange)
-                        .padding()
-                    
-                    Text("No recovery data available")
-                        .font(.headline)
-                    
-                    Text("Try refreshing your data in Settings")
-                        .foregroundColor(.secondary)
-                    
-                    Button("Refresh Now") {
-                        Task {
-                            await recoveryMetrics.refreshData()
-                        }
-                    }
-                    .buttonStyle(.bordered)
                     .padding()
+                    .padding(.bottom, 80) // Add extra padding at bottom for the FAB
+                } else {
+                    noDataView
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(.top, 100)
             }
+            .background(backgroundColor.ignoresSafeArea())
+            .navigationTitle("Today")
+            .navigationBarItems(trailing: notificationButton)
+            
+            // Floating Action Button for adding activity
+            Button(action: {
+                showingAddActivity = true
+            }) {
+                Image(systemName: "plus")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(width: 56, height: 56)
+                    .background(MendColors.primary)
+                    .clipShape(Circle())
+                    .shadow(color: colorScheme == .dark ? Color.black.opacity(0.4) : Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
+            }
+            .padding(.bottom, 70) // Position above tab bar
+            .padding(.trailing, 20)
         }
-        .background(MendColors.background.ignoresSafeArea())
-        .navigationTitle("Today")
         .onAppear {
             loadRecentActivities()
             
@@ -110,7 +75,156 @@ struct TodayView: View {
                 await loadData()
             }
         }
+        .sheet(isPresented: $showingAddActivity) {
+            NavigationView {
+                AddActivityView(isPresented: $showingAddActivity)
+                    .navigationTitle("Add Activity")
+                    .navigationBarItems(trailing: Button("Cancel") {
+                        showingAddActivity = false
+                    })
+                    .environmentObject(activityManager)
+            }
+        }
     }
+    
+    // MARK: - Component Views
+    
+    private var loadingView: some View {
+        VStack(spacing: MendSpacing.medium) {
+            ProgressView()
+                .scaleEffect(1.5)
+                .padding()
+            
+            Text("Loading recovery data...")
+                .font(MendFont.subheadline)
+                .foregroundColor(secondaryTextColor)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.top, 100)
+    }
+    
+    private var noDataView: some View {
+        VStack(spacing: MendSpacing.medium) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 40))
+                .foregroundColor(MendColors.neutral)
+                .padding()
+            
+            Text("No recovery data available")
+                .font(MendFont.title3)
+                .foregroundColor(textColor)
+            
+            Text("Try refreshing your data in Settings")
+                .font(MendFont.subheadline)
+                .foregroundColor(secondaryTextColor)
+            
+            Button("Refresh Now") {
+                Task {
+                    await recoveryMetrics.refreshData()
+                }
+            }
+            .padding(.vertical, MendSpacing.medium)
+            .padding(.horizontal, MendSpacing.large)
+            .background(MendColors.primary)
+            .foregroundColor(.white)
+            .cornerRadius(MendCornerRadius.pill)
+            .padding(.top, MendSpacing.medium)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.top, 100)
+    }
+    
+    private func recoveryScoreView(score: RecoveryScore) -> some View {
+        VStack(alignment: .leading, spacing: MendSpacing.medium) {
+            Text("Today's Recovery")
+                .font(MendFont.headline)
+                .foregroundColor(secondaryTextColor)
+                .padding(.horizontal, MendSpacing.medium)
+            
+            HStack(spacing: MendSpacing.large) {
+                ScoreRing(score: score.overallScore, size: 90, lineWidth: 10)
+                    .padding(.leading, MendSpacing.medium)
+                
+                VStack(alignment: .leading, spacing: MendSpacing.small) {
+                    Text("\(score.overallScore)")
+                        .font(MendFont.title)
+                        .foregroundColor(textColor)
+                    
+                    Text(recoveryScoreDescription(for: score))
+                        .font(MendFont.subheadline)
+                        .foregroundColor(secondaryTextColor)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.trailing, MendSpacing.medium)
+            }
+            .padding(.vertical, MendSpacing.medium)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(cardBackgroundColor)
+            .cornerRadius(MendCornerRadius.medium)
+            .shadow(color: colorScheme == .dark ? Color.black.opacity(0.25) : Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+        }
+    }
+    
+    private var recentActivitiesView: some View {
+        VStack(alignment: .leading, spacing: MendSpacing.medium) {
+            HStack {
+                Text("Today's Activities")
+                    .font(MendFont.headline)
+                    .foregroundColor(secondaryTextColor)
+                
+                Spacer()
+                
+                Button(action: {
+                    showingAddActivity = true
+                }) {
+                    Text("Add")
+                        .font(MendFont.subheadline.weight(.medium))
+                        .foregroundColor(MendColors.primary)
+                }
+            }
+            .padding(.horizontal, MendSpacing.medium)
+            
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: MendSpacing.medium) {
+                    ForEach(recentActivities) { activity in
+                        RecentActivityCard(activity: activity, colorScheme: colorScheme)
+                            .frame(width: 220)
+                    }
+                }
+                .padding(.horizontal, MendSpacing.medium)
+            }
+        }
+    }
+    
+    private func recommendationsView(score: RecoveryScore) -> some View {
+        VStack(alignment: .leading, spacing: MendSpacing.medium) {
+            Text("Recommended Activities")
+                .font(MendFont.headline)
+                .foregroundColor(secondaryTextColor)
+                .padding(.horizontal, MendSpacing.medium)
+            
+            // Show personalized recommendations if available, otherwise use basic recommendations
+            let recommendationsToShow = !personalizedRecommendations.isEmpty ? 
+                                       personalizedRecommendations : 
+                                       score.recommendedActivities
+                                       
+            ForEach(recommendationsToShow) { activity in
+                RecommendedActivityCard(activity: activity, colorScheme: colorScheme)
+            }
+        }
+    }
+    
+    private var notificationButton: some View {
+        Button(action: {
+            // Notification action
+        }) {
+            Image(systemName: "bell")
+                .font(.system(size: 18))
+                .foregroundColor(textColor)
+        }
+    }
+    
+    // MARK: - Helper Functions
     
     private func loadData() async {
         // Load recovery metrics
@@ -133,19 +247,34 @@ struct TodayView: View {
     func recoveryScoreDescription(for score: RecoveryScore) -> String {
         switch score.overallScore {
         case 0..<40:
-            return "highly stressed. Focus on recovery today."
+            return "Highly stressed. Focus on recovery today."
         case 40..<60:
-            return "somewhat fatigued. Consider light activity."
+            return "Somewhat fatigued. Consider light activity."
         case 60..<80:
-            return "reasonably recovered. Moderate training is fine."
+            return "Reasonably recovered. Moderate training is fine."
         default:
-            return "well recovered. You're ready for intense training."
+            return "Well recovered. Ready for intense training."
         }
     }
 }
 
+// MARK: - Activity Cards
+
 struct RecentActivityCard: View {
     let activity: Activity
+    var colorScheme: ColorScheme
+    
+    private var cardBackgroundColor: Color {
+        colorScheme == .dark ? MendColors.darkCardBackground : MendColors.cardBackground
+    }
+    
+    private var textColor: Color {
+        colorScheme == .dark ? MendColors.darkText : MendColors.text
+    }
+    
+    private var secondaryTextColor: Color {
+        colorScheme == .dark ? MendColors.darkSecondaryText : MendColors.secondaryText
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: MendSpacing.small) {
@@ -153,22 +282,22 @@ struct RecentActivityCard: View {
             HStack {
                 Image(systemName: activity.type.icon)
                     .font(.title3)
-                    .foregroundColor(activity.intensity.color)
+                    .foregroundColor(.white)
                     .frame(width: 36, height: 36)
-                    .background(activity.intensity.color.opacity(0.1))
+                    .background(activity.intensity.color)
                     .clipShape(Circle())
                 
                 Spacer()
                 
                 Text(formatRelativeDate(activity.date))
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                    .font(MendFont.caption)
+                    .foregroundColor(secondaryTextColor)
             }
             
             // Title
             Text(activity.title)
                 .font(MendFont.headline)
-                .foregroundColor(MendColors.text)
+                .foregroundColor(textColor)
                 .lineLimit(1)
             
             Spacer()
@@ -178,29 +307,29 @@ struct RecentActivityCard: View {
                 if activity.distance != nil {
                     HStack(spacing: 2) {
                         Image(systemName: "ruler")
-                            .font(.caption)
+                            .font(MendFont.caption)
                         Text(activity.formattedDistance ?? "")
-                            .font(.caption)
+                            .font(MendFont.caption)
                     }
-                    .foregroundColor(MendColors.text.opacity(0.7))
+                    .foregroundColor(secondaryTextColor)
                 }
                 
                 Spacer()
                 
                 HStack(spacing: 2) {
                     Image(systemName: "clock")
-                        .font(.caption)
+                        .font(MendFont.caption)
                     Text(activity.formattedDuration)
-                        .font(.caption)
+                        .font(MendFont.caption)
                 }
-                .foregroundColor(MendColors.text.opacity(0.7))
+                .foregroundColor(secondaryTextColor)
             }
         }
         .padding()
-        .frame(height: 120)
-        .background(MendColors.cardBackground)
+        .frame(height: 130)
+        .background(cardBackgroundColor)
         .cornerRadius(MendCornerRadius.medium)
-        .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .shadow(color: colorScheme == .dark ? Color.black.opacity(0.3) : Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
     }
     
     private func formatRelativeDate(_ date: Date) -> String {
@@ -220,48 +349,76 @@ struct RecentActivityCard: View {
 
 struct RecommendedActivityCard: View {
     let activity: ActivityRecommendation
+    var colorScheme: ColorScheme
+    
+    private var cardBackgroundColor: Color {
+        colorScheme == .dark ? MendColors.darkCardBackground : MendColors.cardBackground
+    }
+    
+    private var textColor: Color {
+        colorScheme == .dark ? MendColors.darkText : MendColors.text
+    }
+    
+    private var secondaryTextColor: Color {
+        colorScheme == .dark ? MendColors.darkSecondaryText : MendColors.secondaryText
+    }
     
     var body: some View {
         HStack(spacing: MendSpacing.medium) {
-            // Icon
-            Image(systemName: activity.icon)
-                .font(.title)
-                .foregroundColor(activity.intensity.color)
-                .frame(width: 44, height: 44)
-                .background(activity.intensity.color.opacity(0.1))
-                .cornerRadius(MendCornerRadius.small)
+            // Activity Icon
+            ZStack {
+                Circle()
+                    .fill(activity.intensity.color.opacity(colorScheme == .dark ? 0.3 : 0.2))
+                    .frame(width: 50, height: 50)
+                
+                Image(systemName: activity.icon)
+                    .font(.system(size: 20))
+                    .foregroundColor(activity.intensity.color)
+            }
+            .padding(.leading, MendSpacing.small)
             
-            // Content
-            VStack(alignment: .leading, spacing: MendSpacing.small) {
-                HStack {
-                    Text(activity.title)
-                        .font(MendFont.headline)
-                        .foregroundColor(MendColors.text)
-                    
-                    Text(activity.intensity.rawValue)
-                        .font(MendFont.caption)
-                        .foregroundColor(activity.intensity.color)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(activity.intensity.color.opacity(0.1))
-                        .cornerRadius(MendCornerRadius.small)
-                }
+            // Activity Details
+            VStack(alignment: .leading, spacing: 4) {
+                Text(activity.title)
+                    .font(MendFont.headline)
+                    .foregroundColor(textColor)
                 
                 Text(activity.description)
-                    .font(MendFont.body)
-                    .foregroundColor(MendColors.text.opacity(0.8))
-                
-                Text(activity.formattedDuration)
                     .font(MendFont.subheadline)
-                    .foregroundColor(MendColors.secondary)
+                    .foregroundColor(secondaryTextColor)
+                    .lineLimit(1)
             }
             
             Spacer()
+            
+            // Chevron
+            Image(systemName: "chevron.right")
+                .foregroundColor(secondaryTextColor)
+                .padding(.trailing, MendSpacing.medium)
         }
-        .padding()
-        .background(MendColors.cardBackground)
+        .padding(.vertical, MendSpacing.medium)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(cardBackgroundColor)
         .cornerRadius(MendCornerRadius.medium)
-        .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 2)
+        .shadow(color: colorScheme == .dark ? Color.black.opacity(0.3) : Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
+    }
+}
+
+// Helper for date formatting
+func formatRelativeDate(_ date: Date) -> String {
+    let calendar = Calendar.current
+    
+    if calendar.isDateInToday(date) {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    } else if calendar.isDateInYesterday(date) {
+        return "Yesterday"
+    } else {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        return formatter.string(from: date)
     }
 }
 
