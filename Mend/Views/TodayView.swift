@@ -586,7 +586,6 @@ struct RecoveryInsightCard: View {
                             .foregroundColor(textColor)
                         
                         RecoveryTimelineView(recoveryDays: insight.recoveryDays)
-                            .frame(height: 40)
                             .padding(.bottom, MendSpacing.small)
                         
                         Text("Implications for Training")
@@ -632,7 +631,7 @@ struct RecoveryTimelineView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            // Timeline visualization
+            // Timeline visualization with highlighted "today" starting point
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
                     // Background track
@@ -663,12 +662,12 @@ struct RecoveryTimelineView: View {
                     }
                     .cornerRadius(4)
                     
-                    // Day markers
+                    // Day markers with more emphasis on today
                     HStack {
                         ForEach(0..<6) { i in
                             Rectangle()
-                                .fill(Color.white.opacity(0.7))
-                                .frame(width: 1.5, height: 8)
+                                .fill(i == 0 ? Color.white : Color.white.opacity(0.7))
+                                .frame(width: i == 0 ? 2 : 1.5, height: i == 0 ? 10 : 8) 
                                 .padding(.leading, i == 0 ? 0 : (geometry.size.width / 5.0) - 1.5)
                         }
                     }
@@ -686,13 +685,21 @@ struct RecoveryTimelineView: View {
             }
             .frame(height: 35)
             
-            // Day labels
+            // Day labels with better formatting
             HStack {
                 ForEach(0..<6) { dayOffset in
-                    Text(getDayLabel(for: dayOffset))
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(dayOffset == 0 ? .primary : .secondary)
-                        .frame(maxWidth: .infinity)
+                    VStack(alignment: .center, spacing: 0) {
+                        Text(getDayLabel(for: dayOffset))
+                            .font(.system(size: 10, weight: dayOffset == 0 ? .bold : .medium))
+                            .foregroundColor(dayOffset == 0 ? .primary : .secondary)
+                        
+                        if dayOffset > 0 {
+                            Text(getDayNumber(for: dayOffset))
+                                .font(.system(size: 9))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
                 }
             }
             .padding(.top, 2)
@@ -713,6 +720,15 @@ struct RecoveryTimelineView: View {
         // For other days, use abbreviated day name
         let formatter = DateFormatter()
         formatter.dateFormat = "EEE"
+        return formatter.string(from: date)
+    }
+    
+    private func getDayNumber(for dayOffset: Int) -> String {
+        let calendar = Calendar.current
+        let date = calendar.date(byAdding: .day, value: dayOffset, to: Date())!
+        
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d"
         return formatter.string(from: date)
     }
 }
