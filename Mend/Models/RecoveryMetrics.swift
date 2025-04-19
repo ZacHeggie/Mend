@@ -134,85 +134,107 @@ class RecoveryMetrics: ObservableObject {
     
     private func getHeartRateDescription(currentHeartRate: Double, delta: Double) -> String {
         let formattedValue = String(format: "%.0f", currentHeartRate)
+        let formattedDelta = String(format: "%.0f", abs(delta))
+        let avgValue = currentHeartRate - delta
+        let formattedAvg = String(format: "%.0f", avgValue)
         
-        // More technical description
+        // Create a more detailed and informative description
         let baseDescription = "Resting heart rate of \(formattedValue) BPM, measured during periods of inactivity. Lower RHR typically indicates better cardiovascular efficiency and recovery state."
         
+        // If delta is negligible, report stability
         if abs(delta) < 2 {
-            return baseDescription + " Your RHR is stable compared to your weekly average."
+            return baseDescription + " Your RHR is stable compared to your weekly average of \(formattedAvg) BPM."
         }
         
-        let isPositive = delta < 0  // For heart rate, lower is better (negative delta is positive)
-        let direction = isPositive ? "higher" : "lower"
-        let deltaValue = String(format: "%.0f", abs(delta))
+        // For heart rate, lower is typically better (negative delta is positive)
+        let isPositive = delta < 0
+        let direction = delta < 0 ? "lower" : "higher"
         
         if isPositive {
-            return baseDescription + " Currently \(deltaValue) BPM \(direction) than your 7-day average, which may indicate increased physiological stress, incomplete recovery, or normal daily variation."
+            return baseDescription + " Your RHR is \(formattedDelta) BPM \(direction) than your 7-day average of \(formattedAvg) BPM, suggesting improved cardiovascular efficiency and recovery."
         } else {
-            return baseDescription + " Currently \(deltaValue) BPM \(direction) than your 7-day average, suggesting improved cardiovascular recovery or adaptation to recent training."
+            return baseDescription + " Your RHR is \(formattedDelta) BPM \(direction) than your 7-day average of \(formattedAvg) BPM, which could indicate increased fatigue, stress, or insufficient recovery."
         }
     }
     
     private func getHRVDescription(currentHRV: Double, delta: Double) -> String {
         let formattedValue = String(format: "%.0f", currentHRV)
+        let formattedDelta = String(format: "%.0f", abs(delta))
+        let avgValue = currentHRV - delta
+        let formattedAvg = String(format: "%.0f", avgValue)
         
-        // More technical description
-        let baseDescription = "Heart rate variability of \(formattedValue) ms (RMSSD), reflecting autonomic nervous system balance. Higher values typically indicate better recovery capacity and stress resilience."
+        // Create a more detailed description
+        let baseDescription = "Heart Rate Variability of \(formattedValue) ms, representing the variation in time between heartbeats. Higher HRV typically indicates better recovery and autonomic nervous system balance."
         
-        if abs(delta) < 3 {
-            return baseDescription + " Your HRV is consistent with your recent baseline."
+        // If delta is negligible, report stability
+        if abs(delta) < 2 {
+            return baseDescription + " Your HRV is stable compared to your weekly average of \(formattedAvg) ms."
         }
         
-        let isPositive = delta > 0  // For HRV, higher is better (positive delta is positive)
-        let direction = isPositive ? "higher" : "lower"
-        let deltaValue = String(format: "%.0f", abs(delta))
+        // For HRV, higher is typically better (positive delta is positive)
+        let isPositive = delta > 0
+        let direction = delta > 0 ? "higher" : "lower"
         
         if isPositive {
-            return baseDescription + " Currently \(deltaValue) ms \(direction) than your 7-day average, suggesting improved parasympathetic tone and potentially better recovery status."
+            return baseDescription + " Your HRV is \(formattedDelta) ms \(direction) than your 7-day average of \(formattedAvg) ms, suggesting better recovery, reduced stress, and improved readiness."
         } else {
-            return baseDescription + " Currently \(deltaValue) ms \(direction) than your 7-day average, which may indicate accumulated fatigue, increased stress, or incomplete recovery."
+            return baseDescription + " Your HRV is \(formattedDelta) ms \(direction) than your 7-day average of \(formattedAvg) ms, which could indicate increased stress, fatigue, or training load."
         }
     }
     
     private func getSleepDescription(currentSleep: Double, delta: Double) -> String {
-        let formattedHours = String(format: "%.1f hours", currentSleep)
+        let formattedValue = String(format: "%.1f", currentSleep)
+        let formattedDelta = String(format: "%.1f", abs(delta))
+        let avgValue = currentSleep - delta
+        let formattedAvg = String(format: "%.1f", avgValue)
         
-        // More technical description
-        let baseDescription = "\(formattedHours) of total sleep, including all sleep phases. Optimal adult sleep duration typically ranges from 7-9 hours per night for cognitive and physical recovery."
+        // Create a more detailed description
+        let baseDescription = "Sleep duration of \(formattedValue) hours. Adequate sleep (7-9 hours) is essential for physical recovery, cognitive function, and overall health."
         
-        if abs(delta) < 0.5 {
-            return baseDescription + " Your sleep duration is consistent with your recent pattern."
+        // If delta is negligible, report stability
+        if abs(delta) < 0.3 {
+            return baseDescription + " Your sleep duration is consistent with your weekly average of \(formattedAvg) hours."
         }
         
-        let isPositive = delta > 0  // For sleep, more is better (positive delta is positive)
-        let direction = isPositive ? "more" : "less"
-        let deltaValue = String(format: "%.1f", abs(delta))
+        // For sleep duration, more is typically better up to a point (positive delta is positive)
+        // We don't need to store this value since we're just checking conditions
+        // let isPositive = delta > 0 && currentSleep <= 9.0 || delta < 0 && currentSleep > 9.0
         
-        if isPositive {
-            return baseDescription + " This is \(deltaValue) hours \(direction) than your weekly average, potentially enhancing recovery processes and cognitive function."
+        if delta > 0 {
+            if currentSleep <= 9.0 {
+                return baseDescription + " You slept \(formattedDelta) hours more than your 7-day average of \(formattedAvg) hours, which is beneficial for recovery and cognitive function."
+            } else {
+                return baseDescription + " You slept \(formattedDelta) hours more than your 7-day average of \(formattedAvg) hours. While sleep is important, very long sleep periods (>9 hours) may sometimes indicate fatigue or recovery needs."
+            }
         } else {
-            return baseDescription + " This is \(deltaValue) hours \(direction) than your weekly average, which may limit optimal recovery and affect performance."
+            if currentSleep < 7.0 {
+                return baseDescription + " You slept \(formattedDelta) hours less than your 7-day average of \(formattedAvg) hours, which may impact your cognitive function and physical recovery."
+            } else {
+                return baseDescription + " You slept \(formattedDelta) hours less than your 7-day average of \(formattedAvg) hours, but still within the recommended range."
+            }
         }
     }
     
     private func getSleepQualityDescription(currentSleepQuality: Double, delta: Double) -> String {
         let formattedValue = String(format: "%.0f", currentSleepQuality)
+        let formattedDelta = String(format: "%.0f", abs(delta))
+        let avgValue = currentSleepQuality - delta
+        let formattedAvg = String(format: "%.0f", avgValue)
         
         // Create a more technical and informative description
         let baseDescription = "Sleep quality score of \(formattedValue)/100, calculated from sleep continuity (10%), deep/REM sleep percentage (30%), and total sleep duration (60%)."
         
         if abs(delta) < 5 {
-            return baseDescription + " Your sleep quality is consistent with your recent average."
+            return baseDescription + " Your sleep quality is consistent with your 7-day average of \(formattedAvg)/100."
         }
         
         let isPositive = delta > 0  // For sleep quality, higher is better (positive delta is positive)
         let direction = isPositive ? "higher" : "lower"
-        let deltaValue = String(format: "%.0f", abs(delta))
         
         if isPositive {
-            return baseDescription + " Your score is \(deltaValue) points \(direction) than your 7-day average, indicating improved sleep architecture with better continuity and/or more optimal deep sleep cycles."
+            return baseDescription + " Your score is \(formattedDelta) points \(direction) than your 7-day average of \(formattedAvg)/100, indicating improved sleep architecture with better continuity and/or more optimal deep sleep cycles."
         } else {
-            return baseDescription + " Your score is \(deltaValue) points \(direction) than your 7-day average, suggesting possible disruptions in sleep cycles or reduced deep sleep phases."
+            return baseDescription + " Your score is \(formattedDelta) points \(direction) than your 7-day average of \(formattedAvg)/100, suggesting possible disruptions in sleep cycles or reduced deep sleep phases."
         }
     }
     
@@ -425,119 +447,56 @@ class RecoveryMetrics: ObservableObject {
     }
     
     private func loadPoorRecoverySimulatedData() {
-        // Generate daily data for the last 7 days
-        let calendar = Calendar.current
-        let now = Date()
-        
-        // Create simulated heart rate data - higher heart rate indicates poor recovery
-        let heartRateValue = 75.0
+        // Generate daily data points with slightly worse trends
         var heartRateData: [RecoveryMetricData] = []
-        for day in 0..<7 {
-            let date = calendar.date(byAdding: .day, value: -day, to: now)!
-            // First few days are normal, today is elevated
-            var baseValue = 63.0
-            if day < 2 {
-                baseValue = 75.0 // Today and yesterday elevated
-            }
-            let variation = Double.random(in: -3...5)
-            let value = max(55, min(85, baseValue + variation))
-            heartRateData.append(RecoveryMetricData(date: date, value: value))
-        }
-        
-        // Create simulated HRV data - lower HRV indicates stress/fatigue
-        let hrvValue = 35.0
         var hrvData: [RecoveryMetricData] = []
-        for day in 0..<7 {
-            let date = calendar.date(byAdding: .day, value: -day, to: now)!
-            // First few days poor, previous days were better
-            var baseValue = 63.0
-            if day < 2 {
-                baseValue = 35.0 // Today and yesterday depressed
-            }
-            let variation = Double.random(in: -5...8)
-            let value = max(30, min(75, baseValue + variation))
-            hrvData.append(RecoveryMetricData(date: date, value: value))
-        }
-        
-        // Create simulated sleep data - less sleep hours indicates poor recovery
-        let sleepValue = 5.2
         var sleepData: [RecoveryMetricData] = []
-        for day in 0..<7 {
-            let date = calendar.date(byAdding: .day, value: -day, to: now)!
-            // First few days poor, previous days were better
-            var baseValue = 7.0
-            if day < 2 {
-                baseValue = 5.2
-            }
-            let variation = Double.random(in: -0.5...0.8)
-            let value = max(4.5, min(8.0, baseValue + variation))
-            sleepData.append(RecoveryMetricData(date: date, value: value))
-        }
-        
-        // Create simulated sleep quality data - lower quality
-        let sleepQualityValue = 55.0
         var sleepQualityData: [RecoveryMetricData] = []
-        for day in 0..<7 {
-            let date = calendar.date(byAdding: .day, value: -day, to: now)!
-            // First few days poor, previous days were better
-            var baseValue = 75.0
-            if day < 2 {
-                baseValue = 55.0
-            }
-            let variation = Double.random(in: -5...8)
-            let value = max(45, min(85, baseValue + variation))
-            sleepQualityData.append(RecoveryMetricData(date: date, value: value))
+        
+        // Last 7 days
+        for dayOffset in (0...6).reversed() {
+            let date = Calendar.current.date(byAdding: .day, value: -dayOffset, to: Date())!
+            
+            // Heart rate - poor recovery shows increasing heart rate
+            let heartRatePoint = Double.random(in: 58...68)
+            heartRateData.append(RecoveryMetricData(date: date, value: heartRatePoint + Double(dayOffset) * 1.2))
+            
+            // HRV - poor recovery shows decreasing HRV
+            let hrvPoint = Double.random(in: 55...65)
+            hrvData.append(RecoveryMetricData(date: date, value: hrvPoint - Double(dayOffset) * 1.5))
+            
+            // Sleep - poor recovery shows decreasing sleep
+            let sleepPoint = Double.random(in: 7.0...8.0)
+            sleepData.append(RecoveryMetricData(date: date, value: sleepPoint - Double(dayOffset) * 0.12))
+            
+            // Sleep quality - poor recovery shows decreasing sleep quality
+            let sleepQualityPoint = Double.random(in: 75...90)
+            sleepQualityData.append(RecoveryMetricData(date: date, value: sleepQualityPoint - Double(dayOffset) * 2.0))
         }
         
-        // Calculate deltas - for poor recovery, we want negative deltas for good metrics
-        let avgHeartRate = heartRateData.filter { day in
-            if let dayIndex = heartRateData.firstIndex(where: { Calendar.current.isDate($0.date, inSameDayAs: day.date) }) {
-                return dayIndex > 1 // Skip the current and previous day
-            }
-            return false
-        }.map { $0.value }.reduce(0, +) / 5.0 // Average of the 5 previous days
+        // Calculate averages
+        let heartRateAvg = heartRateData.dropLast().map { $0.value }.reduce(0, +) / Double(heartRateData.count - 1)
+        let hrvAvg = hrvData.dropLast().map { $0.value }.reduce(0, +) / Double(hrvData.count - 1)
+        let sleepAvg = sleepData.dropLast().map { $0.value }.reduce(0, +) / Double(sleepData.count - 1)
+        let sleepQualityAvg = sleepQualityData.dropLast().map { $0.value }.reduce(0, +) / Double(sleepQualityData.count - 1)
         
-        let heartRateDelta = avgHeartRate - heartRateValue
-        let isHeartRateDeltaPositive = heartRateDelta > 0 // Negative delta for heart rate is good
+        // Get today's values (last in each array)
+        let heartRateValue = heartRateData.last!.value
+        let hrvValue = hrvData.last!.value
+        let sleepValue = sleepData.last!.value
+        let sleepQualityValue = sleepQualityData.last!.value
         
-        // Similar for HRV
-        let avgHRV = hrvData.filter { day in
-            if let dayIndex = hrvData.firstIndex(where: { Calendar.current.isDate($0.date, inSameDayAs: day.date) }) {
-                return dayIndex > 1
-            }
-            return false
-        }.map { $0.value }.reduce(0, +) / 5.0
+        // Calculate deltas
+        let heartRateDelta = heartRateValue - heartRateAvg
+        let hrvDelta = hrvValue - hrvAvg 
+        let sleepDelta = sleepValue - sleepAvg
+        let sleepQualityDelta = sleepQualityValue - sleepQualityAvg
         
-        let hrvDelta = hrvValue - avgHRV
-        let isHRVDeltaPositive = hrvDelta > 0 // We want this to be negative
-        
-        // Sleep deltas
-        let avgSleep = sleepData.filter { day in
-            if let dayIndex = sleepData.firstIndex(where: { Calendar.current.isDate($0.date, inSameDayAs: day.date) }) {
-                return dayIndex > 1
-            }
-            return false
-        }.map { $0.value }.reduce(0, +) / 5.0
-        
-        let sleepDelta = sleepValue - avgSleep
-        let isSleepDeltaPositive = sleepDelta > 0 // We want this to be negative
-        
-        // Sleep quality deltas
-        let avgSleepQuality = sleepQualityData.filter { day in
-            if let dayIndex = sleepQualityData.firstIndex(where: { Calendar.current.isDate($0.date, inSameDayAs: day.date) }) {
-                return dayIndex > 1
-            }
-            return false
-        }.map { $0.value }.reduce(0, +) / 5.0
-        
-        let sleepQualityDelta = sleepQualityValue - avgSleepQuality
-        let isSleepQualityDeltaPositive = sleepQualityDelta > 0 // We want this to be negative
-        
-        // Populate metrics with poor recovery data
+        // Create metrics with poor recovery indicators
         self._heartRateMetric = MetricScore(
-            score: 45, // Lower score is worse for heart rate
+            score: Int(heartRateValue),
             title: "Resting Heart Rate",
-            description: "Your resting heart rate is \(String(format: "%.0f", abs(heartRateDelta))) BPM higher than your average, which may indicate fatigue or stress.",
+            description: "Your resting heart rate is \(String(format: "%.0f", abs(heartRateDelta)))bpm higher than your average, which may indicate incomplete recovery or stress.",
             dailyData: heartRateData.sorted { $0.date < $1.date },
             deltaFromAverage: heartRateDelta,
             isPositiveDelta: false // It's a negative change
@@ -758,10 +717,14 @@ extension MetricScore {
     }
 }
 
-struct RecoveryMetricData: Identifiable {
+struct RecoveryMetricData: Identifiable, Equatable {
     let id = UUID()
     let date: Date
     let value: Double
+    
+    static func == (lhs: RecoveryMetricData, rhs: RecoveryMetricData) -> Bool {
+        lhs.id == rhs.id && lhs.date == rhs.date && lhs.value == rhs.value
+    }
 }
 
 struct RecoveryRecommendation: Identifiable {
