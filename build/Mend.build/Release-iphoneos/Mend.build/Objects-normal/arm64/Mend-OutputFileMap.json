@@ -1,0 +1,95 @@
+{
+  "" : {
+    "const-values" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/Mend-master.swiftconstvalues",
+    "dependencies" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/Mend-master.d",
+    "diagnostics" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/Mend-master.dia",
+    "emit-module-dependencies" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/Mend-master-emit-module.d",
+    "emit-module-diagnostics" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/Mend-master-emit-module.dia",
+    "swift-dependencies" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/Mend-master.swiftdeps"
+  },
+  "/Users/zacheggie/Documents/Development/Mend/Mend/Components/MetricCard.swift" : {
+    "index-unit-output-path" : "/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/MetricCard.o",
+    "llvm-bc" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/MetricCard.bc",
+    "object" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/MetricCard.o"
+  },
+  "/Users/zacheggie/Documents/Development/Mend/Mend/Components/ScoreRing.swift" : {
+    "index-unit-output-path" : "/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/ScoreRing.o",
+    "llvm-bc" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/ScoreRing.bc",
+    "object" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/ScoreRing.o"
+  },
+  "/Users/zacheggie/Documents/Development/Mend/Mend/ContentView.swift" : {
+    "index-unit-output-path" : "/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/ContentView.o",
+    "llvm-bc" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/ContentView.bc",
+    "object" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/ContentView.o"
+  },
+  "/Users/zacheggie/Documents/Development/Mend/Mend/MendApp.swift" : {
+    "index-unit-output-path" : "/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/MendApp.o",
+    "llvm-bc" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/MendApp.bc",
+    "object" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/MendApp.o"
+  },
+  "/Users/zacheggie/Documents/Development/Mend/Mend/Models/Activity.swift" : {
+    "index-unit-output-path" : "/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/Activity.o",
+    "llvm-bc" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/Activity.bc",
+    "object" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/Activity.o"
+  },
+  "/Users/zacheggie/Documents/Development/Mend/Mend/Models/ActivityManager.swift" : {
+    "index-unit-output-path" : "/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/ActivityManager.o",
+    "llvm-bc" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/ActivityManager.bc",
+    "object" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/ActivityManager.o"
+  },
+  "/Users/zacheggie/Documents/Development/Mend/Mend/Models/ActivityRecommendations.swift" : {
+    "index-unit-output-path" : "/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/ActivityRecommendations.o",
+    "llvm-bc" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/ActivityRecommendations.bc",
+    "object" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/ActivityRecommendations.o"
+  },
+  "/Users/zacheggie/Documents/Development/Mend/Mend/Models/HealthDataImporter.swift" : {
+    "index-unit-output-path" : "/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/HealthDataImporter.o",
+    "llvm-bc" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/HealthDataImporter.bc",
+    "object" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/HealthDataImporter.o"
+  },
+  "/Users/zacheggie/Documents/Development/Mend/Mend/Models/RecoveryMetrics.swift" : {
+    "index-unit-output-path" : "/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/RecoveryMetrics.o",
+    "llvm-bc" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/RecoveryMetrics.bc",
+    "object" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/RecoveryMetrics.o"
+  },
+  "/Users/zacheggie/Documents/Development/Mend/Mend/Models/SharedTypes.swift" : {
+    "index-unit-output-path" : "/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/SharedTypes.o",
+    "llvm-bc" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/SharedTypes.bc",
+    "object" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/SharedTypes.o"
+  },
+  "/Users/zacheggie/Documents/Development/Mend/Mend/Utilities/HealthKitManager.swift" : {
+    "index-unit-output-path" : "/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/HealthKitManager.o",
+    "llvm-bc" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/HealthKitManager.bc",
+    "object" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/HealthKitManager.o"
+  },
+  "/Users/zacheggie/Documents/Development/Mend/Mend/Utilities/MendStyle.swift" : {
+    "index-unit-output-path" : "/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/MendStyle.o",
+    "llvm-bc" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/MendStyle.bc",
+    "object" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/MendStyle.o"
+  },
+  "/Users/zacheggie/Documents/Development/Mend/Mend/Views/ActivityView.swift" : {
+    "index-unit-output-path" : "/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/ActivityView.o",
+    "llvm-bc" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/ActivityView.bc",
+    "object" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/ActivityView.o"
+  },
+  "/Users/zacheggie/Documents/Development/Mend/Mend/Views/DashboardView.swift" : {
+    "index-unit-output-path" : "/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/DashboardView.o",
+    "llvm-bc" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/DashboardView.bc",
+    "object" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/DashboardView.o"
+  },
+  "/Users/zacheggie/Documents/Development/Mend/Mend/Views/SettingsView.swift" : {
+    "index-unit-output-path" : "/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/SettingsView.o",
+    "llvm-bc" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/SettingsView.bc",
+    "object" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/SettingsView.o"
+  },
+  "/Users/zacheggie/Documents/Development/Mend/Mend/Views/TodayView.swift" : {
+    "index-unit-output-path" : "/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/TodayView.o",
+    "llvm-bc" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/TodayView.bc",
+    "object" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/TodayView.o"
+  },
+  "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "index-unit-output-path" : "/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/Objects-normal/arm64/GeneratedAssetSymbols.o"
+  }
+}

@@ -1,0 +1,23 @@
+version: "Apple Swift version 6.1 (swiftlang-6.1.0.110.21 clang-1700.0.13.3)"
+options: "14191735f6536f9aa3a712bcc5c8b1ab1de390f304bccfc71d39f78b0a7255bc"
+build_start_time: [1745098809, 460436000]
+build_end_time: [1745098814, 288962000]
+inputs:
+  "/Users/zacheggie/Documents/Development/Mend/Mend/Components/MetricCard.swift": !dirty [1745080962, 96488459]
+  "/Users/zacheggie/Documents/Development/Mend/Mend/Components/ScoreRing.swift": !dirty [1745007334, 89114103]
+  "/Users/zacheggie/Documents/Development/Mend/Mend/ContentView.swift": !dirty [1745079830, 847359353]
+  "/Users/zacheggie/Documents/Development/Mend/Mend/MendApp.swift": !dirty [1744624823, 831425736]
+  "/Users/zacheggie/Documents/Development/Mend/Mend/Models/Activity.swift": !dirty [1744632949, 282432608]
+  "/Users/zacheggie/Documents/Development/Mend/Mend/Models/ActivityManager.swift": !dirty [1744635779, 150242492]
+  "/Users/zacheggie/Documents/Development/Mend/Mend/Models/ActivityRecommendations.swift": !dirty [1744995121, 604650500]
+  "/Users/zacheggie/Documents/Development/Mend/Mend/Models/HealthDataImporter.swift": !dirty [1744623574, 358283890]
+  "/Users/zacheggie/Documents/Development/Mend/Mend/Models/RecoveryMetrics.swift": !dirty [1745080342, 297612846]
+  "/Users/zacheggie/Documents/Development/Mend/Mend/Models/SharedTypes.swift": !dirty [1744633608, 140544928]
+  "/Users/zacheggie/Documents/Development/Mend/Mend/Utilities/HealthKitManager.swift": !dirty [1744638974, 617511094]
+  "/Users/zacheggie/Documents/Development/Mend/Mend/Utilities/MendStyle.swift": !dirty [1745009501, 385321710]
+  "/Users/zacheggie/Documents/Development/Mend/Mend/Views/ActivityView.swift": !dirty [1745009635, 472237925]
+  "/Users/zacheggie/Documents/Development/Mend/Mend/Views/DashboardView.swift": !dirty [1745009950, 836751984]
+  "/Users/zacheggie/Documents/Development/Mend/Mend/Views/SettingsView.swift": !dirty [1745009120, 49359782]
+  "/Users/zacheggie/Documents/Development/Mend/Mend/Views/TodayView.swift": !dirty [1745098786, 107156090]
+  ? "/Users/zacheggie/Documents/Development/Mend/build/Mend.build/Release-iphoneos/Mend.build/DerivedSources/GeneratedAssetSymbols.swift"
+  : !dirty [1745098809, 116852164]
