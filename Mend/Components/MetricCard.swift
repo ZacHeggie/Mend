@@ -88,7 +88,7 @@ struct MetricCard: View {
     }
     
     private func getValueDisplayText() -> String {
-        if metric.title.contains("Heart Rate") {
+        if metric.title.contains("Heart Rate") && !metric.title.contains("Variability") {
             return "Current: \(metric.score) BPM"
         } else if metric.title.contains("HRV") || metric.title.contains("Variability") {
             return "Current: \(metric.score) ms"
@@ -107,7 +107,7 @@ struct MetricCard: View {
     private func getDeltaDisplayText() -> String {
         let avgValue = getCurrentValueFromScore() - metric.deltaFromAverage
         
-        if metric.title.contains("Heart Rate") {
+        if metric.title.contains("Heart Rate") && !metric.title.contains("Variability") {
             return "7-day avg: \(String(format: "%.0f", avgValue)) BPM"
         } else if metric.title.contains("HRV") || metric.title.contains("Variability") {
             return "7-day avg: \(String(format: "%.0f", avgValue)) ms"
@@ -124,12 +124,33 @@ struct MetricCard: View {
     }
     
     private func getDeltaMeaningText() -> String {
-        let changeText = metric.deltaFromAverage == 0 ? "No change" : 
-                        "\(metric.deltaFromAverage > 0 ? "+" : "")\(String(format: "%.1f", metric.deltaFromAverage)) from avg"
+        let currentValue = getCurrentValueFromScore()
+        let avgValue = currentValue - metric.deltaFromAverage
         
-        if metric.title.contains("Heart Rate") {
+        // Different metrics have different interpretations of what a "positive" change means
+        var displayValue: Double
+        
+        if metric.title.contains("Heart Rate") && !metric.title.contains("Variability") {
+            // For Heart Rate, lower is better, so we want to show the decrease
+            displayValue = currentValue - avgValue  // How much lower/higher than average
+        } else if metric.title.contains("HRV") || metric.title.contains("Variability") {
+            // For HRV, higher is better
+            displayValue = currentValue - avgValue
+        } else if metric.title.contains("Sleep") {
+            // For Sleep metrics, higher is typically better
+            displayValue = currentValue - avgValue
+        } else {
+            // Default case
+            displayValue = metric.deltaFromAverage
+        }
+        
+        // Format the text without the +/- sign
+        let changeText = abs(displayValue) < 0.1 ? "No change" : 
+                         "\(String(format: "%.1f", abs(displayValue))) from avg"
+        
+        if metric.title.contains("Heart Rate") && !metric.title.contains("Variability") {
             return changeText + (metric.isPositiveDelta ? " (better)" : " (monitor)")
-        } else if metric.title.contains("HRV") {
+        } else if metric.title.contains("HRV") || metric.title.contains("Variability") {
             return changeText + (metric.isPositiveDelta ? " (better)" : " (monitor)")
         } else if metric.title.contains("Sleep") {
             return changeText + (metric.isPositiveDelta ? " (better)" : " (monitor)")
@@ -315,7 +336,7 @@ struct MetricChart: View {
     }
     
     private func formatSelectedValue(_ value: Double) -> String {
-        if title.contains("Heart Rate") {
+        if title.contains("Heart Rate") && !title.contains("Variability") {
             return "\(String(format: "%.0f", value)) BPM"
         } else if title.contains("HRV") || title.contains("Variability") {
             return "\(String(format: "%.0f", value)) ms"
@@ -362,7 +383,7 @@ struct MetricChart: View {
     }
     
     private func getYAxisTitle() -> String {
-        if title.contains("Heart Rate") {
+        if title.contains("Heart Rate") && !title.contains("Variability") {
             return "BPM"
         } else if title.contains("HRV") || title.contains("Variability") {
             return "ms"

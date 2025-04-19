@@ -496,7 +496,7 @@ class RecoveryMetrics: ObservableObject {
         self._heartRateMetric = MetricScore(
             score: Int(heartRateValue),
             title: "Resting Heart Rate",
-            description: "Your resting heart rate is \(String(format: "%.0f", abs(heartRateDelta)))bpm higher than your average, which may indicate incomplete recovery or stress.",
+            description: "Your resting heart rate is \(String(format: "%.0f", abs(heartRateDelta)))BPM higher than your average, which may indicate incomplete recovery or stress.",
             dailyData: heartRateData.sorted { $0.date < $1.date },
             deltaFromAverage: heartRateDelta,
             isPositiveDelta: false // It's a negative change
@@ -505,7 +505,7 @@ class RecoveryMetrics: ObservableObject {
         self._hrvMetric = MetricScore(
             score: 40, // Lower score is worse for HRV
             title: "Heart Rate Variability",
-            description: "Your HRV is \(String(format: "%.0f", abs(hrvDelta)))ms lower than your average, which may indicate increased stress levels.",
+            description: "Your HRV is \(String(format: "%.0f", abs(hrvDelta))) ms lower than your average, which may indicate increased stress levels.",
             dailyData: hrvData.sorted { $0.date < $1.date },
             deltaFromAverage: hrvDelta,
             isPositiveDelta: false // It's a negative change
@@ -663,7 +663,7 @@ extension MetricScore {
         MetricScore(
             score: 76,
             title: "Heart Rate Variability",
-            description: "Your HRV is 5ms higher than your 7-day average, indicating better recovery and less stress.",
+            description: "Your HRV is 5 ms higher than your 7-day average, indicating better recovery and less stress.",
             dailyData: [
                 RecoveryMetricData(date: Date().addingTimeInterval(-6 * 86400), value: 58),
                 RecoveryMetricData(date: Date().addingTimeInterval(-5 * 86400), value: 55),
