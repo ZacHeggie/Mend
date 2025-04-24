@@ -35,7 +35,7 @@ struct MetricCard: View {
                     // Color the delta text directly instead of using arrows
                     Text(getDeltaMeaningText())
                         .font(MendFont.caption)
-                        .foregroundColor(metric.isPositiveDelta ? MendColors.positive : MendColors.negative)
+                        .foregroundColor(getTextColor())
                 }
                 
                 Spacer()
@@ -98,7 +98,8 @@ struct MetricCard: View {
         } else if metric.title.contains("Sleep Quality") {
             return "Current: \(metric.score)/100"
         } else if metric.title.contains("Training") {
-            return "Current: \(metric.score)/100"
+            // Display the 7-day average for training load
+            return "7-day avg: \(metric.score)/100"
         } else {
             return "Current: \(metric.score)"
         }
@@ -117,7 +118,8 @@ struct MetricCard: View {
         } else if metric.title.contains("Sleep Quality") {
             return "7-day avg: \(String(format: "%.0f", avgValue))/100"
         } else if metric.title.contains("Training") {
-            return "7-day avg: \(String(format: "%.0f", avgValue))/100"
+            // Display the 4-week average for training load
+            return "4-week avg: \(String(format: "%.0f", avgValue))/100"
         } else {
             return "7-day avg: \(String(format: "%.1f", avgValue))"
         }
@@ -141,7 +143,12 @@ struct MetricCard: View {
         } else if metric.title.contains("Sleep") {
             return changeText + (metric.isPositiveDelta ? " (better)" : " (monitor)")
         } else if metric.title.contains("Training") {
-            return changeText + (metric.isPositiveDelta ? " (optimal)" : " (high)")
+            // For Training Load, use more specific labels and show the actual difference
+            if metric.deltaFromAverage > 0 {
+                return String(format: "+%.1f", displayValue) + (metric.isPositiveDelta ? " (optimal)" : " (high)")
+            } else {
+                return String(format: "-%.1f", displayValue) + " (low)"
+            }
         } else {
             return changeText
         }
@@ -152,6 +159,17 @@ struct MetricCard: View {
             return Double(metric.score)
         } else {
             return Double(metric.score)
+        }
+    }
+    
+    private func getTextColor() -> Color {
+        // For HRV, higher values are always good (positive), so we need to handle this specially
+        if metric.title.contains("HRV") || metric.title.contains("Variability") {
+            // HRV: Higher is always better, so positive delta should be green
+            return metric.deltaFromAverage > 0 ? MendColors.positive : MendColors.negative
+        } else {
+            // For other metrics, use the isPositiveDelta flag
+            return metric.isPositiveDelta ? MendColors.positive : MendColors.negative
         }
     }
 }
@@ -331,7 +349,8 @@ struct MetricChart: View {
         } else if title.contains("Sleep Quality") {
             return "\(String(format: "%.0f", value))/100"
         } else if title.contains("Training") {
-            return "\(String(format: "%.0f", value))/100"
+            // For Training Load, just show the raw value without /100
+            return "\(String(format: "%.0f", value))"
         } else {
             return String(format: "%.1f", value)
         }
@@ -354,8 +373,22 @@ struct MetricChart: View {
             // Sleep quality score 0-100
             return 0...100
         } else if title.contains("Training") {
-            // Training load
-            return 0...100
+            // Get dynamic range for training load based on actual data
+            let values = data.map { $0.value }
+            let minValue = values.min() ?? 0
+            let maxValue = values.max() ?? 100
+            
+            // Calculate appropriate range with padding
+            let padding = (maxValue - minValue) * 0.15
+            let lowerBound = max(0, minValue - padding)
+            let upperBound = maxValue + padding
+            
+            // Ensure we show at least 0-100 range if values are small
+            if maxValue < 100 {
+                return 0...max(100, upperBound)
+            } else {
+                return lowerBound...upperBound
+            }
         } else {
             // Default case for unknown metrics - get from data
             let values = data.map { $0.value }

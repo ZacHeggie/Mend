@@ -59,6 +59,7 @@ struct DailyTrainingVolume: Identifiable {
     let totalDurationMinutes: Double
     let averageIntensity: Double
     let activityCount: Int
+    let trainingLoad: Double
     
     var formattedDuration: String {
         let hours = Int(totalDurationMinutes / 60)
@@ -79,5 +80,9 @@ struct DailyTrainingVolume: Identifiable {
         } else {
             return .low
         }
+    }
+    
+    var formattedTrainingLoad: String {
+        return String(format: "%.0f", trainingLoad)
     }
 } 

@@ -77,6 +77,7 @@ struct DashboardView: View {
                     }
                 }
                 .padding()
+                .padding(.bottom, 50)
             } else {
                 VStack {
                     Image(systemName: "exclamationmark.triangle")

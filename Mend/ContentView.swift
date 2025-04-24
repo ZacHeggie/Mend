@@ -40,62 +40,85 @@ struct ContentView: View {
                 .tag(3)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
+            .onAppear {
+                configureNavigationBarAppearance()
+            }
             
             // Custom tab bar - reduced height
             HStack(spacing: 0) {
-                Spacer()
+                tabButton(icon: "calendar", isSelected: selectedTab == 0) {
+                    selectedTab = 0
+                }
                 
-                // Today Tab
-                tabButton(
-                    icon: "calendar",
-                    isSelected: selectedTab == 0,
-                    action: { selectedTab = 0 }
-                )
+                tabButton(icon: "figure.run", isSelected: selectedTab == 1) {
+                    selectedTab = 1
+                }
                 
-                Spacer()
+                tabButton(icon: "chart.line.uptrend.xyaxis", isSelected: selectedTab == 2) {
+                    selectedTab = 2
+                }
                 
-                // Activities Tab
-                tabButton(
-                    icon: "figure.run",
-                    isSelected: selectedTab == 1,
-                    action: { selectedTab = 1 }
-                )
-                
-                Spacer()
-                
-                // Recovery Tab
-                tabButton(
-                    icon: "heart.circle",
-                    isSelected: selectedTab == 2,
-                    action: { selectedTab = 2 }
-                )
-                
-                Spacer()
-                
-                // Settings Tab
-                tabButton(
-                    icon: "gear",
-                    isSelected: selectedTab == 3,
-                    action: { selectedTab = 3 }
-                )
-                
-                Spacer()
+                tabButton(icon: "gear", isSelected: selectedTab == 3) {
+                    selectedTab = 3
+                }
             }
-            .padding(.vertical, 8) // Reduced padding for smaller height
+            .padding(.horizontal, 10)
+            .padding(.top, 10) // Less top padding
+            .padding(.bottom, 20) // Keep bottom padding for home indicator
             .background(
-                systemColorScheme == .dark 
-                    ? MendColors.darkCardBackground 
-                    : MendColors.cardBackground
+                // Semi-transparent background with blur for tab bar
+                Color.black.opacity(systemColorScheme == .dark ? 0.7 : 0.05)
+                    .background(.ultraThinMaterial)
+                    .ignoresSafeArea(edges: .bottom)
             )
-            .overlay(
-                Rectangle()
-                    .frame(height: 0.5)
-                    .foregroundColor(systemColorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.1)),
-                alignment: .top
-            )
-            .edgesIgnoringSafeArea(.bottom)
         }
-        .tint(MendColors.primary)
+    }
+    
+    // Function to configure navigation bar appearance
+    private func configureNavigationBarAppearance() {
+        let appearanceStandard = UINavigationBarAppearance()
+        let appearanceScrollEdge = UINavigationBarAppearance()
+        
+        // Configure standard appearance
+        appearanceStandard.configureWithOpaqueBackground()
+        appearanceStandard.backgroundColor = systemColorScheme == .dark ? 
+                                             UIColor(MendColors.darkBackground) : 
+                                             UIColor(MendColors.background)
+        
+        // Ensure title text is always visible
+        appearanceStandard.titleTextAttributes = [
+            .foregroundColor: systemColorScheme == .dark ? 
+                               UIColor.white : 
+                               UIColor.black
+        ]
+        appearanceStandard.largeTitleTextAttributes = [
+            .foregroundColor: systemColorScheme == .dark ? 
+                               UIColor.white : 
+                               UIColor.black
+        ]
+        
+        // Configure scroll edge appearance (large title)
+        appearanceScrollEdge.configureWithOpaqueBackground()
+        appearanceScrollEdge.backgroundColor = systemColorScheme == .dark ? 
+                                              UIColor(MendColors.darkBackground) : 
+                                              UIColor(MendColors.background)
+        
+        // Ensure large title text is always visible
+        appearanceScrollEdge.titleTextAttributes = [
+            .foregroundColor: systemColorScheme == .dark ? 
+                              UIColor.white : 
+                              UIColor.black
+        ]
+        appearanceScrollEdge.largeTitleTextAttributes = [
+            .foregroundColor: systemColorScheme == .dark ? 
+                              UIColor.white : 
+                              UIColor.black
+        ]
+        
+        // Apply the appearance
+        UINavigationBar.appearance().standardAppearance = appearanceStandard
+        UINavigationBar.appearance().compactAppearance = appearanceStandard
+        UINavigationBar.appearance().scrollEdgeAppearance = appearanceScrollEdge
     }
     
     private func tabButton(icon: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
