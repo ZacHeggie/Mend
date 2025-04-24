@@ -277,9 +277,10 @@ struct TrainingLoadCard: View {
     }
     
     var body: some View {
-        VStack(spacing: MendSpacing.medium) {
-            HStack {
-                VStack(alignment: .leading, spacing: MendSpacing.small) {
+        VStack(alignment: .leading, spacing: MendSpacing.medium) {
+            // Title and summary
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text("7-Day Training Load")
                         .font(MendFont.headline)
                         .foregroundColor(textColor)
@@ -291,27 +292,105 @@ struct TrainingLoadCard: View {
                     Text(loadDescription)
                         .font(MendFont.subheadline)
                         .foregroundColor(secondaryTextColor)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 
                 Spacer()
                 
-                // Weekly volume chart
-                HStack(alignment: .bottom, spacing: 4) {
-                    ForEach(volumes) { volume in
-                        VStack(spacing: 2) {
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(volume.intensityLevel.color.opacity(0.8))
-                                .frame(width: 12, height: max(10, min(60, volume.totalDurationMinutes / 3)))
-                            
+                // Work-to-Rest ratio indicator
+                VStack(alignment: .center, spacing: 2) {
+                    Text("Work:Rest")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(secondaryTextColor)
+                    
+                    HStack(spacing: 2) {
+                        Text(workRestRatio.0)
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(MendColors.negative)
+                        
+                        Text(":")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(secondaryTextColor)
+                        
+                        Text(workRestRatio.1)
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(MendColors.positive)
+                    }
+                    
+                    Text(workRestDescription)
+                        .font(.system(size: 10))
+                        .foregroundColor(secondaryTextColor)
+                        .multilineTextAlignment(.center)
+                        .frame(width: 80)
+                }
+                .padding(.horizontal, 4)
+            }
+            
+            Divider()
+                .padding(.vertical, 4)
+            
+            // Weekly volume chart with labels
+            Text("Daily Training Volume")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(secondaryTextColor)
+                .padding(.bottom, 4)
+            
+            // Enhanced bar chart
+            HStack(alignment: .bottom, spacing: 8) {
+                ForEach(volumes) { volume in
+                    VStack(spacing: 2) {
+                        // Activity bar with two-tone gradient based on intensity
+                        VStack(spacing: 0) {
+                            if volume.activityCount > 0 {
+                                // Bar with intensity coloring
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        volume.intensityLevel.color.opacity(0.3),
+                                        volume.intensityLevel.color
+                                    ]),
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                                .frame(width: 18, height: max(15, min(80, volume.totalDurationMinutes / 2)))
+                                .cornerRadius(4)
+                                
+                                // Activity count indicator
+                                Text("\(volume.activityCount)")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .padding(2)
+                                    .background(
+                                        Circle()
+                                            .fill(volume.intensityLevel.color)
+                                    )
+                                    .offset(y: -8)
+                                    .zIndex(1)
+                            } else {
+                                // Empty bar for days with no activity
+                                RoundedRectangle(cornerRadius: 4)
+                                    .stroke(Color.gray.opacity(0.3), style: StrokeStyle(lineWidth: 1, dash: [2]))
+                                    .frame(width: 18, height: 15)
+                                    .padding(.bottom, 10)
+                            }
+                        }
+                        
+                        VStack(spacing: 0) {
+                            // Day of week
                             Text(formatDayOfWeek(volume.date))
-                                .font(.system(size: 8))
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundColor(isToday(volume.date) ? textColor : secondaryTextColor)
+                            
+                            // Day of month
+                            Text(formatDayOfMonth(volume.date))
+                                .font(.system(size: 9))
                                 .foregroundColor(secondaryTextColor)
                         }
+                        .padding(.top, 4)
                     }
                 }
-                .frame(height: 80)
-                .padding(.leading, MendSpacing.medium)
             }
+            .frame(height: 100)
+            .padding(.horizontal, 4)
         }
         .padding()
         .background(cardBackgroundColor)
@@ -328,9 +407,9 @@ struct TrainingLoadCard: View {
     }
     
     private var loadColor: Color {
-        if trainingLoad > 600 {
+        if trainingLoad > 800 {
             return MendColors.negative
-        } else if trainingLoad > 300 {
+        } else if trainingLoad > 400 {
             return MendColors.neutral
         } else {
             return MendColors.positive
@@ -338,14 +417,47 @@ struct TrainingLoadCard: View {
     }
     
     private var loadDescription: String {
-        if trainingLoad > 600 {
-            return "High load - consider recovery"
-        } else if trainingLoad > 300 {
-            return "Moderate load - balanced training"
+        if trainingLoad > 800 {
+            return "High training load - consider reducing intensity and adding recovery days"
+        } else if trainingLoad > 400 {
+            return "Moderate training load - maintaining good balance of work and recovery"
         } else if trainingLoad > 100 {
-            return "Light load - room for more"
+            return "Light training load - room for additional training if desired"
         } else {
-            return "Very light load - early recovery"
+            return "Very light training load - focus on building consistency"
+        }
+    }
+    
+    // Calculate work:rest ratio based on activity days vs rest days
+    private var workRestRatio: (String, String) {
+        let activeDays = volumes.filter { $0.activityCount > 0 }.count
+        let restDays = volumes.count - activeDays
+        
+        // Calculate greatest common divisor for simplification
+        func gcd(_ a: Int, _ b: Int) -> Int {
+            return b == 0 ? a : gcd(b, a % b)
+        }
+        
+        if activeDays == 0 {
+            return ("0", "7")
+        }
+        
+        let divisor = gcd(activeDays, restDays)
+        return (String(activeDays / max(1, divisor)), String(restDays / max(1, divisor)))
+    }
+    
+    private var workRestDescription: String {
+        let (work, rest) = workRestRatio
+        if work == "0" {
+            return "Recovery week"
+        } else if rest == "0" {
+            return "Need recovery!"
+        } else if Int(work)! > Int(rest)! * 2 {
+            return "High frequency"
+        } else if Int(work)! <= Int(rest)! {
+            return "Well balanced"
+        } else {
+            return "Active week"
         }
     }
     
@@ -353,6 +465,16 @@ struct TrainingLoadCard: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "E"
         return formatter.string(from: date).prefix(1).uppercased()
+    }
+    
+    private func formatDayOfMonth(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d"
+        return formatter.string(from: date)
+    }
+    
+    private func isToday(_ date: Date) -> Bool {
+        return Calendar.current.isDateInToday(date)
     }
 }
 

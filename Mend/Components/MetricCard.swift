@@ -125,28 +125,14 @@ struct MetricCard: View {
     
     private func getDeltaMeaningText() -> String {
         let currentValue = getCurrentValueFromScore()
-        let avgValue = currentValue - metric.deltaFromAverage
+        let _ = currentValue - metric.deltaFromAverage
         
         // Different metrics have different interpretations of what a "positive" change means
-        var displayValue: Double
-        
-        if metric.title.contains("Heart Rate") && !metric.title.contains("Variability") {
-            // For Heart Rate, lower is better, so we want to show the decrease
-            displayValue = currentValue - avgValue  // How much lower/higher than average
-        } else if metric.title.contains("HRV") || metric.title.contains("Variability") {
-            // For HRV, higher is better
-            displayValue = currentValue - avgValue
-        } else if metric.title.contains("Sleep") {
-            // For Sleep metrics, higher is typically better
-            displayValue = currentValue - avgValue
-        } else {
-            // Default case
-            displayValue = metric.deltaFromAverage
-        }
+        let displayValue: Double = abs(metric.deltaFromAverage)
         
         // Format the text without the +/- sign
         let changeText = abs(displayValue) < 0.1 ? "No change" : 
-                         "\(String(format: "%.1f", abs(displayValue))) from avg"
+                         "\(String(format: "%.1f", displayValue)) from avg"
         
         if metric.title.contains("Heart Rate") && !metric.title.contains("Variability") {
             return changeText + (metric.isPositiveDelta ? " (better)" : " (monitor)")

@@ -31,6 +31,12 @@ class RecoveryMetrics: ObservableObject {
         isLoading = true
         defer { isLoading = false }
         
+        await loadHealthKitData()
+    }
+    
+    @MainActor
+    private func loadHealthKitData() async {
+        // If using simulated data, load that instead
         if useSimulatedData {
             if usePoorRecoveryData {
                 loadPoorRecoverySimulatedData()
@@ -77,8 +83,28 @@ class RecoveryMetrics: ObservableObject {
         }
         
         if let hrvValue = hrvValue {
+            // For HRV, higher values are better, so if current value is lower than average
+            // we need to calculate an appropriate score that reflects poor recovery
+            let avgHRV = hrvMetrics.filter { !Calendar.current.isDateInToday($0.date) }
+                .map { $0.value }
+                .reduce(0, +) / Double(max(1, hrvMetrics.filter { !Calendar.current.isDateInToday($0.date) }.count))
+            
+            // Calculate a score that reflects the HRV quality (0-100 scale)
+            // When hrvValue is less than 70% of average, score should be very low
+            // When hrvValue is equal to or greater than average, score should be high
+            let hrvPercentOfAverage = avgHRV > 0 ? (hrvValue / avgHRV) : 1.0
+            let calculatedScore: Int
+            
+            if hrvPercentOfAverage >= 1.0 {
+                // HRV is equal to or better than average
+                calculatedScore = min(100, 70 + Int(30 * min(1.0, (hrvPercentOfAverage - 1.0) * 2)))
+            } else {
+                // HRV is worse than average
+                calculatedScore = max(30, 70 - Int(40 * min(1.0, (1.0 - hrvPercentOfAverage) * 1.5)))
+            }
+            
             self._hrvMetric = MetricScore(
-                score: Int(hrvValue),
+                score: calculatedScore,
                 title: "Heart Rate Variability",
                 description: getHRVDescription(currentHRV: hrvValue, delta: hrvDelta.delta),
                 dailyData: hrvMetrics,
@@ -109,7 +135,7 @@ class RecoveryMetrics: ObservableObject {
             )
         }
         
-        // Calculate overall score based on available metrics
+        // Calculate and update the recovery score
         updateRecoveryScore()
     }
     
@@ -125,11 +151,20 @@ class RecoveryMetrics: ObservableObject {
         }
         
         let average = previousMetrics.map { $0.value }.reduce(0, +) / Double(previousMetrics.count)
-        let delta = average - currentValue
+        let delta = currentValue - average
         
         // For heart rate, lower is better (negative delta is positive)
         // For HRV and sleep, higher is better (positive delta is positive)
-        return (delta, delta < 0)
+        let isPositive: Bool
+        if metrics.first?.value.isHeartRate == true {
+            // For heart rate, lower is better, so negative delta is positive
+            isPositive = delta < 0
+        } else {
+            // For HRV, sleep, etc., higher is better, so positive delta is positive
+            isPositive = delta > 0
+        }
+        
+        return (delta, isPositive)
     }
     
     private func getHeartRateDescription(currentHeartRate: Double, delta: Double) -> String {
@@ -175,10 +210,18 @@ class RecoveryMetrics: ObservableObject {
         let isPositive = delta > 0
         let direction = delta > 0 ? "higher" : "lower"
         
+        // Calculate percentage of change to provide more meaningful context
+        let percentChange = abs(delta) / avgValue * 100
+        let significantChange = percentChange > 15
+        
         if isPositive {
-            return baseDescription + " Your HRV is \(formattedDelta) ms \(direction) than your 7-day average of \(formattedAvg) ms, suggesting better recovery, reduced stress, and improved readiness."
+            let addon = significantChange ? 
+                ", suggesting significantly better recovery, reduced stress, and improved readiness." :
+                ", suggesting better recovery, reduced stress, and improved readiness."
+            return baseDescription + " Your HRV is \(formattedDelta) ms \(direction) than your 7-day average of \(formattedAvg) ms" + addon
         } else {
-            return baseDescription + " Your HRV is \(formattedDelta) ms \(direction) than your 7-day average of \(formattedAvg) ms, which could indicate increased stress, fatigue, or training load."
+            let severity = percentChange > 30 ? "significantly " : ""
+            return baseDescription + " Your HRV is \(formattedDelta) ms \(direction) than your 7-day average of \(formattedAvg) ms, which could indicate \(severity)increased stress, fatigue, or accumulated training load requiring additional recovery."
         }
     }
     
@@ -256,31 +299,41 @@ class RecoveryMetrics: ObservableObject {
     
     @MainActor
     private func updateRecoveryScore() {
-        // Calculate overall score based on available metrics
-        var totalScore = 0
-        var metricCount = 0
+        // Calculate overall score based on available metrics with weighted importance
+        // Heart rate and HRV will be weighted more heavily
+        var weightedTotal = 0
+        var totalWeight = 0
+        
+        // Constants for weighting different metrics
+        let heartRateWeight = 3  // Heart rate is 3x more important
+        let hrvWeight = 3        // HRV is 3x more important
+        let sleepWeight = 2      // Sleep is 2x more important
+        let sleepQualityWeight = 1
         
         if let heartRateMetric = self._heartRateMetric {
-            totalScore += heartRateMetric.score
-            metricCount += 1
+            // For heart rate, we need to invert the score because a higher heart rate 
+            // is actually worse for recovery (lower = better)
+            let invertedScore = max(40, 100 - heartRateMetric.score)
+            weightedTotal += invertedScore * heartRateWeight
+            totalWeight += heartRateWeight
         }
         
         if let hrvMetric = self._hrvMetric {
-            totalScore += hrvMetric.score
-            metricCount += 1
+            weightedTotal += hrvMetric.score * hrvWeight
+            totalWeight += hrvWeight
         }
         
         if let sleepMetric = self._sleepMetric {
-            totalScore += sleepMetric.score
-            metricCount += 1
+            weightedTotal += sleepMetric.score * sleepWeight
+            totalWeight += sleepWeight
         }
         
         if let sleepQualityMetric = self._sleepQualityMetric {
-            totalScore += sleepQualityMetric.score
-            metricCount += 1
+            weightedTotal += sleepQualityMetric.score * sleepQualityWeight
+            totalWeight += sleepQualityWeight
         }
         
-        let overallScore = metricCount > 0 ? totalScore / metricCount : 0
+        let overallScore = totalWeight > 0 ? weightedTotal / totalWeight : 0
         
         currentRecoveryScore = RecoveryScore(
             date: Date(),
@@ -499,16 +552,20 @@ class RecoveryMetrics: ObservableObject {
             description: "Your resting heart rate is \(String(format: "%.0f", abs(heartRateDelta)))BPM higher than your average, which may indicate incomplete recovery or stress.",
             dailyData: heartRateData.sorted { $0.date < $1.date },
             deltaFromAverage: heartRateDelta,
-            isPositiveDelta: false // It's a negative change
+            isPositiveDelta: heartRateDelta < 0 // For heart rate, lower is better
         )
         
+        // Calculate a score that reflects the HRV quality (0-100 scale)
+        let hrvPercentOfAverage = hrvAvg > 0 ? (hrvValue / hrvAvg) : 1.0
+        let calculatedScore = max(30, 70 - Int(40 * min(1.0, (1.0 - hrvPercentOfAverage) * 1.5)))
+        
         self._hrvMetric = MetricScore(
-            score: 40, // Lower score is worse for HRV
+            score: calculatedScore,
             title: "Heart Rate Variability",
-            description: "Your HRV is \(String(format: "%.0f", abs(hrvDelta))) ms lower than your average, which may indicate increased stress levels.",
+            description: "Your HRV is \(String(format: "%.0f", abs(hrvDelta))) ms lower than your average of \(String(format: "%.0f", hrvAvg)) ms, which may indicate increased stress levels and poor recovery.",
             dailyData: hrvData.sorted { $0.date < $1.date },
             deltaFromAverage: hrvDelta,
-            isPositiveDelta: false // It's a negative change
+            isPositiveDelta: hrvDelta > 0 // For HRV, higher is better
         )
         
         self._sleepMetric = MetricScore(
@@ -517,7 +574,7 @@ class RecoveryMetrics: ObservableObject {
             description: "You slept \(String(format: "%.1f", abs(sleepDelta))) hours less than your average, which may impact your recovery.",
             dailyData: sleepData.sorted { $0.date < $1.date },
             deltaFromAverage: sleepDelta,
-            isPositiveDelta: false // It's a negative change
+            isPositiveDelta: sleepDelta > 0 // For sleep, more is better
         )
         
         self._sleepQualityMetric = MetricScore(
@@ -526,8 +583,27 @@ class RecoveryMetrics: ObservableObject {
             description: "Your sleep quality is \(String(format: "%.0f", abs(sleepQualityDelta))) points lower than your average, suggesting disrupted sleep patterns.",
             dailyData: sleepQualityData.sorted { $0.date < $1.date },
             deltaFromAverage: sleepQualityDelta,
-            isPositiveDelta: false // It's a negative change
+            isPositiveDelta: sleepQualityDelta > 0 // For sleep quality, higher is better
         )
+        
+        // Training load - generate a pattern that shows high load compared to 4-week average
+        var trainingLoadData: [RecoveryMetricData] = []
+        let trainingLoadValues = [75, 65, 85, 90, 80, 78, 85] // High values throughout the week
+        
+        // Generate daily data for the last 7 days
+        for day in 0..<7 {
+            let date = Calendar.current.date(byAdding: .day, value: -day, to: Date())!
+            trainingLoadData.append(RecoveryMetricData(date: date, value: Double(trainingLoadValues[day])))
+        }
+        
+        // Calculate current week's average
+        let currentWeekAvg = trainingLoadValues.reduce(0, +) / trainingLoadValues.count
+        
+        // Simulate a 4-week average (much lower to show excessive increase)
+        let fourWeekAvg = currentWeekAvg - 25
+        
+        // Calculate delta
+        let trainingLoadDelta = Double(currentWeekAvg - fourWeekAvg)
         
         // Calculate recovery score - poor overall score
         let poorRecoveryScore = RecoveryScore(
@@ -537,20 +613,12 @@ class RecoveryMetrics: ObservableObject {
             hrvScore: _hrvMetric?.score ?? 0,
             sleepScore: _sleepMetric?.score ?? 0,
             trainingLoadScore: MetricScore(
-                score: 80, // High training load
+                score: currentWeekAvg,
                 title: "Training Load",
-                description: "Your training load is high, which combined with your other metrics suggests you may need additional recovery time.",
-                dailyData: [
-                    RecoveryMetricData(date: Date().addingTimeInterval(-6 * 86400), value: 55),
-                    RecoveryMetricData(date: Date().addingTimeInterval(-5 * 86400), value: 60),
-                    RecoveryMetricData(date: Date().addingTimeInterval(-4 * 86400), value: 65),
-                    RecoveryMetricData(date: Date().addingTimeInterval(-3 * 86400), value: 70),
-                    RecoveryMetricData(date: Date().addingTimeInterval(-2 * 86400), value: 75),
-                    RecoveryMetricData(date: Date().addingTimeInterval(-1 * 86400), value: 85),
-                    RecoveryMetricData(date: Date(), value: 80)
-                ],
-                deltaFromAverage: 15.0,
-                isPositiveDelta: false
+                description: "Your training load is \(String(format: "%.0f", trainingLoadDelta))% higher than your 4-week average, indicating a significant increase that may require extended recovery periods.",
+                dailyData: trainingLoadData.sorted { $0.date < $1.date },
+                deltaFromAverage: trainingLoadDelta,
+                isPositiveDelta: false // Excessive increase is not positive
             ),
             stressScore: 35
         )
@@ -594,13 +662,24 @@ struct MetricScore {
 // MARK: - MetricScore Factory Methods
 extension MetricScore {
     static func createHRVMetric(score: Int) -> MetricScore {
-        MetricScore(
+        let description: String
+        if score >= 75 {
+            description = "Your HRV score indicates good recovery and stress management."
+        } else if score >= 60 {
+            description = "Your HRV score indicates moderate recovery state."
+        } else if score >= 40 {
+            description = "Your lower HRV score suggests higher stress and reduced recovery."
+        } else {
+            description = "Your HRV is significantly reduced, indicating poor recovery and high stress levels."
+        }
+        
+        return MetricScore(
             score: score,
             title: "Heart Rate Variability",
-            description: "Your HRV score indicates your current recovery state.",
+            description: description,
             dailyData: [], // You might want to populate this with actual data
             deltaFromAverage: 0,
-            isPositiveDelta: true
+            isPositiveDelta: score >= 60
         )
     }
     
@@ -679,21 +758,52 @@ extension MetricScore {
     }
     
     static var sampleTrainingLoad: MetricScore {
-        MetricScore(
-            score: 62,
+        // Create a pattern that shows consistent training with reasonable variations
+        let now = Date()
+        let calendar = Calendar.current
+        
+        // Create more realistic daily load values
+        var dailyData: [RecoveryMetricData] = []
+        let dailyValues = [58, 45, 75, 50, 82, 45, 62] // Represents a typical training week (T, W, T, F, S, S, M)
+        
+        // Generate daily data for the last 7 days
+        for day in 0..<7 {
+            let date = calendar.date(byAdding: .day, value: -day, to: now)!
+            dailyData.append(RecoveryMetricData(date: date, value: Double(dailyValues[day])))
+        }
+        
+        // Calculate current week's average
+        let currentWeekAvg = dailyValues.reduce(0, +) / dailyValues.count
+        
+        // Simulate a 4-week average (slightly lower to show an increasing trend)
+        let fourWeekAvg = currentWeekAvg - 10
+        
+        // Calculate the delta between weekly average and 4-week average
+        let delta = Double(currentWeekAvg - fourWeekAvg)
+        
+        // Determine if the delta is positive (in training context, increasing load over time)
+        // This is a complex assessment - moderate increases are positive, but excessive increases are not
+        let isPositiveDelta = delta > 0 && delta < 15 // Moderate increase is good
+        
+        // Create description based on the comparison
+        let description: String
+        if delta > 15 {
+            description = "Your training load is \(String(format: "%.0f", delta))% higher than your 4-week average, suggesting a significant increase in workload. Consider implementing a recovery week soon."
+        } else if delta > 5 {
+            description = "Your training load is \(String(format: "%.0f", delta))% higher than your 4-week average, indicating a moderate progression in training volume."
+        } else if delta >= -5 {
+            description = "Your training load is similar to your 4-week average, showing consistent training patterns."
+        } else {
+            description = "Your training load is \(String(format: "%.0f", abs(delta)))% lower than your 4-week average, showing a reduction in training volume."
+        }
+        
+        return MetricScore(
+            score: currentWeekAvg,
             title: "Training Load",
-            description: "Your training load is moderate with a slight increase over your 7-day average, suggesting to focus on recovery today.",
-            dailyData: [
-                RecoveryMetricData(date: Date().addingTimeInterval(-6 * 86400), value: 85),
-                RecoveryMetricData(date: Date().addingTimeInterval(-5 * 86400), value: 42),
-                RecoveryMetricData(date: Date().addingTimeInterval(-4 * 86400), value: 78),
-                RecoveryMetricData(date: Date().addingTimeInterval(-3 * 86400), value: 50),
-                RecoveryMetricData(date: Date().addingTimeInterval(-2 * 86400), value: 85),
-                RecoveryMetricData(date: Date().addingTimeInterval(-1 * 86400), value: 45),
-                RecoveryMetricData(date: Date(), value: 60)
-            ],
-            deltaFromAverage: 10.0,
-            isPositiveDelta: false
+            description: description,
+            dailyData: dailyData,
+            deltaFromAverage: delta,
+            isPositiveDelta: isPositiveDelta
         )
     }
     
@@ -823,4 +933,12 @@ extension RecoveryRecommendation {
             icon: "chart.line.uptrend.xyaxis"
         )
     ]
+}
+
+// Add extension to Double to identify heart rate values
+extension Double {
+    var isHeartRate: Bool {
+        // Heart rate values are typically between 40-100
+        return self >= 40 && self <= 100
+    }
 }
