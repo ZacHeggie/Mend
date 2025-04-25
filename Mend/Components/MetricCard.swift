@@ -99,7 +99,7 @@ struct MetricCard: View {
             return "Current: \(metric.score)/100"
         } else if metric.title.contains("Training") {
             // Display the 7-day average for training load
-            return "7-day avg: \(metric.score)/100"
+            return "7-day avg: \(metric.score)"
         } else {
             return "Current: \(metric.score)"
         }
@@ -119,7 +119,7 @@ struct MetricCard: View {
             return "7-day avg: \(String(format: "%.0f", avgValue))/100"
         } else if metric.title.contains("Training") {
             // Display the 4-week average for training load
-            return "4-week avg: \(String(format: "%.0f", avgValue))/100"
+            return "4-week avg: \(String(format: "%.0f", avgValue))"
         } else {
             return "7-day avg: \(String(format: "%.1f", avgValue))"
         }
@@ -424,6 +424,9 @@ struct MetricChart: View {
             return String(format: "%.0f", value)
         } else if title.contains("Sleep Quality") {
             return String(format: "%.0f", value) 
+        } else if title.contains("Training") {
+            // For Training Load, just show the raw value without /100
+            return String(format: "%.0f", value)
         } else {
             return String(format: "%.0f", value)
         }

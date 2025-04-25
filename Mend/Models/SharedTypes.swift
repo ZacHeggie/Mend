@@ -85,4 +85,33 @@ struct DailyTrainingVolume: Identifiable {
     var formattedTrainingLoad: String {
         return String(format: "%.0f", trainingLoad)
     }
+}
+
+// MARK: - Notification Preferences
+enum NotificationPreference: String, CaseIterable {
+    case none = "None"
+    case morning = "Morning"
+    case morningAndEvening = "Morning & Evening"
+    
+    var description: String {
+        switch self {
+        case .none:
+            return "No recovery notifications"
+        case .morning:
+            return "One daily notification"
+        case .morningAndEvening:
+            return "Two daily notifications"
+        }
+    }
+    
+    var icon: String {
+        switch self {
+        case .none:
+            return "bell.slash"
+        case .morning:
+            return "sun.max"
+        case .morningAndEvening:
+            return "sunrise.fill"
+        }
+    }
 } 

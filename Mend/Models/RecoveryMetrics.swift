@@ -2,6 +2,10 @@ import Foundation
 import SwiftUI
 import HealthKit
 
+// Keys for UserDefaults
+private let kRecoveryScore = "recoveryScore"
+private let kNotificationPreference = "notificationPreference"
+
 // MARK: - Models
 
 @MainActor
@@ -684,6 +688,19 @@ class RecoveryMetrics: ObservableObject {
         )
         
         self.currentRecoveryScore = poorRecoveryScore
+    }
+    
+    static func scoreDescription(for score: RecoveryScore) -> String {
+        switch score.overallScore {
+        case 0..<40:
+            return "Highly stressed. Focus on recovery today."
+        case 40..<60:
+            return "Somewhat fatigued. Consider light activity."
+        case 60..<80:
+            return "Reasonably recovered. Moderate training is fine."
+        default:
+            return "Well recovered. Ready for intense training."
+        }
     }
 }
 

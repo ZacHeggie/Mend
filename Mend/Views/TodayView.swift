@@ -3,11 +3,13 @@ import SwiftUI
 struct TodayView: View {
     @EnvironmentObject private var recoveryMetrics: RecoveryMetrics
     @StateObject private var activityManager = ActivityManager.shared
+    @StateObject private var notificationManager = NotificationManager.shared
     @State private var recentActivities: [Activity] = []
     @State private var personalizedRecommendations: [ActivityRecommendation] = []
     @State private var recoveryInsights: [RecoveryInsight] = []
     @Environment(\.colorScheme) var colorScheme
     @State private var showingAddActivity = false
+    @State private var showingNotificationMenu = false
     
     // Computed properties for dynamic colors
     private var backgroundColor: Color {
@@ -86,7 +88,7 @@ struct TodayView: View {
             NavigationView {
                 AddActivityView(isPresented: $showingAddActivity)
                     .navigationTitle("Add Activity")
-                    .navigationBarItems(trailing: Button("Cancel") {
+                    .navigationBarItems(leading: Button("Cancel") {
                         showingAddActivity = false
                     })
                     .environmentObject(activityManager)
@@ -236,11 +238,20 @@ struct TodayView: View {
     
     private var notificationButton: some View {
         Button(action: {
-            // Notification action
+            showingNotificationMenu.toggle()
         }) {
             Image(systemName: "bell")
                 .font(.system(size: 18))
                 .foregroundColor(textColor)
+        }
+        .popover(isPresented: $showingNotificationMenu, arrowEdge: .top) {
+            NotificationMenuView(
+                notificationManager: notificationManager,
+                isPresented: $showingNotificationMenu,
+                colorScheme: colorScheme,
+                recoveryScore: recoveryMetrics.currentRecoveryScore
+            )
+            .presentationCompactAdaptation(.popover)
         }
     }
     
@@ -379,7 +390,7 @@ struct ExpandableActivityCard: View {
                         Text(activity.description)
                             .font(MendFont.subheadline)
                             .foregroundColor(secondaryTextColor)
-                            .lineLimit(1)
+                            .lineLimit(isExpanded ? nil : 1)
                     }
                     
                     Spacer()
@@ -894,6 +905,129 @@ func formatRelativeDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMM d"
         return formatter.string(from: date)
+    }
+}
+
+// MARK: - Notification Menu
+struct NotificationMenuView: View {
+    @ObservedObject var notificationManager: NotificationManager
+    @Binding var isPresented: Bool
+    var colorScheme: ColorScheme
+    var recoveryScore: RecoveryScore?
+    
+    private var backgroundColor: Color {
+        colorScheme == .dark ? MendColors.darkCardBackground : MendColors.cardBackground
+    }
+    
+    private var textColor: Color {
+        colorScheme == .dark ? MendColors.darkText : MendColors.text
+    }
+    
+    private var secondaryTextColor: Color {
+        colorScheme == .dark ? MendColors.darkSecondaryText : MendColors.secondaryText
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: MendSpacing.notificationMenu) {
+            Text("Recovery Notifications")
+                .font(MendFont.headline)
+                .foregroundColor(textColor)
+                .padding(.top, MendSpacing.medium)
+                .padding(.horizontal, MendSpacing.medium)
+            
+            Divider()
+            
+            ForEach(NotificationPreference.allCases, id: \.self) { preference in
+                Button(action: {
+                    notificationManager.currentPreference = preference
+                    // No longer closing menu when selecting an option
+                }) {
+                    HStack(spacing: MendSpacing.medium) {
+                        Image(systemName: preference.icon)
+                            .foregroundColor(notificationManager.currentPreference == preference ? MendColors.primary : secondaryTextColor)
+                            .frame(width: 24)
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(preference.rawValue)
+                                .font(MendFont.body)
+                                .foregroundColor(textColor)
+                            
+                            Text(preference.description)
+                                .font(MendFont.caption)
+                                .foregroundColor(secondaryTextColor)
+                        }
+                        
+                        Spacer()
+                        
+                        if notificationManager.currentPreference == preference {
+                            Image(systemName: "checkmark")
+                                .foregroundColor(MendColors.primary)
+                        }
+                    }
+                    .padding(.horizontal, MendSpacing.medium)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(BorderlessButtonStyle())
+                
+                if preference != NotificationPreference.allCases.last {
+                    Divider()
+                        .padding(.horizontal, MendSpacing.medium)
+                }
+            }
+            
+            Divider()
+            
+            // Test notification button
+            Button(action: {
+                notificationManager.sendTestNotification()
+            }) {
+                HStack(spacing: MendSpacing.medium) {
+                    Image(systemName: "bell.badge.fill")
+                        .foregroundColor(MendColors.primary)
+                        .frame(width: 24)
+                    
+                    Text("Send Test Notification")
+                        .font(MendFont.body)
+                        .foregroundColor(textColor)
+                }
+                .padding(.horizontal, MendSpacing.medium)
+                .padding(.vertical, MendSpacing.small)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(BorderlessButtonStyle())
+            
+            Divider()
+            
+            if let score = recoveryScore {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("Today's Recovery: ")
+                            .font(MendFont.caption)
+                            .foregroundColor(secondaryTextColor)
+                        
+                        Text("\(score.overallScore)")
+                            .font(MendFont.caption.bold())
+                            .foregroundColor(textColor)
+                    }
+                    
+                    Text(RecoveryMetrics.scoreDescription(for: score))
+                        .font(MendFont.caption)
+                        .foregroundColor(secondaryTextColor)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(MendSpacing.medium)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(backgroundColor.opacity(colorScheme == .dark ? 0.5 : 0.3))
+                .cornerRadius(MendCornerRadius.small)
+                .padding(.horizontal, MendSpacing.medium)
+                .padding(.bottom, MendSpacing.medium)
+            }
+        }
+        .padding(.vertical, MendSpacing.small)
+        .frame(width: 300)
+        .background(backgroundColor)
+        .cornerRadius(MendCornerRadius.medium)
     }
 }
 

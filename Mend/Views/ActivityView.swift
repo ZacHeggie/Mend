@@ -70,7 +70,7 @@ struct ActivityView: View {
             NavigationView {
                 AddActivityView(isPresented: $showingAddActivity)
                     .navigationTitle("Add Activity")
-                    .navigationBarItems(trailing: Button("Cancel") {
+                    .navigationBarItems(leading: Button("Cancel") {
                         showingAddActivity = false
                     })
                     .environmentObject(activityManager)
@@ -557,12 +557,6 @@ struct AddActivityView: View {
         }
         .navigationTitle("Add Activity")
         .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") {
-                    isPresented = false
-                }
-            }
-            
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") {
                     saveActivity()

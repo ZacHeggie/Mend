@@ -45,97 +45,84 @@ struct SettingsView: View {
     @State private var showingLogoutAlert = false
     
     var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(spacing: 0) {
-                    // ACCOUNT section
-                    sectionHeader(title: "ACCOUNT")
-                    
-                    SectionCard {
-                        NavigationLink(destination: Text("Data Import").navigationTitle("Data Import")) {
-                            menuRow(icon: "arrow.down", title: "Import Apple Health Data", showArrow: true)
-                        }
-                        Divider()
-                        NavigationLink(destination: Text("Refresh Health Data").navigationTitle("Refresh Health Data")) {
-                            menuRow(icon: "arrow.clockwise", title: "Refresh Health Data", showArrow: true)
-                        }
+        ScrollView {
+            VStack(spacing: 0) {
+                // ACCOUNT section
+                sectionHeader(title: "ACCOUNT")
+                
+                SectionCard {
+                    NavigationLink(destination: Text("Data Import").navigationTitle("Data Import")) {
+                        menuRow(icon: "arrow.down", title: "Import Apple Health Data", showArrow: true)
                     }
-                    
-                    SectionCard {
-                        NavigationLink(destination: SimulatedDataSettings()) {
-                            HStack {
-                                menuRow(icon: "chart.line.uptrend.xyaxis", title: "Simulated Data Settings", showArrow: true)
-                                Spacer()
-                                Text("Off")
-                                    .foregroundColor(secondaryTextColor)
-                                    .font(MendFont.body)
-                            }
-                        }
+                    Divider()
+                    NavigationLink(destination: Text("Refresh Health Data").navigationTitle("Refresh Health Data")) {
+                        menuRow(icon: "arrow.clockwise", title: "Refresh Health Data", showArrow: true)
                     }
-                    
-                    // APPEARANCE section
-                    sectionHeader(title: "APPEARANCE")
-                    
-                    SectionCard {
-                        Toggle(isOn: .constant(colorScheme == .dark)) {
-                            menuRow(icon: "moon.fill", title: "Dark Mode", showArrow: false)
-                        }
-                        .toggleStyle(SwitchToggleStyle(tint: MendColors.primary))
-                        .disabled(true) // Follow system setting
-                    }
-                    
-                    // IMPROVE MEND section
-                    sectionHeader(title: "IMPROVE MEND")
-                    
-                    SectionCard {
-                        NavigationLink(destination: HelpCenterView()) {
-                            menuRow(icon: "questionmark.circle.fill", title: "Help center", showArrow: true)
-                        }
-                        Divider()
-                        NavigationLink(destination: ReportBugView()) {
-                            menuRow(icon: "ant.fill", title: "Report a bug", showArrow: true)
-                        }
-                        Divider()
-                        NavigationLink(destination: FeatureRequestView()) {
-                            menuRow(icon: "lightbulb.fill", title: "Request a feature", showArrow: true)
-                        }
-                        Divider()
-                        Button(action: {
-                            showingTipJar = true
-                        }) {
-                            menuRow(icon: "cup.and.saucer.fill", title: "Tip jar", showArrow: true)
-                        }
-                        .sheet(isPresented: $showingTipJar) {
-                            TipJarView()
-                        }
-                    }
-                    
-                    // ABOUT section
-                    sectionHeader(title: "ABOUT")
-                    
-                    SectionCard {
-                        NavigationLink(destination: PrivacyPolicyView()) {
-                            menuRow(icon: "lock.fill", title: "Privacy policy", showArrow: true)
-                        }
-                        Divider()
-                        NavigationLink(destination: CommunityGuidelinesView()) {
-                            menuRow(icon: "heart.fill", title: "Community guidelines", showArrow: true)
-                        }
-                    }
-                    
-                    // Version at the bottom
-                    Text("Mend for iOS - 1.0.0")
-                        .font(MendFont.footnote)
-                        .foregroundColor(secondaryTextColor)
-                        .padding(.top, 40)
-                        .padding(.bottom, 20)
                 }
-                .padding(.horizontal)
+                
+                SectionCard {
+                    NavigationLink(destination: SimulatedDataSettings()) {
+                        HStack {
+                            menuRow(icon: "chart.line.uptrend.xyaxis", title: "Simulated Data Settings", showArrow: true)
+                            Spacer()
+                            Text("Off")
+                                .foregroundColor(secondaryTextColor)
+                                .font(MendFont.body)
+                        }
+                    }
+                }
+                
+                // IMPROVE MEND section
+                sectionHeader(title: "IMPROVE MEND")
+                
+                SectionCard {
+                    NavigationLink(destination: HelpCenterView()) {
+                        menuRow(icon: "questionmark.circle.fill", title: "Help center", showArrow: true)
+                    }
+                    Divider()
+                    NavigationLink(destination: ReportBugView()) {
+                        menuRow(icon: "ant.fill", title: "Report a bug", showArrow: true)
+                    }
+                    Divider()
+                    NavigationLink(destination: FeatureRequestView()) {
+                        menuRow(icon: "lightbulb.fill", title: "Request a feature", showArrow: true)
+                    }
+                    Divider()
+                    Button(action: {
+                        showingTipJar = true
+                    }) {
+                        menuRow(icon: "cup.and.saucer.fill", title: "Tip jar", showArrow: true)
+                    }
+                    .sheet(isPresented: $showingTipJar) {
+                        TipJarView()
+                    }
+                }
+                
+                // ABOUT section
+                sectionHeader(title: "ABOUT")
+                
+                SectionCard {
+                    NavigationLink(destination: PrivacyPolicyView()) {
+                        menuRow(icon: "lock.fill", title: "Privacy policy", showArrow: true)
+                    }
+                    Divider()
+                    NavigationLink(destination: CommunityGuidelinesView()) {
+                        menuRow(icon: "heart.fill", title: "Community guidelines", showArrow: true)
+                    }
+                }
+                
+                // Version at the bottom
+                Text("Mend for iOS - 1.0.0")
+                    .font(MendFont.footnote)
+                    .foregroundColor(secondaryTextColor)
+                    .padding(.top, 40)
+                    .padding(.bottom, 20)
             }
-            .background(backgroundColor.ignoresSafeArea())
-            .navigationTitle("Settings")
-            .navigationBarTitleDisplayMode(.large)
+            .padding(.horizontal)
         }
+        .background(backgroundColor.ignoresSafeArea())
+        .navigationTitle("Settings")
+        .navigationBarTitleDisplayMode(.large)
     }
     
     private func sectionHeader(title: String) -> some View {
