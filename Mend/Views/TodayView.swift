@@ -129,7 +129,7 @@ struct TodayView: View {
             
             Button("Refresh Now") {
                 Task {
-                    await recoveryMetrics.refreshData()
+                    recoveryMetrics.refreshData()
                 }
             }
             .padding(.vertical, MendSpacing.medium)
@@ -259,7 +259,7 @@ struct TodayView: View {
     
     private func loadData() async {
         // Load recovery metrics
-        await recoveryMetrics.refreshData()
+        recoveryMetrics.refreshData()
         
         // Load personalized recommendations if we have a recovery score
         if let recoveryScore = recoveryMetrics.currentRecoveryScore {
@@ -270,7 +270,6 @@ struct TodayView: View {
     private func loadRecentActivities() {
         // Filter only today's activities
         let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
         recentActivities = activityManager.getRecentActivities(days: 1)
             .filter { calendar.isDateInToday($0.date) }
     }

@@ -1,4 +1,5 @@
 import SwiftUI
+import MessageUI
 
 struct FeatureRequestView: View {
     @Environment(\.colorScheme) var colorScheme
@@ -25,29 +26,31 @@ struct FeatureRequestView: View {
     // Form state
     @State private var featureTitle: String = ""
     @State private var featureDescription: String = ""
-    @State private var selectedCategory = FeatureCategory.general
-    @State private var priorityLevel = PriorityLevel.medium
-    @State private var userEmail: String = ""
+    @State private var selectedCategory = FeatureCategory.workout
+    @State private var selectedPriority = PriorityLevel.medium
     @State private var showSubmissionSuccess = false
     @State private var showSubmissionError = false
     
+    // Email view state
+    @State private var showMailView = false
+    @State private var mailViewResult: MailViewResult?
+    @State private var showMailNotAvailableAlert = false
+    
     enum FeatureCategory: String, CaseIterable, Identifiable {
-        case general = "General Enhancement"
-        case workout = "Workout Related"
-        case recovery = "Recovery Features"
-        case nutrition = "Nutrition Tracking"
-        case sleep = "Sleep Analysis"
-        case stats = "Statistics & Reports"
-        case social = "Social Integration"
+        case workout = "Workout"
+        case recovery = "Recovery"
+        case tracking = "Tracking"
+        case social = "Social"
+        case ui = "User Interface"
         case other = "Other"
         
         var id: String { self.rawValue }
     }
     
     enum PriorityLevel: String, CaseIterable, Identifiable {
-        case low = "Nice to Have"
-        case medium = "Important"
-        case high = "Critical"
+        case low = "Low"
+        case medium = "Medium"
+        case high = "High"
         
         var id: String { self.rawValue }
     }
@@ -61,7 +64,6 @@ struct FeatureRequestView: View {
                 categorySection
                 prioritySection
                 descriptionSection
-                emailSection
                 
                 // Submit button
                 Button(action: {
@@ -95,12 +97,12 @@ struct FeatureRequestView: View {
             .padding(.bottom, 50)
         }
         .background(backgroundColor.ignoresSafeArea())
-        .navigationTitle("Feature Request")
+        .navigationTitle("Request a Feature")
         .navigationBarTitleDisplayMode(.inline)
         .alert(isPresented: $showSubmissionSuccess) {
             Alert(
                 title: Text("Feature Request Submitted"),
-                message: Text("Thank you for your suggestion! We appreciate your input in making Mend better."),
+                message: Text("Thank you for your suggestion. We'll review it soon to improve Mend."),
                 dismissButton: .default(Text("OK")) {
                     presentationMode.wrappedValue.dismiss()
                 }
@@ -110,6 +112,33 @@ struct FeatureRequestView: View {
             Button("OK", role: .cancel) { }
         } message: { errorMessage in
             Text(errorMessage)
+        }
+        .mailSheet(mailData: Binding<MailData?>.constant(requestService.mailData), 
+                   isShowing: $showMailView, 
+                   result: $mailViewResult)
+        .onChange(of: requestService.mailData) { oldValue, newValue in
+            if newValue != nil {
+                if MFMailComposeViewController.canSendMail() {
+                    showMailView = true
+                } else {
+                    showMailNotAvailableAlert = true
+                }
+            }
+        }
+        .onChange(of: mailViewResult) { oldValue, newValue in
+            if let result = newValue {
+                switch result {
+                case .sent:
+                    showSubmissionSuccess = true
+                case .saved:
+                    showSubmissionSuccess = true
+                case .cancelled:
+                    // Do nothing
+                    break
+                case .failed:
+                    showSubmissionError = true
+                }
+            }
         }
     }
     
@@ -167,7 +196,7 @@ struct FeatureRequestView: View {
                 .font(MendFont.headline)
                 .foregroundColor(textColor)
             
-            Picker("Priority", selection: $priorityLevel) {
+            Picker("Priority", selection: $selectedPriority) {
                 ForEach(PriorityLevel.allCases) { level in
                     Text(level.rawValue).tag(level)
                 }
@@ -207,34 +236,6 @@ struct FeatureRequestView: View {
         }
     }
     
-    private var emailSection: some View {
-        VStack(alignment: .leading, spacing: MendSpacing.small) {
-            HStack {
-                Text("Your Email (Optional)")
-                    .font(MendFont.headline)
-                    .foregroundColor(textColor)
-                
-                Text("To follow up on your request")
-                    .font(MendFont.caption)
-                    .foregroundColor(secondaryTextColor)
-            }
-            
-            TextField("email@example.com", text: $userEmail)
-                .font(MendFont.body)
-                .foregroundColor(textColor)
-                .keyboardType(.emailAddress)
-                .autocapitalization(.none)
-                .disableAutocorrection(true)
-                .padding()
-                .background(cardBackgroundColor)
-                .cornerRadius(MendCornerRadius.medium)
-                .overlay(
-                    RoundedRectangle(cornerRadius: MendCornerRadius.medium)
-                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                )
-        }
-    }
-    
     private var popularRequestsSection: some View {
         VStack(alignment: .leading, spacing: MendSpacing.medium) {
             Text("Popular Feature Requests")
@@ -251,34 +252,26 @@ struct FeatureRequestView: View {
     
     private var isFormValid: Bool {
         !featureTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        !featureDescription.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        (userEmail.isEmpty || isValidEmail(userEmail))
-    }
-    
-    private func isValidEmail(_ email: String) -> Bool {
-        let emailRegEx = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
-        let emailPred = NSPredicate(format:"SELF MATCHES %@", emailRegEx)
-        return emailPred.evaluate(with: email)
+        !featureDescription.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
     
     private func submitFeatureRequest() {
-        // Create the feature request model
-        let request = FeatureRequestModel(
+        let featureRequest = FeatureRequestModel(
             title: featureTitle,
             category: selectedCategory.rawValue,
-            priorityLevel: priorityLevel.rawValue,
+            priorityLevel: selectedPriority.rawValue,
             description: featureDescription,
-            email: userEmail.isEmpty ? nil : userEmail
+            email: nil
         )
         
-        // Submit using the service
         Task {
-            let result = await requestService.submitFeatureRequest(request)
+            let result = await requestService.submitFeatureRequest(featureRequest)
             
             DispatchQueue.main.async {
                 switch result {
                 case .success:
-                    showSubmissionSuccess = true
+                    // This will trigger the mail view or save locally if mail isn't available
+                    break
                 case .failure:
                     showSubmissionError = true
                 }
