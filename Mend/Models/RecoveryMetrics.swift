@@ -2,6 +2,10 @@ import Foundation
 import SwiftUI
 import HealthKit
 
+// Keys for UserDefaults
+private let kRecoveryScore = "recoveryScore"
+private let kNotificationPreference = "notificationPreference"
+
 // MARK: - Models
 
 @MainActor
@@ -309,6 +313,7 @@ class RecoveryMetrics: ObservableObject {
         let hrvWeight = 3        // HRV is 3x more important
         let sleepWeight = 2      // Sleep is 2x more important
         let sleepQualityWeight = 1
+        let trainingLoadWeight = 2  // Training load is 2x more important
         
         if let heartRateMetric = self._heartRateMetric {
             // For heart rate, we need to invert the score because a higher heart rate 
@@ -333,6 +338,37 @@ class RecoveryMetrics: ObservableObject {
             totalWeight += sleepQualityWeight
         }
         
+        // Calculate training load score
+        // Use the sample training load for now, but in a real app this would be from actual data
+        let trainingLoadMetric = MetricScore.sampleTrainingLoad
+        
+        // Calculate a training load score based on the relationship to the 4-week average
+        // The score is already calculated in the sampleTrainingLoad method, but not used
+        // Here we'll generate a score where optimal training load gives a higher score
+        let percentChange = trainingLoadMetric.deltaFromAverage / (Double(trainingLoadMetric.score) - trainingLoadMetric.deltaFromAverage) * 100
+        let trainingLoadScore: Int
+        
+        if percentChange >= 5 && percentChange <= 15 {
+            // Optimal range: 5-15% increase
+            trainingLoadScore = 90 + Int(min(10, percentChange - 5))
+        } else if percentChange > 15 && percentChange <= 30 {
+            // High but still acceptable: 15-30% increase
+            trainingLoadScore = 75 - Int(min(15, percentChange - 15))
+        } else if percentChange > 30 {
+            // Too much increase: >30%
+            trainingLoadScore = 60 - Int(min(30, percentChange - 30))
+        } else if percentChange >= 0 && percentChange < 5 {
+            // Maintenance: 0-5% increase
+            trainingLoadScore = 80 + Int(percentChange)
+        } else {
+            // Decreasing load: negative percentChange
+            trainingLoadScore = 70 + Int(max(-20, percentChange))
+        }
+        
+        // Add training load to weighted total
+        weightedTotal += trainingLoadScore * trainingLoadWeight
+        totalWeight += trainingLoadWeight
+        
         let overallScore = totalWeight > 0 ? weightedTotal / totalWeight : 0
         
         currentRecoveryScore = RecoveryScore(
@@ -341,7 +377,7 @@ class RecoveryMetrics: ObservableObject {
             heartRateScore: _heartRateMetric ?? MetricScore.sampleHeartRate,
             hrvScore: _hrvMetric?.score ?? 0,
             sleepScore: _sleepMetric?.score ?? 0,
-            trainingLoadScore: MetricScore.sampleTrainingLoad,
+            trainingLoadScore: trainingLoadMetric,
             stressScore: 75
         )
     }
@@ -588,22 +624,50 @@ class RecoveryMetrics: ObservableObject {
         
         // Training load - generate a pattern that shows high load compared to 4-week average
         var trainingLoadData: [RecoveryMetricData] = []
-        let trainingLoadValues = [75, 65, 85, 90, 80, 78, 85] // High values throughout the week
+        
+        // Training load values based on duration * intensity
+        // High durations and intensities represent an overreaching scenario
+        let durations = [90.0, 75.0, 120.0, 60.0, 105.0, 45.0, 90.0] // Duration in minutes (high values)
+        let intensityFactors = [2.5, 2.0, 3.0, 1.5, 3.0, 2.0, 2.5] // Intensity factors (moderate to high)
+        
+        // Calculate daily training load values as duration * intensity
+        var trainingLoadValues: [Double] = []
+        for i in 0..<7 {
+            trainingLoadValues.append(durations[i] * intensityFactors[i])
+        }
         
         // Generate daily data for the last 7 days
         for day in 0..<7 {
             let date = Calendar.current.date(byAdding: .day, value: -day, to: Date())!
-            trainingLoadData.append(RecoveryMetricData(date: date, value: Double(trainingLoadValues[day])))
+            trainingLoadData.append(RecoveryMetricData(date: date, value: trainingLoadValues[day]))
         }
         
         // Calculate current week's average
-        let currentWeekAvg = trainingLoadValues.reduce(0, +) / trainingLoadValues.count
+        let currentWeekAvg = trainingLoadValues.reduce(0.0, +) / Double(trainingLoadValues.count)
         
         // Simulate a 4-week average (much lower to show excessive increase)
-        let fourWeekAvg = currentWeekAvg - 25
+        let fourWeekAvg = currentWeekAvg - 75
         
-        // Calculate delta
-        let trainingLoadDelta = Double(currentWeekAvg - fourWeekAvg)
+        // Calculate delta and percent change
+        let trainingLoadDelta = currentWeekAvg - fourWeekAvg
+        let percentChange = fourWeekAvg > 0 ? (trainingLoadDelta / fourWeekAvg) * 100 : 50
+        
+        // Calculate a score (0-100) that reflects how optimal the training load is
+        // Perfect training load is a moderate increase (5-15% over 4-week average)
+        // Too much increase (>20%) is bad, too little or negative is suboptimal
+        let _: Int = 0 // This is a dummy value, we're not using it
+        
+        // Create description based on the comparison
+        let description: String
+        if percentChange > 25 {
+            description = "Your training load is \(String(format: "%.0f", trainingLoadDelta)) units (\(String(format: "%.0f", percentChange))%) higher than your 4-week average, suggesting a significant increase in workload. Consider implementing a recovery week soon."
+        } else if percentChange > 10 {
+            description = "Your training load is \(String(format: "%.0f", trainingLoadDelta)) units (\(String(format: "%.0f", percentChange))%) higher than your 4-week average, indicating a moderate progression in training volume."
+        } else if percentChange >= -5 {
+            description = "Your training load is similar to your 4-week average, showing consistent training patterns."
+        } else {
+            description = "Your training load is \(String(format: "%.0f", abs(trainingLoadDelta))) units (\(String(format: "%.0f", abs(percentChange)))%) lower than your 4-week average, showing a reduction in training volume."
+        }
         
         // Calculate recovery score - poor overall score
         let poorRecoveryScore = RecoveryScore(
@@ -613,9 +677,9 @@ class RecoveryMetrics: ObservableObject {
             hrvScore: _hrvMetric?.score ?? 0,
             sleepScore: _sleepMetric?.score ?? 0,
             trainingLoadScore: MetricScore(
-                score: currentWeekAvg,
+                score: Int(currentWeekAvg),
                 title: "Training Load",
-                description: "Your training load is \(String(format: "%.0f", trainingLoadDelta))% higher than your 4-week average, indicating a significant increase that may require extended recovery periods.",
+                description: description,
                 dailyData: trainingLoadData.sorted { $0.date < $1.date },
                 deltaFromAverage: trainingLoadDelta,
                 isPositiveDelta: false // Excessive increase is not positive
@@ -624,6 +688,19 @@ class RecoveryMetrics: ObservableObject {
         )
         
         self.currentRecoveryScore = poorRecoveryScore
+    }
+    
+    static func scoreDescription(for score: RecoveryScore) -> String {
+        switch score.overallScore {
+        case 0..<40:
+            return "Highly stressed. Focus on recovery today."
+        case 40..<60:
+            return "Somewhat fatigued. Consider light activity."
+        case 60..<80:
+            return "Reasonably recovered. Moderate training is fine."
+        default:
+            return "Well recovered. Ready for intense training."
+        }
     }
 }
 
@@ -762,46 +839,64 @@ extension MetricScore {
         let now = Date()
         let calendar = Calendar.current
         
-        // Create more realistic daily load values
+        // Create more realistic daily load values - these now represent duration * intensity
         var dailyData: [RecoveryMetricData] = []
-        let dailyValues = [58, 45, 75, 50, 82, 45, 62] // Represents a typical training week (T, W, T, F, S, S, M)
+        
+        // Duration (in minutes) * intensity factors for last 7 days
+        // Each value represents: daily workout duration * intensity factor
+        let durations = [45.0, 30.0, 60.0, 40.0, 75.0, 30.0, 50.0] // Duration in minutes
+        let intensityFactors = [2.0, 1.0, 2.5, 1.5, 3.0, 1.0, 2.0] // Intensity factors
+        
+        // Calculate daily training load values as duration * intensity
+        var dailyValues: [Double] = []
+        for i in 0..<7 {
+            dailyValues.append(durations[i] * intensityFactors[i])
+        }
         
         // Generate daily data for the last 7 days
         for day in 0..<7 {
             let date = calendar.date(byAdding: .day, value: -day, to: now)!
-            dailyData.append(RecoveryMetricData(date: date, value: Double(dailyValues[day])))
+            dailyData.append(RecoveryMetricData(date: date, value: dailyValues[day]))
         }
         
         // Calculate current week's average
-        let currentWeekAvg = dailyValues.reduce(0, +) / dailyValues.count
+        let currentWeekAvg = dailyValues.reduce(0.0, +) / Double(dailyValues.count)
         
         // Simulate a 4-week average (slightly lower to show an increasing trend)
         let fourWeekAvg = currentWeekAvg - 10
         
         // Calculate the delta between weekly average and 4-week average
-        let delta = Double(currentWeekAvg - fourWeekAvg)
+        let delta = currentWeekAvg - fourWeekAvg
         
-        // Determine if the delta is positive (in training context, increasing load over time)
+        // Calculate percentage change from 4-week average
+        let percentChange = fourWeekAvg > 0 ? (delta / fourWeekAvg) * 100 : 0
+        
+        // Determine if the delta is positive (in training context, moderate increase is positive)
         // This is a complex assessment - moderate increases are positive, but excessive increases are not
-        let isPositiveDelta = delta > 0 && delta < 15 // Moderate increase is good
+        let isPositiveDelta = percentChange > 0 && percentChange <= 15 // Moderate increase is good
+        
+        // Calculate a score (0-100) that reflects how optimal the training load is
+        // Perfect training load is a moderate increase (5-15% over 4-week average)
+        // Too much increase (>20%) is bad, too little or negative is suboptimal
+        let _: Int = 0 // This is a dummy value, we're not using it
         
         // Create description based on the comparison
         let description: String
-        if delta > 15 {
-            description = "Your training load is \(String(format: "%.0f", delta))% higher than your 4-week average, suggesting a significant increase in workload. Consider implementing a recovery week soon."
-        } else if delta > 5 {
-            description = "Your training load is \(String(format: "%.0f", delta))% higher than your 4-week average, indicating a moderate progression in training volume."
-        } else if delta >= -5 {
+        if percentChange > 25 {
+            description = "Your training load is \(String(format: "%.0f", delta)) units (\(String(format: "%.0f", percentChange))%) higher than your 4-week average, suggesting a significant increase in workload. Consider implementing a recovery week soon."
+        } else if percentChange > 10 {
+            description = "Your training load is \(String(format: "%.0f", delta)) units (\(String(format: "%.0f", percentChange))%) higher than your 4-week average, indicating a moderate progression in training volume."
+        } else if percentChange >= -5 {
             description = "Your training load is similar to your 4-week average, showing consistent training patterns."
         } else {
-            description = "Your training load is \(String(format: "%.0f", abs(delta)))% lower than your 4-week average, showing a reduction in training volume."
+            description = "Your training load is \(String(format: "%.0f", abs(delta))) units (\(String(format: "%.0f", abs(percentChange)))%) lower than your 4-week average, showing a reduction in training volume."
         }
         
         return MetricScore(
-            score: currentWeekAvg,
+            score: Int(currentWeekAvg),
             title: "Training Load",
             description: description,
-            dailyData: dailyData,
+            dailyData: dailyData.sorted { $0.date < $1.date },
             deltaFromAverage: delta,
             isPositiveDelta: isPositiveDelta
         )

@@ -59,6 +59,7 @@ struct DailyTrainingVolume: Identifiable {
     let totalDurationMinutes: Double
     let averageIntensity: Double
     let activityCount: Int
+    let trainingLoad: Double
     
     var formattedDuration: String {
         let hours = Int(totalDurationMinutes / 60)
@@ -78,6 +79,39 @@ struct DailyTrainingVolume: Identifiable {
             return .moderate
         } else {
             return .low
+        }
+    }
+    
+    var formattedTrainingLoad: String {
+        return String(format: "%.0f", trainingLoad)
+    }
+}
+
+// MARK: - Notification Preferences
+enum NotificationPreference: String, CaseIterable {
+    case none = "None"
+    case morning = "Morning"
+    case morningAndEvening = "Morning & Evening"
+    
+    var description: String {
+        switch self {
+        case .none:
+            return "No recovery notifications"
+        case .morning:
+            return "One daily notification"
+        case .morningAndEvening:
+            return "Two daily notifications"
+        }
+    }
+    
+    var icon: String {
+        switch self {
+        case .none:
+            return "bell.slash"
+        case .morning:
+            return "sun.max"
+        case .morningAndEvening:
+            return "sunrise.fill"
         }
     }
 } 

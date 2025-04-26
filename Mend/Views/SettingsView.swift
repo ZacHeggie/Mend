@@ -1,6 +1,21 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+// Add a minimal UserViewModel implementation
+class UserViewModel: ObservableObject {
+    @Published var currentUser: User?
+    
+    func signOut() {
+        // For demo purposes, just set the user to nil
+        currentUser = nil
+    }
+}
+
+struct User {
+    let displayName: String
+    let email: String
+}
+
 struct SettingsView: View {
     @StateObject private var healthImporter = HealthDataImporter()
     @EnvironmentObject private var recoveryMetrics: RecoveryMetrics
@@ -8,6 +23,8 @@ struct SettingsView: View {
     @State private var showingError = false
     @State private var isImporting = false
     @Environment(\.colorScheme) var colorScheme
+    @StateObject private var userViewModel = UserViewModel()
+    @State private var showingTipJar = false
     
     private var backgroundColor: Color {
         colorScheme == .dark ? MendColors.darkBackground : MendColors.background
@@ -25,291 +42,261 @@ struct SettingsView: View {
         colorScheme == .dark ? MendColors.darkSecondaryText : MendColors.secondaryText
     }
     
+    @State private var showingLogoutAlert = false
+    
     var body: some View {
         ScrollView {
-            VStack(spacing: MendSpacing.large) {
-                // Data Section
-                sectionCard(title: "Data Import") {
-                    VStack(spacing: 0) {
-                        settingsButton(
-                            icon: "square.and.arrow.down",
-                            text: "Import Apple Health Data",
-                            action: { showingFilePicker = true }
-                        )
-                        .disabled(isImporting)
-                        
-                        if isImporting {
-                            HStack {
-                                ProgressView()
-                                    .scaleEffect(0.8)
-                                Text("Importing data...")
-                                    .font(MendFont.subheadline)
-                                    .foregroundColor(secondaryTextColor)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.vertical, MendSpacing.medium)
-                            .padding(.horizontal, MendSpacing.medium)
+            VStack(spacing: 0) {
+                // ACCOUNT section
+                sectionHeader(title: "ACCOUNT")
+                
+                SectionCard {
+                    Button(action: {
+                        // Refresh health data directly
+                        Task {
+                            await recoveryMetrics.refreshData()
                         }
-                        
-                        Divider()
-                            .background(colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.1))
-                            .padding(.horizontal, MendSpacing.small)
-                        
-                        settingsButton(
-                            icon: "arrow.clockwise",
-                            text: "Refresh Health Data",
-                            action: {
-                                Task {
-                                    await recoveryMetrics.refreshData()
-                                }
-                            }
-                        )
+                    }) {
+                        menuRow(icon: "arrow.clockwise", title: "Refresh Health Data", showArrow: false)
                     }
                 }
                 
-                #if DEBUG
-                // Developer Options
-                sectionCard(title: "Developer Options") {
-                    VStack(spacing: 0) {
-                        NavigationLink(destination: SimulatedDataSettings()) {
-                            HStack {
-                                Image(systemName: "chart.line.uptrend.xyaxis")
-                                    .foregroundColor(MendColors.primary)
-                                    .frame(width: 24, height: 24)
-                                
-                                Text("Simulated Data Settings")
-                                    .foregroundColor(textColor)
-                                
-                                Spacer()
-                                
-                                Text(recoveryMetrics.useSimulatedData ? "On" : "Off")
-                                    .foregroundColor(secondaryTextColor)
-                                
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 14))
-                                    .foregroundColor(secondaryTextColor)
-                            }
-                            .padding(.horizontal, MendSpacing.medium)
-                            .padding(.vertical, MendSpacing.medium)
-                        }
-                    }
-                }
-                #endif
-                
-                // About Section
-                sectionCard(title: "About") {
-                    VStack(spacing: MendSpacing.small) {
+                SectionCard {
+                    NavigationLink(destination: SimulatedDataSettings()) {
                         HStack {
-                            Text("Version")
-                                .foregroundColor(textColor)
-                            
+                            menuRow(icon: "chart.line.uptrend.xyaxis", title: "Simulated Data Settings", showArrow: true)
                             Spacer()
-                            
-                            Text("1.0.0")
+                            Text(recoveryMetrics.useSimulatedData ? "On" : "Off")
                                 .foregroundColor(secondaryTextColor)
+                                .font(MendFont.body)
                         }
-                        .padding(.horizontal, MendSpacing.medium)
-                        .padding(.vertical, MendSpacing.medium)
-                        
-                        Divider()
-                            .background(colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.1))
-                            .padding(.horizontal, MendSpacing.small)
-                        
-                        Text("Imported health data is processed locally on your device.")
-                            .font(MendFont.footnote)
-                            .foregroundColor(secondaryTextColor)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, MendSpacing.medium)
-                            .padding(.vertical, MendSpacing.medium)
                     }
                 }
                 
-                // App Rating
-                sectionCard(title: "Improve Mend") {
-                    VStack(spacing: 0) {
-                        settingsButton(
-                            icon: "star.fill",
-                            text: "Rate Mend on the App Store",
-                            action: { /* Rating action */ }
-                        )
-                        
-                        Divider()
-                            .background(colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.1))
-                            .padding(.horizontal, MendSpacing.small)
-                        
-                        settingsButton(
-                            icon: "megaphone.fill",
-                            text: "Join affiliates program",
-                            action: { /* Affiliates action */ }
-                        )
+                // IMPROVE MEND section
+                sectionHeader(title: "IMPROVE MEND")
+                
+                SectionCard {
+                    NavigationLink(destination: ReportBugView()) {
+                        menuRow(icon: "ant.fill", title: "Report a bug", showArrow: true)
+                    }
+                    Divider()
+                    NavigationLink(destination: FeatureRequestView()) {
+                        menuRow(icon: "lightbulb.fill", title: "Request a feature", showArrow: true)
+                    }
+                    Divider()
+                    Button(action: {
+                        showingTipJar = true
+                    }) {
+                        menuRow(icon: "cup.and.saucer.fill", title: "Tip jar", showArrow: true)
+                    }
+                    .sheet(isPresented: $showingTipJar) {
+                        TipJarView()
                     }
                 }
                 
-                // Support Section
-                sectionCard(title: "Help") {
-                    VStack(spacing: 0) {
-                        settingsButton(
-                            icon: "questionmark.circle.fill",
-                            text: "Help center",
-                            action: { /* Open help center */ }
-                        )
-                        
-                        Divider()
-                            .background(colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.1))
-                            .padding(.horizontal, MendSpacing.small)
-                        
-                        settingsButton(
-                            icon: "ladybug.fill",
-                            text: "Report a bug",
-                            action: { /* Bug report */ }
-                        )
-                        
-                        Divider()
-                            .background(colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.1))
-                            .padding(.horizontal, MendSpacing.small)
-                        
-                        settingsButton(
-                            icon: "lightbulb.fill",
-                            text: "Request a feature",
-                            action: { /* Feature request */ }
-                        )
+                // ABOUT section
+                sectionHeader(title: "ABOUT")
+                
+                SectionCard {
+                    NavigationLink(destination: HelpCenterView()) {
+                        menuRow(icon: "questionmark.circle.fill", title: "Help center", showArrow: true)
+                    }
+                    Divider()
+                    NavigationLink(destination: PrivacyPolicyView()) {
+                        menuRow(icon: "lock.fill", title: "Privacy policy", showArrow: true)
                     }
                 }
                 
-                // Info Section
-                sectionCard(title: "About") {
-                    VStack(spacing: 0) {
-                        settingsButton(
-                            icon: "lock.fill",
-                            text: "Privacy policy",
-                            action: { /* Privacy policy */ }
-                        )
-                        
-                        Divider()
-                            .background(colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.1))
-                            .padding(.horizontal, MendSpacing.small)
-                        
-                        settingsButton(
-                            icon: "heart.fill",
-                            text: "Community guidelines",
-                            action: { /* Community guidelines */ }
-                        )
-                    }
-                }
-                
-                // App Version
-                HStack {
-                    Spacer()
-                    Text("Mend for iOS - 1.0.0")
-                        .font(MendFont.caption)
-                        .foregroundColor(secondaryTextColor)
-                    Spacer()
-                }
-                .padding(.vertical, MendSpacing.large)
-                
-                // Logout Button
-                Button(action: {
-                    // Logout action
-                }) {
-                    HStack {
-                        Image(systemName: "arrow.right.square")
-                        Text("LOGOUT")
-                            .fontWeight(.medium)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, MendSpacing.medium)
-                    .background(Color.clear)
-                    .foregroundColor(MendColors.negative)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: MendCornerRadius.medium)
-                            .stroke(MendColors.negative.opacity(0.5), lineWidth: 1)
-                    )
-                }
-                .padding(.horizontal, MendSpacing.medium)
+                // Version at the bottom
+                Text("Mend for iOS - 1.0.0")
+                    .font(MendFont.footnote)
+                    .foregroundColor(secondaryTextColor)
+                    .padding(.top, 40)
+                    .padding(.bottom, 20)
             }
-            .padding()
+            .padding(.horizontal)
+            .padding(.bottom, 100) // Add extra padding at the bottom to ensure content isn't obscured by tab bar
         }
         .background(backgroundColor.ignoresSafeArea())
-        .navigationTitle("Account")
-        .fileImporter(
-            isPresented: $showingFilePicker,
-            allowedContentTypes: [UTType.xml],
-            allowsMultipleSelection: false
-        ) { result in
-            switch result {
-            case .success(let urls):
-                guard let url = urls.first else { return }
-                
-                // Start import process
-                isImporting = true
-                
-                Task {
-                    do {
-                        let activities = try await healthImporter.importHealthData(from: url)
-                        await MainActor.run {
-                            // Here you would update your app's data store with the new activities
-                            print("Successfully imported \(activities.count) activities")
-                            isImporting = false
-                        }
-                    } catch {
-                        await MainActor.run {
-                            isImporting = false
-                            showingError = true
+        .navigationTitle("Settings")
+        .navigationBarTitleDisplayMode(.large)
+    }
+    
+    private func sectionHeader(title: String) -> some View {
+        HStack {
+            Text(title)
+                .font(MendFont.caption)
+                .foregroundColor(secondaryTextColor)
+                .padding(.vertical, 10)
+                .padding(.leading, 10)
+            Spacer()
+        }
+    }
+    
+    private func menuRow(icon: String, title: String, showArrow: Bool) -> some View {
+        HStack {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(MendColors.primary)
+                .frame(width: 24, height: 24)
+            
+            Text(title)
+                .font(MendFont.body)
+                .foregroundColor(textColor)
+                .padding(.leading, 4)
+            
+            Spacer()
+            
+            if showArrow {
+                Image(systemName: "chevron.right")
+                    .foregroundColor(secondaryTextColor)
+                    .font(.system(size: 14))
+            }
+        }
+        .padding(.vertical, 12)
+    }
+}
+
+struct TipJarView: View {
+    @Environment(\.colorScheme) var colorScheme
+    @Environment(\.presentationMode) var presentationMode
+    
+    private var backgroundColor: Color {
+        colorScheme == .dark ? MendColors.darkBackground : MendColors.background
+    }
+    
+    private var cardBackgroundColor: Color {
+        colorScheme == .dark ? MendColors.darkCardBackground : MendColors.cardBackground
+    }
+    
+    private var textColor: Color {
+        colorScheme == .dark ? MendColors.darkText : MendColors.text
+    }
+    
+    private var secondaryTextColor: Color {
+        colorScheme == .dark ? MendColors.darkSecondaryText : MendColors.secondaryText
+    }
+    
+    let tipOptions = [
+        TipOption(name: "Small Tip", price: "$0.99", icon: "cup.and.saucer.fill"),
+        TipOption(name: "Medium Tip", price: "$2.99", icon: "mug.fill"),
+        TipOption(name: "Large Tip", price: "$4.99", icon: "wineglass.fill"),
+        TipOption(name: "Generous Tip", price: "$9.99", icon: "gift.fill")
+    ]
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Header
+                    VStack(spacing: 12) {
+                        Image(systemName: "heart.fill")
+                            .font(.system(size: 50))
+                            .foregroundColor(MendColors.primary)
+                            .padding()
+                        
+                        Text("Support Mend")
+                            .font(MendFont.title)
+                            .fontWeight(.bold)
+                            .foregroundColor(textColor)
+                        
+                        Text("Your support helps us continue to develop and improve Mend with new features and regular updates. Thank you for your generosity!")
+                            .font(MendFont.body)
+                            .multilineTextAlignment(.center)
+                            .foregroundColor(secondaryTextColor)
+                            .padding(.horizontal)
+                    }
+                    .padding(.top, 20)
+                    .padding(.bottom, 10)
+                    
+                    // Tip options
+                    VStack(spacing: 16) {
+                        ForEach(tipOptions, id: \.name) { option in
+                            Button(action: {
+                                // In a real app, this would trigger the in-app purchase
+                                print("Processing purchase: \(option.name)")
+                            }) {
+                                HStack {
+                                    Image(systemName: option.icon)
+                                        .font(.system(size: 20))
+                                        .foregroundColor(MendColors.primary)
+                                        .frame(width: 40, height: 40)
+                                    
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(option.name)
+                                            .font(MendFont.headline)
+                                            .foregroundColor(textColor)
+                                        
+                                        Text("One-time purchase")
+                                            .font(MendFont.caption)
+                                            .foregroundColor(secondaryTextColor)
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    Text(option.price)
+                                        .font(MendFont.headline)
+                                        .foregroundColor(MendColors.primary)
+                                }
+                                .padding()
+                                .background(cardBackgroundColor)
+                                .cornerRadius(12)
+                            }
                         }
                     }
+                    .padding(.horizontal)
+                    
+                    // Note
+                    Text("All tips are one-time purchases and do not include any subscriptions or recurring charges.")
+                        .font(MendFont.footnote)
+                        .multilineTextAlignment(.center)
+                        .foregroundColor(secondaryTextColor)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 10)
                 }
-                
-            case .failure(let error):
-                print("Error selecting file: \(error.localizedDescription)")
-                showingError = true
+                .padding(.bottom, 30)
+            }
+            .background(backgroundColor.ignoresSafeArea())
+            .navigationTitle("Tip Jar")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        presentationMode.wrappedValue.dismiss()
+                    }
+                }
             }
         }
-        .alert("Import Error",
-               isPresented: $showingError,
-               actions: {
-            Button("OK", role: .cancel) { }
-        }, message: {
-            Text(healthImporter.error?.description ?? "Failed to import health data")
-        })
+    }
+}
+
+struct TipOption {
+    let name: String
+    let price: String
+    let icon: String
+}
+
+struct SectionCard<Content: View>: View {
+    @Environment(\.colorScheme) var colorScheme
+    let content: Content
+    
+    private var cardBackgroundColor: Color {
+        colorScheme == .dark ? MendColors.darkCardBackground : .white
     }
     
-    // MARK: - Helper Views
-    
-    @ViewBuilder
-    private func sectionCard(title: String, @ViewBuilder content: () -> some View) -> some View {
-        VStack(alignment: .leading, spacing: MendSpacing.medium) {
-            Text(title)
-                .font(MendFont.headline)
-                .foregroundColor(secondaryTextColor)
-                .padding(.horizontal, MendSpacing.medium)
-            
-            content()
-                .background(cardBackgroundColor)
-                .cornerRadius(MendCornerRadius.medium)
-        }
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
     }
     
-    private func settingsButton(icon: String, text: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: MendSpacing.medium) {
-                Image(systemName: icon)
-                    .font(.system(size: 18))
-                    .foregroundColor(MendColors.primary)
-                    .frame(width: 24, height: 24)
-                
-                Text(text)
-                    .font(MendFont.body)
-                    .foregroundColor(textColor)
-                
-                Spacer()
-                
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14))
-                    .foregroundColor(secondaryTextColor)
-            }
-            .padding(.horizontal, MendSpacing.medium)
-            .padding(.vertical, MendSpacing.medium)
+    var body: some View {
+        VStack(spacing: 0) {
+            content
+                .padding(.horizontal, 16)
         }
+        .background(cardBackgroundColor)
+        .cornerRadius(12)
+        .padding(.vertical, 6)
     }
 }
 
@@ -391,7 +378,7 @@ struct SimulatedDataSettings: View {
                 // Refresh button
                 Button {
                     Task {
-                        await recoveryMetrics.refreshData()
+                        recoveryMetrics.refreshData()
                     }
                 } label: {
                     HStack {

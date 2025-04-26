@@ -75,64 +75,26 @@ class ActivityManager: ObservableObject, Sendable {
     func calculateTrainingLoad(forDays days: Int = 7) -> Int {
         let recentActivities = getRecentActivities(days: days)
         
-        // Use a more complex model to calculate training load that accounts for:
-        // 1. Intensity (with more granular scaling)
-        // 2. Duration (with exponential scaling for longer activities)
-        // 3. Activity type weight (some activities are inherently more stressful)
-        // 4. Recency (more recent activities contribute more to current load)
-        
+        // Calculate training load as the product of duration and intensity
         var totalLoad = 0
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
         
         for activity in recentActivities {
             // Base factors
             let durationInMinutes = activity.duration / 60
             
-            // 1. Calculate intensity factor with more granular scaling
+            // Intensity factor based on intensity level
             let intensityFactor: Double
             switch activity.intensity {
             case .low:
                 intensityFactor = 1.0
             case .moderate:
-                intensityFactor = 2.5
+                intensityFactor = 2.0
             case .high:
-                intensityFactor = 4.0
+                intensityFactor = 3.0
             }
             
-            // 2. Apply exponential scaling for longer activities (fatigue accumulates non-linearly)
-            let durationFactor: Double
-            if durationInMinutes <= 30 {
-                durationFactor = durationInMinutes / 30.0
-            } else if durationInMinutes <= 60 {
-                durationFactor = 1.0 + (durationInMinutes - 30) / 60.0
-            } else {
-                durationFactor = 1.5 + (durationInMinutes - 60) / 40.0
-            }
-            
-            // 3. Apply activity type weight
-            let activityTypeFactor: Double
-            switch activity.type {
-            case .run:
-                activityTypeFactor = 1.2  // Higher impact
-            case .ride:
-                activityTypeFactor = 1.0  // Moderate impact
-            case .swim:
-                activityTypeFactor = 0.8  // Low impact
-            case .walk:
-                activityTypeFactor = 0.5  // Very low impact
-            case .workout:
-                activityTypeFactor = 1.1  // Depends on the workout, but generally moderate-high impact
-            case .other:
-                activityTypeFactor = 1.0  // Default
-            }
-            
-            // 4. Apply recency factor (more recent activities have higher impact)
-            let daysSinceActivity = calendar.dateComponents([.day], from: calendar.startOfDay(for: activity.date), to: today).day ?? 0
-            let recencyFactor = max(0.7, 1.0 - (Double(daysSinceActivity) * 0.05))  // Decay of 5% per day, minimum 70%
-            
-            // Calculate load points for this activity
-            let activityLoad = Int(durationInMinutes * intensityFactor * durationFactor * activityTypeFactor * recencyFactor)
+            // Calculate load as simple product of duration and intensity
+            let activityLoad = Int(durationInMinutes * intensityFactor)
             
             // Add to total
             totalLoad += activityLoad
@@ -178,12 +140,16 @@ class ActivityManager: ObservableObject, Sendable {
             
             let avgIntensity = totalWeight > 0 ? weightedIntensity / totalWeight : 0
             
-            // Create volume object
+            // Calculate training load as duration * average intensity
+            let trainingLoad = totalDuration * avgIntensity
+            
+            // Create volume object with training load
             let volume = DailyTrainingVolume(
                 date: date,
                 totalDurationMinutes: totalDuration,
                 averageIntensity: avgIntensity,
-                activityCount: activitiesForDay.count
+                activityCount: activitiesForDay.count,
+                trainingLoad: trainingLoad
             )
             
             volumes.append(volume)
