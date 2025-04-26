@@ -6,6 +6,9 @@ struct ReportBugView: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.presentationMode) var presentationMode
     
+    // Add ObservedObject for the request service
+    @ObservedObject private var requestService = RequestService.shared
+    
     private var backgroundColor: Color {
         colorScheme == .dark ? MendColors.darkBackground : MendColors.background
     }
@@ -31,9 +34,7 @@ struct ReportBugView: View {
     @State private var includeScreenshot = false
     @State private var showingImagePicker = false
     @State private var screenshot: UIImage?
-    @State private var submissionInProgress = false
     @State private var showSubmissionSuccess = false
-    @State private var submissionError: String? = nil
     @State private var showSubmissionError = false
     
     enum BugCategory: String, CaseIterable, Identifiable {
@@ -208,7 +209,7 @@ struct ReportBugView: View {
                     submitBugReport()
                 }) {
                     HStack {
-                        if submissionInProgress {
+                        if requestService.isSubmitting {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle(tint: .white))
                                 .padding(.trailing, 5)
@@ -225,10 +226,11 @@ struct ReportBugView: View {
                     .background(isFormValid ? MendColors.primary : MendColors.primary.opacity(0.5))
                     .cornerRadius(MendCornerRadius.medium)
                 }
-                .disabled(!isFormValid || submissionInProgress)
+                .disabled(!isFormValid || requestService.isSubmitting)
                 .padding(.top, MendSpacing.small)
             }
             .padding()
+            .padding(.bottom, 50)
         }
         .background(backgroundColor.ignoresSafeArea())
         .navigationTitle("Report a Bug")
@@ -245,12 +247,10 @@ struct ReportBugView: View {
                 }
             )
         }
-        .alert(isPresented: $showSubmissionError) {
-            Alert(
-                title: Text("Submission Error"),
-                message: Text(submissionError ?? "An unknown error occurred. Please try again."),
-                dismissButton: .default(Text("OK"))
-            )
+        .alert("Submission Error", isPresented: $showSubmissionError, presenting: requestService.lastSubmissionError) { _ in
+            Button("OK", role: .cancel) { }
+        } message: { errorMessage in
+            Text(errorMessage)
         }
     }
     
@@ -260,47 +260,29 @@ struct ReportBugView: View {
     }
     
     private func submitBugReport() {
-        submissionInProgress = true
-        
-        // Gather device info if needed
-        let deviceInfo = includeDeviceInfo ? gatherDeviceInfo() : nil
-        
-        // Gather system logs if needed
-        let systemLogs = includeSystemLogs ? gatherSystemLogs() : nil
-        
-        // Create the bug report
-        let bugReport = BugReport(
+        // Create a bug report with the structured model
+        let report = BugReportModel(
             category: selectedCategory.rawValue,
             description: bugDescription,
-            reproductionSteps: reproducibleSteps,
-            deviceInfo: deviceInfo,
-            systemLogs: systemLogs,
-            screenshot: screenshot?.pngData()?.base64EncodedString()
+            reproductionSteps: reproducibleSteps.isEmpty ? nil : reproducibleSteps,
+            systemLogs: includeSystemLogs ? gatherSystemLogs() : nil,
+            screenshot: includeScreenshot ? screenshot?.jpegData(compressionQuality: 0.7) : nil,
+            email: nil
         )
         
-        // Submit to API
-        submitToAPI(bugReport: bugReport) { success, errorMessage in
+        // Submit using the service
+        Task {
+            let result = await requestService.submitBugReport(report)
+            
             DispatchQueue.main.async {
-                submissionInProgress = false
-                
-                if success {
+                switch result {
+                case .success:
                     showSubmissionSuccess = true
-                } else {
-                    submissionError = errorMessage
+                case .failure:
                     showSubmissionError = true
                 }
             }
         }
-    }
-    
-    private func gatherDeviceInfo() -> DeviceInfo {
-        return DeviceInfo(
-            deviceModel: UIDevice.current.model,
-            systemName: UIDevice.current.systemName,
-            systemVersion: UIDevice.current.systemVersion,
-            appVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown",
-            buildNumber: Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
-        )
     }
     
     private func gatherSystemLogs() -> String? {
@@ -308,57 +290,6 @@ struct ReportBugView: View {
         // In a real app, you would use OSLog to collect relevant logs
         let logs = OSLog.collect(subsystem: "com.mend.app", category: "bugs", level: .error)
         return logs
-    }
-    
-    private func submitToAPI(bugReport: BugReport, completion: @escaping (Bool, String?) -> Void) {
-        // Convert bug report to JSON
-        guard let jsonData = try? JSONEncoder().encode(bugReport) else {
-            completion(false, "Failed to encode bug report")
-            return
-        }
-        
-        // Create URL
-        guard let url = URL(string: "https://api.mendapp.com/bugs/report") else {
-            completion(false, "Invalid API URL")
-            return
-        }
-        
-        // Create request
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.httpBody = jsonData
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        // Add auth token (if available)
-        // request.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
-        
-        // For demo purposes, simulate a network request
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            // Simulated success
-            completion(true, nil)
-            
-            // In real implementation:
-            /*
-            URLSession.shared.dataTask(with: request) { data, response, error in
-                if let error = error {
-                    completion(false, "Network error: \(error.localizedDescription)")
-                    return
-                }
-                
-                guard let httpResponse = response as? HTTPURLResponse else {
-                    completion(false, "Invalid response")
-                    return
-                }
-                
-                if httpResponse.statusCode >= 200 && httpResponse.statusCode < 300 {
-                    completion(true, nil)
-                } else {
-                    let errorMessage = data.flatMap { String(data: $0, encoding: .utf8) } ?? "Status code: \(httpResponse.statusCode)"
-                    completion(false, errorMessage)
-                }
-            }.resume()
-            */
-        }
     }
 }
 

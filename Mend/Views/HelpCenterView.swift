@@ -61,6 +61,7 @@ struct HelpCenterView: View {
                     .padding(.bottom, MendSpacing.extraLarge)
             }
             .padding()
+            .padding(.bottom, 50)
         }
         .background(backgroundColor.ignoresSafeArea())
         .navigationTitle("Help Center")

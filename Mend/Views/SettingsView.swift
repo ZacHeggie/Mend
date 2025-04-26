@@ -51,12 +51,13 @@ struct SettingsView: View {
                 sectionHeader(title: "ACCOUNT")
                 
                 SectionCard {
-                    NavigationLink(destination: Text("Data Import").navigationTitle("Data Import")) {
-                        menuRow(icon: "arrow.down", title: "Import Apple Health Data", showArrow: true)
-                    }
-                    Divider()
-                    NavigationLink(destination: Text("Refresh Health Data").navigationTitle("Refresh Health Data")) {
-                        menuRow(icon: "arrow.clockwise", title: "Refresh Health Data", showArrow: true)
+                    Button(action: {
+                        // Refresh health data directly
+                        Task {
+                            await recoveryMetrics.refreshData()
+                        }
+                    }) {
+                        menuRow(icon: "arrow.clockwise", title: "Refresh Health Data", showArrow: false)
                     }
                 }
                 
@@ -65,7 +66,7 @@ struct SettingsView: View {
                         HStack {
                             menuRow(icon: "chart.line.uptrend.xyaxis", title: "Simulated Data Settings", showArrow: true)
                             Spacer()
-                            Text("Off")
+                            Text(recoveryMetrics.useSimulatedData ? "On" : "Off")
                                 .foregroundColor(secondaryTextColor)
                                 .font(MendFont.body)
                         }
@@ -76,10 +77,6 @@ struct SettingsView: View {
                 sectionHeader(title: "IMPROVE MEND")
                 
                 SectionCard {
-                    NavigationLink(destination: HelpCenterView()) {
-                        menuRow(icon: "questionmark.circle.fill", title: "Help center", showArrow: true)
-                    }
-                    Divider()
                     NavigationLink(destination: ReportBugView()) {
                         menuRow(icon: "ant.fill", title: "Report a bug", showArrow: true)
                     }
@@ -102,12 +99,12 @@ struct SettingsView: View {
                 sectionHeader(title: "ABOUT")
                 
                 SectionCard {
-                    NavigationLink(destination: PrivacyPolicyView()) {
-                        menuRow(icon: "lock.fill", title: "Privacy policy", showArrow: true)
+                    NavigationLink(destination: HelpCenterView()) {
+                        menuRow(icon: "questionmark.circle.fill", title: "Help center", showArrow: true)
                     }
                     Divider()
-                    NavigationLink(destination: CommunityGuidelinesView()) {
-                        menuRow(icon: "heart.fill", title: "Community guidelines", showArrow: true)
+                    NavigationLink(destination: PrivacyPolicyView()) {
+                        menuRow(icon: "lock.fill", title: "Privacy policy", showArrow: true)
                     }
                 }
                 
@@ -119,6 +116,7 @@ struct SettingsView: View {
                     .padding(.bottom, 20)
             }
             .padding(.horizontal)
+            .padding(.bottom, 100) // Add extra padding at the bottom to ensure content isn't obscured by tab bar
         }
         .background(backgroundColor.ignoresSafeArea())
         .navigationTitle("Settings")

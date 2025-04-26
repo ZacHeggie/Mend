@@ -38,6 +38,7 @@ struct HelpSectionView: View {
                 .cornerRadius(MendCornerRadius.medium)
             }
             .padding()
+            .padding(.bottom, 50)
         }
         .navigationTitle(title)
         .background(backgroundColor.ignoresSafeArea())
@@ -50,44 +51,52 @@ struct PrivacyPolicyView: View {
             title: "Privacy Policy",
             content: """
             # Privacy Policy
-            
+
             Effective Date: April 24, 2025
-            
-            ## Introduction
-            
-            Your privacy is important to us. This Privacy Policy explains how Mend collects, uses, and safeguards your information when you use our mobile application.
-            
-            ## Information We Collect
-            
-            **Health and Fitness Data**: We collect health data from Apple Health, including heart rate, HRV, sleep metrics, and activity information. This data is used solely to provide recovery insights and recommendations.
-            
-            **Device Information**: We collect basic device information to improve app performance and troubleshoot issues.
-            
-            ## How We Use Your Information
-            
-            - To provide personalized recovery metrics and training recommendations
-            - To improve our app's functionality and user experience
-            - To diagnose technical issues and optimize performance
-            
-            ## Data Storage and Security
-            
-            All health data is processed locally on your device. We implement appropriate security measures to protect your personal information.
-            
-            ## Third-Party Services
-            
-            We do not share your health data with third parties for advertising or marketing purposes.
-            
-            ## Your Rights
-            
-            You can control what health data is shared with Mend through your device's privacy settings. You may request deletion of your account data at any time.
-            
-            ## Changes to This Policy
-            
-            We may update this policy periodically. We will notify you of any significant changes.
-            
+
+            ## Your Data Stays on Your Device
+
+            Mend is designed with privacy at its core. All your health and fitness data remains stored locally on your device and is never transmitted to external servers.
+
+            ## Information We Use
+
+            **Health and Fitness Data**: With your permission, Mend accesses health data from Apple Health, including:
+            • Heart rate and heart rate variability (HRV)
+            • Sleep metrics and patterns
+            • Activity and workout information
+            • Recovery indicators
+
+            This data remains on your device and is used exclusively to:
+            • Calculate your personalized recovery score
+            • Generate training recommendations based on your body's readiness
+            • Provide insights about your recovery patterns
+
+            **Device Information**: Basic device data is used only for app functionality and troubleshooting, and stays on your device.
+
+            ## Data Security
+
+            Your privacy is protected through:
+            • Local processing: All analysis happens directly on your device
+            • No external transmission: Your health data never leaves your device
+            • Apple's security framework: We utilize iOS security features to protect your information
+
+            ## Your Control
+
+            • You control exactly which health metrics Mend can access through your device's privacy settings
+            • You can revoke access to any health category at any time
+            • You can request complete deletion of all app data through the Settings menu
+
+            ## No Third-Party Sharing
+
+            We do not:
+            • Share your health data with any third parties
+            • Use your data for advertising or marketing
+            • Sell or transfer your information to other companies
+
             ## Contact Us
-            
-            If you have questions about this policy, please contact us at privacy@mendapp.com
+
+            If you have questions about your privacy, please contact us at:
+            privacy@mendapp.com
             """
         )
     }

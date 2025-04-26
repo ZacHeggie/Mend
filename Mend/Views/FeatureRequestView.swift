@@ -4,6 +4,8 @@ struct FeatureRequestView: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.presentationMode) var presentationMode
     
+    @ObservedObject private var requestService = RequestService.shared
+    
     private var backgroundColor: Color {
         colorScheme == .dark ? MendColors.darkBackground : MendColors.background
     }
@@ -26,8 +28,8 @@ struct FeatureRequestView: View {
     @State private var selectedCategory = FeatureCategory.general
     @State private var priorityLevel = PriorityLevel.medium
     @State private var userEmail: String = ""
-    @State private var submissionInProgress = false
     @State private var showSubmissionSuccess = false
+    @State private var showSubmissionError = false
     
     enum FeatureCategory: String, CaseIterable, Identifiable {
         case general = "General Enhancement"
@@ -66,7 +68,7 @@ struct FeatureRequestView: View {
                     submitFeatureRequest()
                 }) {
                     HStack {
-                        if submissionInProgress {
+                        if requestService.isSubmitting {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle(tint: .white))
                                 .padding(.trailing, 5)
@@ -83,13 +85,14 @@ struct FeatureRequestView: View {
                     .background(isFormValid ? MendColors.primary : MendColors.primary.opacity(0.5))
                     .cornerRadius(MendCornerRadius.medium)
                 }
-                .disabled(!isFormValid || submissionInProgress)
+                .disabled(!isFormValid || requestService.isSubmitting)
                 .padding(.top, MendSpacing.medium)
                 
                 // Popular requests section
                 popularRequestsSection
             }
             .padding()
+            .padding(.bottom, 50)
         }
         .background(backgroundColor.ignoresSafeArea())
         .navigationTitle("Feature Request")
@@ -102,6 +105,11 @@ struct FeatureRequestView: View {
                     presentationMode.wrappedValue.dismiss()
                 }
             )
+        }
+        .alert("Submission Error", isPresented: $showSubmissionError, presenting: requestService.lastSubmissionError) { _ in
+            Button("OK", role: .cancel) { }
+        } message: { errorMessage in
+            Text(errorMessage)
         }
     }
     
@@ -254,12 +262,27 @@ struct FeatureRequestView: View {
     }
     
     private func submitFeatureRequest() {
-        submissionInProgress = true
+        // Create the feature request model
+        let request = FeatureRequestModel(
+            title: featureTitle,
+            category: selectedCategory.rawValue,
+            priorityLevel: priorityLevel.rawValue,
+            description: featureDescription,
+            email: userEmail.isEmpty ? nil : userEmail
+        )
         
-        // Simulate submission delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            submissionInProgress = false
-            showSubmissionSuccess = true
+        // Submit using the service
+        Task {
+            let result = await requestService.submitFeatureRequest(request)
+            
+            DispatchQueue.main.async {
+                switch result {
+                case .success:
+                    showSubmissionSuccess = true
+                case .failure:
+                    showSubmissionError = true
+                }
+            }
         }
     }
     
@@ -336,14 +359,14 @@ struct FeatureRequestView: View {
         PopularRequest(
             title: "Custom Workout Templates",
             description: "Ability to create and save personalized workout templates for quick access.",
-            status: "In Development",
-            progressPercentage: 75
+            status: "Planned",
+            progressPercentage: 25
         ),
         PopularRequest(
             title: "Integration with Apple Health",
             description: "Seamless syncing of workout and recovery data with Apple Health.",
-            status: "Planned",
-            progressPercentage: 20
+            status: "Completed",
+            progressPercentage: 100
         ),
         PopularRequest(
             title: "Dark Mode Support",
@@ -354,8 +377,8 @@ struct FeatureRequestView: View {
         PopularRequest(
             title: "Weekly Progress Reports",
             description: "Detailed weekly summaries of workout progress and recovery metrics.",
-            status: "Under Review",
-            progressPercentage: nil
+            status: "In Development",
+            progressPercentage: 60
         )
     ]
 }
