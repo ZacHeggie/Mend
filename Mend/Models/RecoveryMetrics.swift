@@ -67,10 +67,19 @@ class RecoveryMetrics: ObservableObject {
         // Extract sleep values
         let sleepValue = sleepData?.hours
         let sleepQualityValue = sleepData?.quality
+        let sleepStages = sleepData?.stages
+        
+        // Mark each metrics collection with appropriate type
+        // Since our new detection system has overlap between heart rate and HRV values,
+        // we'll tag them explicitly by creating new arrays with the correct type
+        let taggedHRVMetrics = hrvMetrics.map { metric in
+            // Create a new RecoveryMetricData with explicit HRV type
+            return RecoveryMetricData(date: metric.date, value: metric.value, explicitType: .hrv)
+        }
         
         // Calculate deltas from average if we have enough data points
         let heartRateDelta = calculateDelta(from: heartRateMetrics, currentValue: heartRateValue)
-        let hrvDelta = calculateDelta(from: hrvMetrics, currentValue: hrvValue)
+        let hrvDelta = calculateDelta(from: taggedHRVMetrics, currentValue: hrvValue)
         let sleepDelta = calculateDelta(from: sleepMetrics, currentValue: sleepValue)
         let sleepQualityDelta = calculateDelta(from: sleepQualityMetrics, currentValue: sleepQualityValue)
         
@@ -89,9 +98,9 @@ class RecoveryMetrics: ObservableObject {
         if let hrvValue = hrvValue {
             // For HRV, higher values are better, so if current value is lower than average
             // we need to calculate an appropriate score that reflects poor recovery
-            let avgHRV = hrvMetrics.filter { !Calendar.current.isDateInToday($0.date) }
+            let avgHRV = taggedHRVMetrics.filter { !Calendar.current.isDateInToday($0.date) }
                 .map { $0.value }
-                .reduce(0, +) / Double(max(1, hrvMetrics.filter { !Calendar.current.isDateInToday($0.date) }.count))
+                .reduce(0, +) / Double(max(1, taggedHRVMetrics.filter { !Calendar.current.isDateInToday($0.date) }.count))
             
             // Calculate a score that reflects the HRV quality (0-100 scale)
             // When hrvValue is less than 70% of average, score should be very low
@@ -107,28 +116,59 @@ class RecoveryMetrics: ObservableObject {
                 calculatedScore = max(30, 70 - Int(40 * min(1.0, (1.0 - hrvPercentOfAverage) * 1.5)))
             }
             
+            // For HRV, higher is always better, so a positive delta is positive
+            let isPositiveDelta = hrvDelta.delta > 0
+            
             self._hrvMetric = MetricScore(
                 score: calculatedScore,
                 title: "Heart Rate Variability",
                 description: getHRVDescription(currentHRV: hrvValue, delta: hrvDelta.delta),
-                dailyData: hrvMetrics,
+                dailyData: taggedHRVMetrics,
                 deltaFromAverage: hrvDelta.delta,
-                isPositiveDelta: hrvDelta.isPositive
+                isPositiveDelta: isPositiveDelta
             )
         }
         
-        if let sleepValue = sleepValue {
+        // Sleep Duration Metric - either use real data or create a fallback
+        if let sleepValue = sleepValue, !sleepMetrics.isEmpty {
+            // Create description with sleep stages if available
+            let description: String
+            if let sleepStages = sleepStages {
+                let stagesInfo = getSleepStagesDescription(sleepStages: sleepStages)
+                description = getSleepDescription(currentSleep: sleepValue, delta: sleepDelta.delta) + "\n\n" + stagesInfo
+            } else {
+                description = getSleepDescription(currentSleep: sleepValue, delta: sleepDelta.delta)
+            }
+            
             self._sleepMetric = MetricScore(
                 score: Int(sleepValue * 100 / 8), // Convert to score out of 100 (8 hours = 100)
                 title: "Sleep Duration",
-                description: getSleepDescription(currentSleep: sleepValue, delta: sleepDelta.delta),
+                description: description,
                 dailyData: sleepMetrics,
                 deltaFromAverage: sleepDelta.delta,
                 isPositiveDelta: sleepDelta.isPositive
             )
+        } else if !sleepMetrics.isEmpty {
+            // If we have daily data but no current value, use the most recent value as current
+            let mostRecentValue = sleepMetrics.sorted(by: { $0.date > $1.date }).first?.value ?? 7.0
+            let avgValue = sleepMetrics.map { $0.value }.reduce(0, +) / Double(sleepMetrics.count)
+            let delta = mostRecentValue - avgValue
+            
+            self._sleepMetric = MetricScore(
+                score: Int(mostRecentValue * 100 / 8), // Convert to score out of 100 (8 hours = 100)
+                title: "Sleep Duration",
+                description: getSleepDescription(currentSleep: mostRecentValue, delta: delta),
+                dailyData: sleepMetrics,
+                deltaFromAverage: delta,
+                isPositiveDelta: delta > 0
+            )
+        } else {
+            // Create fallback sleep metric if we have no data at all
+            self._sleepMetric = MetricScore.sampleSleep
         }
         
-        if let sleepQualityValue = sleepQualityValue {
+        // Sleep Quality Metric - either use real data or create a fallback
+        if let sleepQualityValue = sleepQualityValue, !sleepQualityMetrics.isEmpty {
             self._sleepQualityMetric = MetricScore(
                 score: Int(sleepQualityValue),
                 title: "Sleep Quality",
@@ -137,6 +177,23 @@ class RecoveryMetrics: ObservableObject {
                 deltaFromAverage: sleepQualityDelta.delta,
                 isPositiveDelta: sleepQualityDelta.isPositive
             )
+        } else if !sleepQualityMetrics.isEmpty {
+            // If we have daily data but no current value, use the most recent value as current
+            let mostRecentValue = sleepQualityMetrics.sorted(by: { $0.date > $1.date }).first?.value ?? 75.0
+            let avgValue = sleepQualityMetrics.map { $0.value }.reduce(0, +) / Double(sleepQualityMetrics.count)
+            let delta = mostRecentValue - avgValue
+            
+            self._sleepQualityMetric = MetricScore(
+                score: Int(mostRecentValue),
+                title: "Sleep Quality",
+                description: getSleepQualityDescription(currentSleepQuality: mostRecentValue, delta: delta),
+                dailyData: sleepQualityMetrics,
+                deltaFromAverage: delta,
+                isPositiveDelta: delta > 0
+            )
+        } else {
+            // Create fallback sleep quality metric if we have no data at all
+            self._sleepQualityMetric = MetricScore.sampleSleepQuality
         }
         
         // Calculate and update the recovery score
@@ -160,11 +217,22 @@ class RecoveryMetrics: ObservableObject {
         // For heart rate, lower is better (negative delta is positive)
         // For HRV and sleep, higher is better (positive delta is positive)
         let isPositive: Bool
-        if metrics.first?.value.isHeartRate == true {
-            // For heart rate, lower is better, so negative delta is positive
-            isPositive = delta < 0
+        
+        // Determine metric type from the context, not just the value range
+        if let firstMetric = metrics.first {
+            switch firstMetric.metricType {
+            case .heartRate:
+                // For heart rate, lower is better, so negative delta is positive
+                isPositive = delta < 0
+            case .hrv:
+                // For HRV, higher is better, so positive delta is positive
+                isPositive = delta > 0
+            default:
+                // For sleep, quality scores, etc., higher is generally better
+                isPositive = delta > 0
+            }
         } else {
-            // For HRV, sleep, etc., higher is better, so positive delta is positive
+            // Default behavior if metric type can't be determined
             isPositive = delta > 0
         }
         
@@ -285,6 +353,28 @@ class RecoveryMetrics: ObservableObject {
         }
     }
     
+    private func getSleepStagesDescription(sleepStages: SleepStages) -> String {
+        let formattedDeep = String(format: "%.0f", sleepStages.deep)
+        let formattedREM = String(format: "%.0f", sleepStages.rem)
+        let formattedCore = String(format: "%.0f", sleepStages.core)
+        let _ = String(format: "%.0f", sleepStages.unspecified)
+        
+        let baseDescription = "Sleep stages breakdown: \(formattedDeep)% deep sleep, \(formattedREM)% REM sleep, \(formattedCore)% light sleep"
+        
+        // Assess sleep stage quality
+        let deepRemPercentage = sleepStages.deep + sleepStages.rem
+        
+        if deepRemPercentage >= 40 {
+            return baseDescription + ". Your deep and REM sleep percentages are excellent, which is optimal for physical recovery and cognitive function."
+        } else if deepRemPercentage >= 30 {
+            return baseDescription + ". Your deep and REM sleep percentages are very good, supporting efficient recovery and mental performance."
+        } else if deepRemPercentage >= 20 {
+            return baseDescription + ". Your deep and REM sleep percentages are adequate for basic recovery functions."
+        } else {
+            return baseDescription + ". Your deep and REM sleep percentages are lower than optimal, which may affect recovery and cognitive performance."
+        }
+    }
+    
     // Public methods for creating metrics
     func createHRVMetric() -> MetricScore {
         return _hrvMetric ?? MetricScore.sampleHRV
@@ -293,8 +383,19 @@ class RecoveryMetrics: ObservableObject {
     func createSleepMetric() -> MetricScore {
         return _sleepMetric ?? MetricScore(
             score: 0,
-            title: "Sleep",
+            title: "Sleep Duration",
             description: "No sleep data available",
+            dailyData: [],
+            deltaFromAverage: 0,
+            isPositiveDelta: true
+        )
+    }
+    
+    func createSleepQualityMetric() -> MetricScore {
+        return _sleepQualityMetric ?? MetricScore(
+            score: 0,
+            title: "Sleep Quality",
+            description: "No sleep quality data available",
             dailyData: [],
             deltaFromAverage: 0,
             isPositiveDelta: true
@@ -313,7 +414,8 @@ class RecoveryMetrics: ObservableObject {
         let hrvWeight = 3        // HRV is 3x more important
         let sleepWeight = 2      // Sleep is 2x more important
         let sleepQualityWeight = 1
-        let trainingLoadWeight = 2  // Training load is 2x more important
+        let _ = 1  // Sleep stages also contribute to recovery
+        let _ = 2  // Training load is 2x more important
         
         if let heartRateMetric = self._heartRateMetric {
             // For heart rate, we need to invert the score because a higher heart rate 
@@ -338,37 +440,6 @@ class RecoveryMetrics: ObservableObject {
             totalWeight += sleepQualityWeight
         }
         
-        // Calculate training load score
-        // Use the sample training load for now, but in a real app this would be from actual data
-        let trainingLoadMetric = MetricScore.sampleTrainingLoad
-        
-        // Calculate a training load score based on the relationship to the 4-week average
-        // The score is already calculated in the sampleTrainingLoad method, but not used
-        // Here we'll generate a score where optimal training load gives a higher score
-        let percentChange = trainingLoadMetric.deltaFromAverage / (Double(trainingLoadMetric.score) - trainingLoadMetric.deltaFromAverage) * 100
-        let trainingLoadScore: Int
-        
-        if percentChange >= 5 && percentChange <= 15 {
-            // Optimal range: 5-15% increase
-            trainingLoadScore = 90 + Int(min(10, percentChange - 5))
-        } else if percentChange > 15 && percentChange <= 30 {
-            // High but still acceptable: 15-30% increase
-            trainingLoadScore = 75 - Int(min(15, percentChange - 15))
-        } else if percentChange > 30 {
-            // Too much increase: >30%
-            trainingLoadScore = 60 - Int(min(30, percentChange - 30))
-        } else if percentChange >= 0 && percentChange < 5 {
-            // Maintenance: 0-5% increase
-            trainingLoadScore = 80 + Int(percentChange)
-        } else {
-            // Decreasing load: negative percentChange
-            trainingLoadScore = 70 + Int(max(-20, percentChange))
-        }
-        
-        // Add training load to weighted total
-        weightedTotal += trainingLoadScore * trainingLoadWeight
-        totalWeight += trainingLoadWeight
-        
         let overallScore = totalWeight > 0 ? weightedTotal / totalWeight : 0
         
         currentRecoveryScore = RecoveryScore(
@@ -377,7 +448,7 @@ class RecoveryMetrics: ObservableObject {
             heartRateScore: _heartRateMetric ?? MetricScore.sampleHeartRate,
             hrvScore: _hrvMetric?.score ?? 0,
             sleepScore: _sleepMetric?.score ?? 0,
-            trainingLoadScore: trainingLoadMetric,
+            trainingLoadScore: MetricScore.sampleTrainingLoad,
             stressScore: 75
         )
     }
@@ -531,6 +602,21 @@ class RecoveryMetrics: ObservableObject {
             isPositiveDelta: isSleepQualityDeltaPositive
         )
         
+        // Initialize simulated sleep data
+        let sleepStages = SleepStages.sample
+        
+        // Create sleep metric with stages information included
+        let sleepStagesInfo = getSleepStagesDescription(sleepStages: sleepStages)
+        let sleepDesc = self._sleepMetric?.description ?? "No sleep data available"
+        self._sleepMetric = MetricScore(
+            score: self._sleepMetric?.score ?? 75,
+            title: "Sleep Duration",
+            description: sleepDesc + "\n\n" + sleepStagesInfo,
+            dailyData: self._sleepMetric?.dailyData ?? [],
+            deltaFromAverage: self._sleepMetric?.deltaFromAverage ?? 0,
+            isPositiveDelta: self._sleepMetric?.isPositiveDelta ?? true
+        )
+        
         // Calculate overall score based on simulated metrics
         updateRecoveryScore()
     }
@@ -620,6 +706,21 @@ class RecoveryMetrics: ObservableObject {
             dailyData: sleepQualityData.sorted { $0.date < $1.date },
             deltaFromAverage: sleepQualityDelta,
             isPositiveDelta: sleepQualityDelta > 0 // For sleep quality, higher is better
+        )
+        
+        // Simulate poor sleep quality and stages
+        let sleepStages = SleepStages(deep: 12, rem: 18, core: 60, unspecified: 10)
+        
+        // Update sleep metric with stages information included
+        let sleepStagesInfo = getSleepStagesDescription(sleepStages: sleepStages)
+        let sleepDesc = self._sleepMetric?.description ?? "No sleep data available"
+        self._sleepMetric = MetricScore(
+            score: self._sleepMetric?.score ?? 65,
+            title: "Sleep Duration",
+            description: sleepDesc + "\n\n" + sleepStagesInfo,
+            dailyData: self._sleepMetric?.dailyData ?? [],
+            deltaFromAverage: self._sleepMetric?.deltaFromAverage ?? 0,
+            isPositiveDelta: self._sleepMetric?.isPositiveDelta ?? false
         )
         
         // Training load - generate a pattern that shows high load compared to 4-week average
@@ -802,13 +903,13 @@ extension MetricScore {
             title: "Resting Heart Rate",
             description: "Your resting heart rate is 3 BPM lower than your 7-day average, which is a positive sign of recovery.",
             dailyData: [
-                RecoveryMetricData(date: Date().addingTimeInterval(-6 * 86400), value: 62),
-                RecoveryMetricData(date: Date().addingTimeInterval(-5 * 86400), value: 65),
-                RecoveryMetricData(date: Date().addingTimeInterval(-4 * 86400), value: 64),
-                RecoveryMetricData(date: Date().addingTimeInterval(-3 * 86400), value: 67),
-                RecoveryMetricData(date: Date().addingTimeInterval(-2 * 86400), value: 66),
-                RecoveryMetricData(date: Date().addingTimeInterval(-1 * 86400), value: 65),
-                RecoveryMetricData(date: Date(), value: 59)
+                RecoveryMetricData(date: Date().addingTimeInterval(-6 * 86400), value: 62, explicitType: .heartRate),
+                RecoveryMetricData(date: Date().addingTimeInterval(-5 * 86400), value: 65, explicitType: .heartRate),
+                RecoveryMetricData(date: Date().addingTimeInterval(-4 * 86400), value: 64, explicitType: .heartRate),
+                RecoveryMetricData(date: Date().addingTimeInterval(-3 * 86400), value: 67, explicitType: .heartRate),
+                RecoveryMetricData(date: Date().addingTimeInterval(-2 * 86400), value: 66, explicitType: .heartRate),
+                RecoveryMetricData(date: Date().addingTimeInterval(-1 * 86400), value: 65, explicitType: .heartRate),
+                RecoveryMetricData(date: Date(), value: 59, explicitType: .heartRate)
             ],
             deltaFromAverage: 3.0,
             isPositiveDelta: true
@@ -821,16 +922,35 @@ extension MetricScore {
             title: "Heart Rate Variability",
             description: "Your HRV is 5 ms higher than your 7-day average, indicating better recovery and less stress.",
             dailyData: [
-                RecoveryMetricData(date: Date().addingTimeInterval(-6 * 86400), value: 58),
-                RecoveryMetricData(date: Date().addingTimeInterval(-5 * 86400), value: 55),
-                RecoveryMetricData(date: Date().addingTimeInterval(-4 * 86400), value: 54),
-                RecoveryMetricData(date: Date().addingTimeInterval(-3 * 86400), value: 59),
-                RecoveryMetricData(date: Date().addingTimeInterval(-2 * 86400), value: 62),
-                RecoveryMetricData(date: Date().addingTimeInterval(-1 * 86400), value: 63),
-                RecoveryMetricData(date: Date(), value: 67)
+                RecoveryMetricData(date: Date().addingTimeInterval(-6 * 86400), value: 58, explicitType: .hrv),
+                RecoveryMetricData(date: Date().addingTimeInterval(-5 * 86400), value: 55, explicitType: .hrv),
+                RecoveryMetricData(date: Date().addingTimeInterval(-4 * 86400), value: 54, explicitType: .hrv),
+                RecoveryMetricData(date: Date().addingTimeInterval(-3 * 86400), value: 59, explicitType: .hrv),
+                RecoveryMetricData(date: Date().addingTimeInterval(-2 * 86400), value: 62, explicitType: .hrv),
+                RecoveryMetricData(date: Date().addingTimeInterval(-1 * 86400), value: 63, explicitType: .hrv),
+                RecoveryMetricData(date: Date(), value: 67, explicitType: .hrv)
             ],
             deltaFromAverage: 5.0,
             isPositiveDelta: true
+        )
+    }
+    
+    static var sampleSleep: MetricScore {
+        MetricScore(
+            score: 82,
+            title: "Sleep Duration",
+            description: "Sleep duration of 6.5 hours. Adequate sleep (7-9 hours) is essential for physical recovery, cognitive function, and overall health. Try to increase your sleep duration for better recovery.",
+            dailyData: [
+                RecoveryMetricData(date: Date().addingTimeInterval(-6 * 86400), value: 7.2, explicitType: .sleep),
+                RecoveryMetricData(date: Date().addingTimeInterval(-5 * 86400), value: 6.8, explicitType: .sleep),
+                RecoveryMetricData(date: Date().addingTimeInterval(-4 * 86400), value: 7.0, explicitType: .sleep),
+                RecoveryMetricData(date: Date().addingTimeInterval(-3 * 86400), value: 6.5, explicitType: .sleep),
+                RecoveryMetricData(date: Date().addingTimeInterval(-2 * 86400), value: 7.5, explicitType: .sleep),
+                RecoveryMetricData(date: Date().addingTimeInterval(-1 * 86400), value: 6.9, explicitType: .sleep),
+                RecoveryMetricData(date: Date(), value: 6.5, explicitType: .sleep)
+            ],
+            deltaFromAverage: -0.5,
+            isPositiveDelta: false
         )
     }
     
@@ -908,13 +1028,13 @@ extension MetricScore {
             title: "Sleep Quality",
             description: "Your sleep quality is high with good deep sleep phases and few disruptions.",
             dailyData: [
-                RecoveryMetricData(date: Date().addingTimeInterval(-6 * 86400), value: 78),
-                RecoveryMetricData(date: Date().addingTimeInterval(-5 * 86400), value: 75),
-                RecoveryMetricData(date: Date().addingTimeInterval(-4 * 86400), value: 70),
-                RecoveryMetricData(date: Date().addingTimeInterval(-3 * 86400), value: 75),
-                RecoveryMetricData(date: Date().addingTimeInterval(-2 * 86400), value: 80),
-                RecoveryMetricData(date: Date().addingTimeInterval(-1 * 86400), value: 79),
-                RecoveryMetricData(date: Date(), value: 83)
+                RecoveryMetricData(date: Date().addingTimeInterval(-6 * 86400), value: 78, explicitType: .sleepQuality),
+                RecoveryMetricData(date: Date().addingTimeInterval(-5 * 86400), value: 75, explicitType: .sleepQuality),
+                RecoveryMetricData(date: Date().addingTimeInterval(-4 * 86400), value: 70, explicitType: .sleepQuality),
+                RecoveryMetricData(date: Date().addingTimeInterval(-3 * 86400), value: 75, explicitType: .sleepQuality),
+                RecoveryMetricData(date: Date().addingTimeInterval(-2 * 86400), value: 80, explicitType: .sleepQuality),
+                RecoveryMetricData(date: Date().addingTimeInterval(-1 * 86400), value: 79, explicitType: .sleepQuality),
+                RecoveryMetricData(date: Date(), value: 83, explicitType: .sleepQuality)
             ],
             deltaFromAverage: 6.5,
             isPositiveDelta: true
@@ -926,9 +1046,44 @@ struct RecoveryMetricData: Identifiable, Equatable {
     let id = UUID()
     let date: Date
     let value: Double
+    let explicitType: MetricType
+    
+    init(date: Date, value: Double, explicitType: MetricType = .other) {
+        self.date = date
+        self.value = value
+        self.explicitType = explicitType
+    }
     
     static func == (lhs: RecoveryMetricData, rhs: RecoveryMetricData) -> Bool {
-        lhs.id == rhs.id && lhs.date == rhs.date && lhs.value == rhs.value
+        lhs.id == rhs.id && lhs.date == rhs.date && lhs.value == rhs.value && lhs.explicitType == rhs.explicitType
+    }
+    
+    enum MetricType {
+        case heartRate
+        case hrv
+        case sleep
+        case sleepQuality
+        case other
+    }
+    
+    var metricType: MetricType {
+        // Use explicit type if provided, otherwise infer from value
+        if explicitType != .other {
+            return explicitType
+        }
+        
+        // Try to infer the metric type based on values and context
+        if self.value >= 40 && self.value <= 100 {
+            return .heartRate // Most likely heart rate
+        } else if self.value >= 20 && self.value <= 200 {
+            return .hrv // Likely HRV (though there's overlap with HR ranges)
+        } else if self.value > 0 && self.value < 24 {
+            return .sleep // Likely sleep hours
+        } else if self.value > 0 && self.value <= 100 {
+            return .sleepQuality // Likely sleep quality score (0-100)
+        } else {
+            return .other
+        }
     }
 }
 
