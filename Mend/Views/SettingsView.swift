@@ -330,7 +330,7 @@ struct SimulatedDataSettings: View {
                         .toggleStyle(SwitchToggleStyle(tint: MendColors.primary))
                         .padding(.horizontal, MendSpacing.medium)
                         .padding(.vertical, MendSpacing.medium)
-                        .onChange(of: recoveryMetrics.useSimulatedData) {
+                        .onChange(of: recoveryMetrics.useSimulatedData) { oldValue, newValue in
                             Task {
                                 await recoveryMetrics.loadMetrics()
                             }
@@ -346,7 +346,7 @@ struct SimulatedDataSettings: View {
                             .toggleStyle(SwitchToggleStyle(tint: MendColors.primary))
                             .padding(.horizontal, MendSpacing.medium)
                             .padding(.vertical, MendSpacing.medium)
-                            .onChange(of: recoveryMetrics.usePoorRecoveryData) {
+                            .onChange(of: recoveryMetrics.usePoorRecoveryData) { oldValue, newValue in
                                 Task {
                                     await recoveryMetrics.loadMetrics()
                                 }
