@@ -57,6 +57,15 @@ class RequestService: ObservableObject {
         MFMailComposeViewController.canSendMail()
     }
     
+    // Provide a fallback method for when mail is unavailable - creates a URL to open in Mail app
+    func getMailtoURL(subject: String, body: String) -> URL? {
+        let encodedSubject = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let encodedBody = body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let mailtoString = "mailto:\(supportEmail)?subject=\(encodedSubject)&body=\(encodedBody)"
+        
+        return URL(string: mailtoString)
+    }
+    
     // MARK: - Feature Request Submission
     
     func submitFeatureRequest(_ request: FeatureRequestModel) async -> Result<Bool, RequestError> {
@@ -92,10 +101,11 @@ class RequestService: ObservableObject {
             Device Info:
             - Device Model: \(request.deviceInfo.deviceModel)
             - iOS Version: \(request.deviceInfo.systemVersion)
-            - App Version: \(request.deviceInfo.appVersion)
+            - App Version: \(request.deviceInfo.appVersion) (\(request.deviceInfo.appBuild))
             
-            Full JSON:
-            \(jsonString)
+            Timestamp: \(ISO8601DateFormatter().string(from: request.timestamp))
+            
+            Thank you for your feedback!
             """
             
             // For logging
@@ -120,7 +130,7 @@ class RequestService: ObservableObject {
                 }
                 return .success(true)
             } else {
-                // No mail capability - fall back to saving locally in debug mode
+                // No mail capability - try fallback options
                 #if DEBUG
                 saveRequestLocally(requestData, type: "feature")
                 DispatchQueue.main.async {
@@ -128,7 +138,21 @@ class RequestService: ObservableObject {
                 }
                 return .success(true)
                 #else
-                throw RequestError.mailUnavailable
+                let mailtoURL = getMailtoURL(
+                    subject: emailSubject,
+                    body: "Please copy and paste the information below:\n\n\(emailBody)"
+                )
+                
+                // If we can create a mailto URL, update UI to use it
+                if let mailtoURL = mailtoURL {
+                    DispatchQueue.main.async {
+                        self.isSubmitting = false
+                        UIApplication.shared.open(mailtoURL)
+                    }
+                    return .success(true)
+                } else {
+                    throw RequestError.mailUnavailable
+                }
                 #endif
             }
         } catch let error as RequestError {
@@ -201,10 +225,11 @@ class RequestService: ObservableObject {
             Device Info:
             - Device Model: \(report.deviceInfo.deviceModel)
             - iOS Version: \(report.deviceInfo.systemVersion)
-            - App Version: \(report.deviceInfo.appVersion)
+            - App Version: \(report.deviceInfo.appVersion) (\(report.deviceInfo.appBuild))
             
-            Full JSON:
-            \(jsonString)
+            Timestamp: \(ISO8601DateFormatter().string(from: report.timestamp))
+            
+            Thank you for reporting this issue!
             """
             
             // For logging
@@ -229,7 +254,7 @@ class RequestService: ObservableObject {
                 }
                 return .success(true)
             } else {
-                // No mail capability - fall back to saving locally in debug mode
+                // No mail capability - try fallback options
                 #if DEBUG
                 saveRequestLocally(reportData, type: "bug")
                 DispatchQueue.main.async {
@@ -237,7 +262,21 @@ class RequestService: ObservableObject {
                 }
                 return .success(true)
                 #else
-                throw RequestError.mailUnavailable
+                let mailtoURL = getMailtoURL(
+                    subject: emailSubject,
+                    body: "Please copy and paste the information below:\n\n\(emailBody)"
+                )
+                
+                // If we can create a mailto URL, update UI to use it
+                if let mailtoURL = mailtoURL {
+                    DispatchQueue.main.async {
+                        self.isSubmitting = false
+                        UIApplication.shared.open(mailtoURL)
+                    }
+                    return .success(true)
+                } else {
+                    throw RequestError.mailUnavailable
+                }
                 #endif
             }
         } catch let error as RequestError {

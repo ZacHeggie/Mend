@@ -37,6 +37,7 @@ struct ReportBugView: View {
     @State private var screenshot: UIImage?
     @State private var showSubmissionSuccess = false
     @State private var showSubmissionError = false
+    @State private var userEmail: String = ""
     
     // Email view state
     @State private var showMailView = false
@@ -105,6 +106,11 @@ struct ReportBugView: View {
                 }
             }
         }
+        .alert("Mail Unavailable", isPresented: $showMailNotAvailableAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Mail functionality is not available on this device. Please make sure the Mail app is configured or contact mendsupport@icloud.com directly.")
+        }
     }
     
     // Breaking up the complex body into smaller components
@@ -117,6 +123,7 @@ struct ReportBugView: View {
             screenshotSection
             deviceInfoSection
             systemLogsSection
+            contactEmailSection
             submitButton
         }
         .padding()
@@ -283,6 +290,31 @@ struct ReportBugView: View {
         .cornerRadius(MendCornerRadius.medium)
     }
     
+    private var contactEmailSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Contact Email (Optional)")
+                .font(MendFont.headline)
+                .foregroundColor(textColor)
+            
+            Text("If you'd like to receive updates about this issue")
+                .font(MendFont.caption)
+                .foregroundColor(secondaryTextColor)
+                .padding(.bottom, 4)
+            
+            TextField("Your email address", text: $userEmail)
+                .font(MendFont.body)
+                .padding()
+                .background(Color(.systemGray6))
+                .cornerRadius(MendCornerRadius.small)
+                .keyboardType(.emailAddress)
+                .autocapitalization(.none)
+                .disableAutocorrection(true)
+        }
+        .padding()
+        .background(cardBackgroundColor)
+        .cornerRadius(MendCornerRadius.medium)
+    }
+    
     private var submitButton: some View {
         Button(action: {
             submitBugReport()
@@ -324,7 +356,8 @@ struct ReportBugView: View {
             description: bugDescription,
             reproductionSteps: reproducibleSteps,
             systemLogs: includeSystemLogs ? gatherSystemLogs() : nil,
-            screenshot: includeScreenshot ? screenshotData : nil
+            screenshot: includeScreenshot ? screenshotData : nil,
+            email: userEmail.isEmpty ? nil : userEmail
         )
         
         Task {
@@ -358,6 +391,7 @@ struct BugReport: Codable {
     let deviceInfo: DeviceInfo?
     let systemLogs: String?
     let screenshot: String?
+    let email: String?
     var timestamp: Date = Date()
 }
 
