@@ -63,7 +63,7 @@ struct ActivityView: View {
             }
         }
         .onAppear(perform: loadActivities)
-        .onChange(of: selectedActivityType) { 
+        .onChange(of: selectedActivityType) { oldValue, newValue in
             loadActivities()
         }
         .sheet(isPresented: $showingAddActivity) {

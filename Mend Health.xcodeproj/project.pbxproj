@@ -24,18 +24,18 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		1B0F6E752DACFAD90012E6F6 /* Mend.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Mend.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		1B0F6E822DACFADB0012E6F6 /* MendTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MendTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		1B0F6E8C2DACFADB0012E6F6 /* MendUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MendUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		1B0F6E752DACFAD90012E6F6 /* Mend Health.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Mend Health.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		1B0F6E822DACFADB0012E6F6 /* Mend HealthTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Mend HealthTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		1B0F6E8C2DACFADB0012E6F6 /* Mend HealthUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Mend HealthUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		1B681BFF2DAD23CE00482ED1 /* Exceptions for "Mend" folder in "Mend" target */ = {
+		1B681BFF2DAD23CE00482ED1 /* Exceptions for "Mend" folder in "Mend Health" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = 1B0F6E742DACFAD90012E6F6 /* Mend */;
+			target = 1B0F6E742DACFAD90012E6F6 /* Mend Health */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -43,7 +43,7 @@
 		1B0F6E772DACFAD90012E6F6 /* Mend */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				1B681BFF2DAD23CE00482ED1 /* Exceptions for "Mend" folder in "Mend" target */,
+				1B681BFF2DAD23CE00482ED1 /* Exceptions for "Mend" folder in "Mend Health" target */,
 			);
 			path = Mend;
 			sourceTree = "<group>";
@@ -98,9 +98,9 @@
 		1B0F6E762DACFAD90012E6F6 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				1B0F6E752DACFAD90012E6F6 /* Mend.app */,
-				1B0F6E822DACFADB0012E6F6 /* MendTests.xctest */,
-				1B0F6E8C2DACFADB0012E6F6 /* MendUITests.xctest */,
+				1B0F6E752DACFAD90012E6F6 /* Mend Health.app */,
+				1B0F6E822DACFADB0012E6F6 /* Mend HealthTests.xctest */,
+				1B0F6E8C2DACFADB0012E6F6 /* Mend HealthUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -108,9 +108,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		1B0F6E742DACFAD90012E6F6 /* Mend */ = {
+		1B0F6E742DACFAD90012E6F6 /* Mend Health */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 1B0F6E962DACFADB0012E6F6 /* Build configuration list for PBXNativeTarget "Mend" */;
+			buildConfigurationList = 1B0F6E962DACFADB0012E6F6 /* Build configuration list for PBXNativeTarget "Mend Health" */;
 			buildPhases = (
 				1B0F6E712DACFAD90012E6F6 /* Sources */,
 				1B0F6E722DACFAD90012E6F6 /* Frameworks */,
@@ -123,16 +123,16 @@
 			fileSystemSynchronizedGroups = (
 				1B0F6E772DACFAD90012E6F6 /* Mend */,
 			);
-			name = Mend;
+			name = "Mend Health";
 			packageProductDependencies = (
 			);
 			productName = Mend;
-			productReference = 1B0F6E752DACFAD90012E6F6 /* Mend.app */;
+			productReference = 1B0F6E752DACFAD90012E6F6 /* Mend Health.app */;
 			productType = "com.apple.product-type.application";
 		};
-		1B0F6E812DACFADB0012E6F6 /* MendTests */ = {
+		1B0F6E812DACFADB0012E6F6 /* Mend HealthTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 1B0F6E992DACFADB0012E6F6 /* Build configuration list for PBXNativeTarget "MendTests" */;
+			buildConfigurationList = 1B0F6E992DACFADB0012E6F6 /* Build configuration list for PBXNativeTarget "Mend HealthTests" */;
 			buildPhases = (
 				1B0F6E7E2DACFADB0012E6F6 /* Sources */,
 				1B0F6E7F2DACFADB0012E6F6 /* Frameworks */,
@@ -146,16 +146,16 @@
 			fileSystemSynchronizedGroups = (
 				1B0F6E852DACFADB0012E6F6 /* MendTests */,
 			);
-			name = MendTests;
+			name = "Mend HealthTests";
 			packageProductDependencies = (
 			);
 			productName = MendTests;
-			productReference = 1B0F6E822DACFADB0012E6F6 /* MendTests.xctest */;
+			productReference = 1B0F6E822DACFADB0012E6F6 /* Mend HealthTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		1B0F6E8B2DACFADB0012E6F6 /* MendUITests */ = {
+		1B0F6E8B2DACFADB0012E6F6 /* Mend HealthUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 1B0F6E9C2DACFADB0012E6F6 /* Build configuration list for PBXNativeTarget "MendUITests" */;
+			buildConfigurationList = 1B0F6E9C2DACFADB0012E6F6 /* Build configuration list for PBXNativeTarget "Mend HealthUITests" */;
 			buildPhases = (
 				1B0F6E882DACFADB0012E6F6 /* Sources */,
 				1B0F6E892DACFADB0012E6F6 /* Frameworks */,
@@ -169,11 +169,11 @@
 			fileSystemSynchronizedGroups = (
 				1B0F6E8F2DACFADB0012E6F6 /* MendUITests */,
 			);
-			name = MendUITests;
+			name = "Mend HealthUITests";
 			packageProductDependencies = (
 			);
 			productName = MendUITests;
-			productReference = 1B0F6E8C2DACFADB0012E6F6 /* MendUITests.xctest */;
+			productReference = 1B0F6E8C2DACFADB0012E6F6 /* Mend HealthUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
@@ -199,7 +199,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 1B0F6E702DACFAD90012E6F6 /* Build configuration list for PBXProject "Mend" */;
+			buildConfigurationList = 1B0F6E702DACFAD90012E6F6 /* Build configuration list for PBXProject "Mend Health" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -213,9 +213,9 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				1B0F6E742DACFAD90012E6F6 /* Mend */,
-				1B0F6E812DACFADB0012E6F6 /* MendTests */,
-				1B0F6E8B2DACFADB0012E6F6 /* MendUITests */,
+				1B0F6E742DACFAD90012E6F6 /* Mend Health */,
+				1B0F6E812DACFADB0012E6F6 /* Mend HealthTests */,
+				1B0F6E8B2DACFADB0012E6F6 /* Mend HealthUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -271,12 +271,12 @@
 /* Begin PBXTargetDependency section */
 		1B0F6E842DACFADB0012E6F6 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 1B0F6E742DACFAD90012E6F6 /* Mend */;
+			target = 1B0F6E742DACFAD90012E6F6 /* Mend Health */;
 			targetProxy = 1B0F6E832DACFADB0012E6F6 /* PBXContainerItemProxy */;
 		};
 		1B0F6E8E2DACFADB0012E6F6 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 1B0F6E742DACFAD90012E6F6 /* Mend */;
+			target = 1B0F6E742DACFAD90012E6F6 /* Mend Health */;
 			targetProxy = 1B0F6E8D2DACFADB0012E6F6 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -484,7 +484,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Mend.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Mend";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Mend Health.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Mend Health";
 			};
 			name = Debug;
 		};
@@ -503,7 +503,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Mend.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Mend";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Mend Health.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Mend Health";
 			};
 			name = Release;
 		};
@@ -544,7 +544,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		1B0F6E702DACFAD90012E6F6 /* Build configuration list for PBXProject "Mend" */ = {
+		1B0F6E702DACFAD90012E6F6 /* Build configuration list for PBXProject "Mend Health" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				1B0F6E942DACFADB0012E6F6 /* Debug */,
@@ -553,7 +553,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		1B0F6E962DACFADB0012E6F6 /* Build configuration list for PBXNativeTarget "Mend" */ = {
+		1B0F6E962DACFADB0012E6F6 /* Build configuration list for PBXNativeTarget "Mend Health" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				1B0F6E972DACFADB0012E6F6 /* Debug */,
@@ -562,7 +562,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		1B0F6E992DACFADB0012E6F6 /* Build configuration list for PBXNativeTarget "MendTests" */ = {
+		1B0F6E992DACFADB0012E6F6 /* Build configuration list for PBXNativeTarget "Mend HealthTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				1B0F6E9A2DACFADB0012E6F6 /* Debug */,
@@ -571,7 +571,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		1B0F6E9C2DACFADB0012E6F6 /* Build configuration list for PBXNativeTarget "MendUITests" */ = {
+		1B0F6E9C2DACFADB0012E6F6 /* Build configuration list for PBXNativeTarget "Mend HealthUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				1B0F6E9D2DACFADB0012E6F6 /* Debug */,

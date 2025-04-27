@@ -1,5 +1,38 @@
 import Foundation
 import SwiftUI
+import MessageUI
+
+// MARK: - Mail Data
+struct MailData: Equatable {
+    let toRecipients: [String]
+    let subject: String
+    let messageBody: String
+    let attachment: Data?
+    let attachmentMimeType: String?
+    let attachmentFilename: String?
+    
+    init(toRecipients: [String], subject: String, messageBody: String, 
+         attachment: Data? = nil, attachmentMimeType: String? = nil, attachmentFilename: String? = nil) {
+        self.toRecipients = toRecipients
+        self.subject = subject
+        self.messageBody = messageBody
+        self.attachment = attachment
+        self.attachmentMimeType = attachmentMimeType
+        self.attachmentFilename = attachmentFilename
+    }
+    
+    // Custom Equatable implementation because Data isn't Equatable by default
+    static func == (lhs: MailData, rhs: MailData) -> Bool {
+        lhs.toRecipients == rhs.toRecipients &&
+        lhs.subject == rhs.subject &&
+        lhs.messageBody == rhs.messageBody &&
+        // Compare attachments by checking if both are nil or both are non-nil
+        // We don't actually compare Data contents since that's expensive and unnecessary
+        (lhs.attachment == nil) == (rhs.attachment == nil) &&
+        lhs.attachmentMimeType == rhs.attachmentMimeType &&
+        lhs.attachmentFilename == rhs.attachmentFilename
+    }
+}
 
 class RequestService: ObservableObject {
     // Shared singleton instance
@@ -8,12 +41,21 @@ class RequestService: ObservableObject {
     // Published properties for UI updates
     @Published var isSubmitting = false
     @Published var lastSubmissionError: String?
+    @Published var mailData: MailData?
     
     // API configuration - would typically come from configuration
     private let apiBaseURL = "https://api.mendapp.com/v1"
     private let timeoutInterval: TimeInterval = 30.0
     
+    // Support email
+    private let supportEmail = "mendsupport@icloud.com"
+    
     private init() {}
+    
+    // Check if mail is available
+    var canSendMail: Bool {
+        MFMailComposeViewController.canSendMail()
+    }
     
     // MARK: - Feature Request Submission
     
@@ -25,37 +67,69 @@ class RequestService: ObservableObject {
         }
         
         do {
-            // In production, this would be an actual API call
-            // For now, we'll simulate the network request
-            
-            // Encode the request
+            // Encode the request as JSON
             let encoder = JSONEncoder()
             encoder.dateEncodingStrategy = .iso8601
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             let requestData = try encoder.encode(request)
             
-            // Log for debugging (would be removed in production)
-            if let jsonString = String(data: requestData, encoding: .utf8) {
-                print("📤 Sending feature request: \(jsonString)")
+            guard let jsonString = String(data: requestData, encoding: .utf8) else {
+                throw RequestError.invalidRequest
             }
             
-            // Simulate network delay
-            try await Task.sleep(nanoseconds: 1_500_000_000) // 1.5 seconds
+            // Generate email body
+            let emailSubject = "Feature Request: \(request.title)"
+            let emailBody = """
+            Feature Request Details:
             
-            // Simulate response with random success (90% success rate for testing)
-            let isSuccessful = Double.random(in: 0...1) < 0.9
+            Title: \(request.title)
+            Category: \(request.category)
+            Priority: \(request.priorityLevel)
             
-            if isSuccessful {
-                // For development we'll store locally (would be removed in production)
+            Description:
+            \(request.description)
+            
+            Device Info:
+            - Device Model: \(request.deviceInfo.deviceModel)
+            - iOS Version: \(request.deviceInfo.systemVersion)
+            - App Version: \(request.deviceInfo.appVersion)
+            
+            Full JSON:
+            \(jsonString)
+            """
+            
+            // For logging
+            print("📤 Prepared feature request email: \(emailSubject)")
+            
+            // Create mail data
+            let mailData = MailData(
+                toRecipients: [supportEmail],
+                subject: emailSubject,
+                messageBody: emailBody,
+                attachment: requestData,
+                attachmentMimeType: "application/json",
+                attachmentFilename: "feature_request_\(Int(Date().timeIntervalSince1970)).json"
+            )
+            
+            // Check if mail can be sent from device
+            if canSendMail {
+                // Update UI to present mail composer
+                DispatchQueue.main.async {
+                    self.isSubmitting = false
+                    self.mailData = mailData
+                }
+                return .success(true)
+            } else {
+                // No mail capability - fall back to saving locally in debug mode
+                #if DEBUG
                 saveRequestLocally(requestData, type: "feature")
-                
-                // Update UI state
                 DispatchQueue.main.async {
                     self.isSubmitting = false
                 }
-                
                 return .success(true)
-            } else {
-                throw RequestError.serverError("Server is temporarily unavailable")
+                #else
+                throw RequestError.mailUnavailable
+                #endif
             }
         } catch let error as RequestError {
             // Handle known request errors
@@ -85,40 +159,86 @@ class RequestService: ObservableObject {
         }
         
         do {
-            // Encode the report
+            // Encode the report as JSON
             let encoder = JSONEncoder()
             encoder.dateEncodingStrategy = .iso8601
-            let reportData = try encoder.encode(report)
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             
-            // Log for debugging (would be removed in production)
-            if let jsonString = String(data: reportData, encoding: .utf8) {
-                // Truncate screenshot data in log
-                let truncatedJson = jsonString.replacingOccurrences(
-                    of: "\"screenshot\":\"[^\"]+\"", 
-                    with: "\"screenshot\":\"[DATA]\"", 
-                    options: [.regularExpression]
-                )
-                print("📤 Sending bug report: \(truncatedJson)")
+            // Remove screenshot from JSON to keep it small
+            var reportForJson = report
+            let screenshot = report.screenshot
+            reportForJson = BugReportModel(
+                category: report.category,
+                description: report.description,
+                reproductionSteps: report.reproductionSteps,
+                systemLogs: report.systemLogs,
+                screenshot: nil,
+                email: report.email
+            )
+            
+            let reportData = try encoder.encode(reportForJson)
+            
+            guard let jsonString = String(data: reportData, encoding: .utf8) else {
+                throw RequestError.invalidRequest
             }
             
-            // Simulate network delay
-            try await Task.sleep(nanoseconds: 1_500_000_000) // 1.5 seconds
+            // Generate email body
+            let emailSubject = "Bug Report: \(report.category)"
+            let emailBody = """
+            Bug Report Details:
             
-            // Simulate response with random success (90% success rate for testing)
-            let isSuccessful = Double.random(in: 0...1) < 0.9
+            Category: \(report.category)
             
-            if isSuccessful {
-                // For development we'll store locally (would be removed in production)
+            Description:
+            \(report.description)
+            
+            Steps to Reproduce:
+            \(report.reproductionSteps ?? "Not provided")
+            
+            System Logs:
+            \(report.systemLogs ?? "Not included")
+            
+            Device Info:
+            - Device Model: \(report.deviceInfo.deviceModel)
+            - iOS Version: \(report.deviceInfo.systemVersion)
+            - App Version: \(report.deviceInfo.appVersion)
+            
+            Full JSON:
+            \(jsonString)
+            """
+            
+            // For logging
+            print("📤 Prepared bug report email: \(emailSubject)")
+            
+            // Create mail data with screenshot if available
+            let mailData = MailData(
+                toRecipients: [supportEmail],
+                subject: emailSubject,
+                messageBody: emailBody,
+                attachment: screenshot,
+                attachmentMimeType: screenshot != nil ? "image/jpeg" : nil,
+                attachmentFilename: screenshot != nil ? "screenshot_\(Int(Date().timeIntervalSince1970)).jpg" : nil
+            )
+            
+            // Check if mail can be sent from device
+            if canSendMail {
+                // Update UI to present mail composer
+                DispatchQueue.main.async {
+                    self.isSubmitting = false
+                    self.mailData = mailData
+                }
+                return .success(true)
+            } else {
+                // No mail capability - fall back to saving locally in debug mode
+                #if DEBUG
                 saveRequestLocally(reportData, type: "bug")
-                
-                // Update UI state
                 DispatchQueue.main.async {
                     self.isSubmitting = false
                 }
-                
                 return .success(true)
-            } else {
-                throw RequestError.serverError("Server is temporarily unavailable")
+                #else
+                throw RequestError.mailUnavailable
+                #endif
             }
         } catch let error as RequestError {
             // Handle known request errors
@@ -161,26 +281,50 @@ class RequestService: ObservableObject {
             print("⚠️ Failed to save \(type) request: \(error.localizedDescription)")
         }
     }
+    
+    /// For development, store screenshot data
+    private func saveImageLocally(_ imageData: Data, name: String) {
+        guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            print("⚠️ Could not access documents directory")
+            return
+        }
+        
+        let fileURL = documentsDirectory.appendingPathComponent(name)
+        
+        do {
+            try imageData.write(to: fileURL)
+            print("✅ Saved image to: \(fileURL.path)")
+        } catch {
+            print("⚠️ Failed to save image: \(error.localizedDescription)")
+        }
+    }
 }
 
-// MARK: - Error Types
+// MARK: - Request Error
 
-enum RequestError: Error, LocalizedError {
+enum RequestError: Error, CustomStringConvertible {
     case invalidRequest
     case networkError(String)
-    case serverError(String)
+    case serverError(Int)
+    case mailUnavailable
     case unknown(String)
     
-    var errorDescription: String? {
+    var description: String {
         switch self {
         case .invalidRequest:
-            return "Invalid request data"
-        case .networkError(let message):
-            return "Network error: \(message)"
-        case .serverError(let message):
-            return "Server error: \(message)"
-        case .unknown(let message):
-            return "Unknown error: \(message)"
+            return "Unable to process your request. Please try again."
+        case .networkError(let details):
+            return "Network error: \(details)"
+        case .serverError(let code):
+            return "Server error (code: \(code)). Please try again later."
+        case .mailUnavailable:
+            return "Mail functionality is not available on this device. Please set up Mail app or contact support directly."
+        case .unknown(let details):
+            return "An unexpected error occurred: \(details)"
         }
+    }
+    
+    var localizedDescription: String {
+        return description
     }
 } 
