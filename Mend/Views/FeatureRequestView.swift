@@ -30,7 +30,7 @@ struct FeatureRequestView: View {
     @State private var selectedPriority = PriorityLevel.medium
     @State private var showSubmissionSuccess = false
     @State private var showSubmissionError = false
-    @State private var userEmail: String = ""
+    @State private var keepMeUpdated = false
     
     // Email view state
     @State private var showMailView = false
@@ -132,8 +132,10 @@ struct FeatureRequestView: View {
                 switch result {
                 case .sent:
                     showSubmissionSuccess = true
+                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                 case .saved:
                     showSubmissionSuccess = true
+                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                 case .cancelled:
                     // Do nothing
                     break
@@ -219,49 +221,39 @@ struct FeatureRequestView: View {
                 .font(MendFont.headline)
                 .foregroundColor(textColor)
             
-            TextEditor(text: $featureDescription)
-                .frame(minHeight: 150)
-                .foregroundColor(textColor)
-                .padding()
-                .background(cardBackgroundColor)
-                .cornerRadius(MendCornerRadius.medium)
-                .overlay(
-                    RoundedRectangle(cornerRadius: MendCornerRadius.medium)
-                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                )
-                .overlay(
-                    Group {
-                        if featureDescription.isEmpty {
-                            Text("Describe the feature in detail. What problem does it solve? How would it work?")
-                                .foregroundColor(secondaryTextColor.opacity(0.5))
-                                .padding()
-                                .allowsHitTesting(false)
-                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                        }
-                    }
-                )
+            ZStack(alignment: .topLeading) {
+                TextEditor(text: $featureDescription)
+                    .frame(minHeight: 150)
+                    .foregroundColor(textColor)
+                    .padding(EdgeInsets(top: 8, leading: 4, bottom: 8, trailing: 4))
+                    .background(cardBackgroundColor)
+                    .cornerRadius(MendCornerRadius.medium)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: MendCornerRadius.medium)
+                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                    )
+                
+                if featureDescription.isEmpty {
+                    Text("Describe the feature in detail. What problem does it solve? How would it work?")
+                        .foregroundColor(secondaryTextColor.opacity(0.5))
+                        .padding(EdgeInsets(top: 16, leading: 10, bottom: 8, trailing: 8))
+                        .allowsHitTesting(false)
+                }
+            }
         }
     }
     
     private var contactEmailSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Contact Email (Optional)")
-                .font(MendFont.headline)
-                .foregroundColor(textColor)
-            
-            Text("If you'd like to receive updates about this feature")
-                .font(MendFont.caption)
-                .foregroundColor(secondaryTextColor)
-                .padding(.bottom, 4)
-            
-            TextField("Your email address", text: $userEmail)
-                .font(MendFont.body)
-                .padding()
-                .background(Color(.systemGray6))
-                .cornerRadius(MendCornerRadius.small)
-                .keyboardType(.emailAddress)
-                .autocapitalization(.none)
-                .disableAutocorrection(true)
+        Toggle(isOn: $keepMeUpdated) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Keep Me Updated")
+                    .font(MendFont.headline)
+                    .foregroundColor(textColor)
+                
+                Text("We'll let you know when this feature is implemented")
+                    .font(MendFont.caption)
+                    .foregroundColor(secondaryTextColor)
+            }
         }
         .padding()
         .background(cardBackgroundColor)
@@ -293,7 +285,7 @@ struct FeatureRequestView: View {
             category: selectedCategory.rawValue,
             priorityLevel: selectedPriority.rawValue,
             description: featureDescription,
-            email: userEmail.isEmpty ? nil : userEmail
+            keepMeUpdated: keepMeUpdated
         )
         
         Task {

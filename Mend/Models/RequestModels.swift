@@ -7,16 +7,16 @@ struct FeatureRequestModel: Codable {
     let category: String
     let priorityLevel: String
     let description: String
-    let email: String?
+    let keepMeUpdated: Bool
     let deviceInfo: RequestDeviceInfo
     let timestamp: Date
     
-    init(title: String, category: String, priorityLevel: String, description: String, email: String? = nil) {
+    init(title: String, category: String, priorityLevel: String, description: String, keepMeUpdated: Bool = false) {
         self.title = title
         self.category = category
         self.priorityLevel = priorityLevel
         self.description = description
-        self.email = email
+        self.keepMeUpdated = keepMeUpdated
         self.deviceInfo = RequestDeviceInfo.current
         self.timestamp = Date()
     }
@@ -31,9 +31,9 @@ struct BugReportModel: Codable {
     let systemLogs: String?
     let screenshot: Data?
     let timestamp: Date
-    let email: String?
+    let keepMeUpdated: Bool
     
-    init(category: String, description: String, reproductionSteps: String? = nil, systemLogs: String? = nil, screenshot: Data? = nil, email: String? = nil) {
+    init(category: String, description: String, reproductionSteps: String? = nil, systemLogs: String? = nil, screenshot: Data? = nil, keepMeUpdated: Bool = false) {
         self.category = category
         self.description = description
         self.reproductionSteps = reproductionSteps
@@ -41,7 +41,7 @@ struct BugReportModel: Codable {
         self.systemLogs = systemLogs
         self.screenshot = screenshot
         self.timestamp = Date()
-        self.email = email
+        self.keepMeUpdated = keepMeUpdated
     }
 }
 

@@ -178,11 +178,11 @@ class RecoveryMetrics: ObservableObject {
         let formattedAvg = String(format: "%.0f", avgValue)
         
         // Create a more detailed and informative description
-        let baseDescription = "Resting heart rate of \(formattedValue) BPM, measured during periods of inactivity. Lower RHR typically indicates better cardiovascular efficiency and recovery state."
+        let baseDescription = "Resting heart rate of \(formattedValue) BPM, measured during periods of inactivity."     // Lower RHR typically indicates better cardiovascular efficiency and recovery state.
         
         // If delta is negligible, report stability
         if abs(delta) < 2 {
-            return baseDescription + " Your RHR is stable compared to your weekly average of \(formattedAvg) BPM."
+            return baseDescription + " Your RHR is stable compared to your weekly average of \(formattedAvg) BPM, indicating a consistent balance between cardiovascular load and recovery."
         }
         
         // For heart rate, lower is typically better (negative delta is positive)
@@ -203,11 +203,11 @@ class RecoveryMetrics: ObservableObject {
         let formattedAvg = String(format: "%.0f", avgValue)
         
         // Create a more detailed description
-        let baseDescription = "Heart Rate Variability of \(formattedValue) ms, representing the variation in time between heartbeats. Higher HRV typically indicates better recovery and autonomic nervous system balance."
+        let baseDescription = "Heart Rate Variability of \(formattedValue) ms, representing the average variation in time intervals between consecutive heartbeats."     //Higher HRV typically indicates better recovery and autonomic nervous system balance.
         
         // If delta is negligible, report stability
-        if abs(delta) < 2 {
-            return baseDescription + " Your HRV is stable compared to your weekly average of \(formattedAvg) ms."
+        if abs(delta) < 5 {
+            return baseDescription + " Your HRV is stable compared to your weekly average of \(formattedAvg) ms, indicating consistent levels of fatigue and recovery."
         }
         
         // For HRV, higher is typically better (positive delta is positive)
@@ -660,13 +660,13 @@ class RecoveryMetrics: ObservableObject {
         // Create description based on the comparison
         let description: String
         if percentChange > 25 {
-            description = "Your training load is \(String(format: "%.0f", trainingLoadDelta)) units (\(String(format: "%.0f", percentChange))%) higher than your 4-week average, suggesting a significant increase in workload. Consider implementing a recovery week soon."
+            description = "Your training load is \(String(format: "%.0f", trainingLoadDelta)) points (\(String(format: "%.0f", percentChange))%) higher than your 4-week average, suggesting a significant increase in workload. Consider implementing a recovery week soon."
         } else if percentChange > 10 {
-            description = "Your training load is \(String(format: "%.0f", trainingLoadDelta)) units (\(String(format: "%.0f", percentChange))%) higher than your 4-week average, indicating a moderate progression in training volume."
+            description = "Your training load is \(String(format: "%.0f", trainingLoadDelta)) points (\(String(format: "%.0f", percentChange))%) higher than your 4-week average, indicating a moderate progression in training volume."
         } else if percentChange >= -5 {
             description = "Your training load is similar to your 4-week average, showing consistent training patterns."
         } else {
-            description = "Your training load is \(String(format: "%.0f", abs(trainingLoadDelta))) units (\(String(format: "%.0f", abs(percentChange)))%) lower than your 4-week average, showing a reduction in training volume."
+            description = "Your training load is \(String(format: "%.0f", abs(trainingLoadDelta))) points (\(String(format: "%.0f", abs(percentChange)))%) lower than your 4-week average, showing a reduction in training volume."
         }
         
         // Calculate recovery score - poor overall score
