@@ -30,6 +30,7 @@ struct FeatureRequestView: View {
     @State private var selectedPriority = PriorityLevel.medium
     @State private var showSubmissionSuccess = false
     @State private var showSubmissionError = false
+    @State private var userEmail: String = ""
     
     // Email view state
     @State private var showMailView = false
@@ -64,6 +65,7 @@ struct FeatureRequestView: View {
                 categorySection
                 prioritySection
                 descriptionSection
+                contactEmailSection
                 
                 // Submit button
                 Button(action: {
@@ -139,6 +141,11 @@ struct FeatureRequestView: View {
                     showSubmissionError = true
                 }
             }
+        }
+        .alert("Mail Unavailable", isPresented: $showMailNotAvailableAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Mail functionality is not available on this device. Please make sure the Mail app is configured or contact mendsupport@icloud.com directly.")
         }
     }
     
@@ -236,6 +243,31 @@ struct FeatureRequestView: View {
         }
     }
     
+    private var contactEmailSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Contact Email (Optional)")
+                .font(MendFont.headline)
+                .foregroundColor(textColor)
+            
+            Text("If you'd like to receive updates about this feature")
+                .font(MendFont.caption)
+                .foregroundColor(secondaryTextColor)
+                .padding(.bottom, 4)
+            
+            TextField("Your email address", text: $userEmail)
+                .font(MendFont.body)
+                .padding()
+                .background(Color(.systemGray6))
+                .cornerRadius(MendCornerRadius.small)
+                .keyboardType(.emailAddress)
+                .autocapitalization(.none)
+                .disableAutocorrection(true)
+        }
+        .padding()
+        .background(cardBackgroundColor)
+        .cornerRadius(MendCornerRadius.medium)
+    }
+    
     private var popularRequestsSection: some View {
         VStack(alignment: .leading, spacing: MendSpacing.medium) {
             Text("Popular Feature Requests")
@@ -261,7 +293,7 @@ struct FeatureRequestView: View {
             category: selectedCategory.rawValue,
             priorityLevel: selectedPriority.rawValue,
             description: featureDescription,
-            email: nil
+            email: userEmail.isEmpty ? nil : userEmail
         )
         
         Task {
