@@ -94,6 +94,7 @@ class RequestService: ObservableObject {
             Title: \(request.title)
             Category: \(request.category)
             Priority: \(request.priorityLevel)
+            Keep Me Updated: \(request.keepMeUpdated ? "Yes" : "No")
             
             Description:
             \(request.description)
@@ -197,7 +198,7 @@ class RequestService: ObservableObject {
                 reproductionSteps: report.reproductionSteps,
                 systemLogs: report.systemLogs,
                 screenshot: nil,
-                email: report.email
+                keepMeUpdated: report.keepMeUpdated
             )
             
             let reportData = try encoder.encode(reportForJson)
@@ -212,6 +213,7 @@ class RequestService: ObservableObject {
             Bug Report Details:
             
             Category: \(report.category)
+            Keep Me Updated: \(report.keepMeUpdated ? "Yes" : "No")
             
             Description:
             \(report.description)
