@@ -61,17 +61,13 @@ struct DashboardView: View {
                             MetricCard(metric: MetricScore.createHRVMetric(score: recoveryScore.hrvScore))
                         }
                         
-                        // Get sleep metric directly from the model
-                        if let sleepMetric = recoveryMetrics.sleepMetric {
-                            MetricCard(metric: sleepMetric)
-                        } else {
-                            MetricCard(metric: MetricScore.createSleepMetric(score: recoveryScore.sleepScore))
-                        }
+                        // Always show Sleep Duration - use actual data or create a placeholder
+                        let sleepMetric = recoveryMetrics.sleepMetric ?? recoveryMetrics.createSleepMetric()
+                        MetricCard(metric: sleepMetric)
                         
-                        // Get sleep quality metric
-                        if let sleepQualityMetric = recoveryMetrics.sleepQualityMetric {
-                            MetricCard(metric: sleepQualityMetric)
-                        }
+                        // Always show Sleep Quality - use actual data or create a placeholder
+                        let sleepQualityMetric = recoveryMetrics.sleepQualityMetric ?? recoveryMetrics.createSleepQualityMetric()
+                        MetricCard(metric: sleepQualityMetric)
                         
                         MetricCard(metric: recoveryScore.trainingLoadScore)
                     }

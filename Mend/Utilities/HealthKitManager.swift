@@ -224,7 +224,7 @@ class HealthKitManager {
         }
     }
     
-    func fetchSleepData(forDate date: Date) async -> (hours: Double, quality: Double)? {
+    func fetchSleepData(forDate date: Date) async -> (hours: Double, quality: Double, stages: SleepStages)? {
         guard let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else {
             return nil
         }
@@ -249,22 +249,27 @@ class HealthKitManager {
             
             var totalSleepTime: TimeInterval = 0
             var deepSleepTime: TimeInterval = 0
+            var remSleepTime: TimeInterval = 0
+            var coreSleepTime: TimeInterval = 0
+            var unspecifiedSleepTime: TimeInterval = 0
             var awakeTime: TimeInterval = 0
             
             for sample in samples {
                 let duration = sample.endDate.timeIntervalSince(sample.startDate)
                 
                 switch sample.value {
-                case HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue,
-                     HKCategoryValueSleepAnalysis.asleepCore.rawValue:
+                case HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue:
                     totalSleepTime += duration
+                    unspecifiedSleepTime += duration
+                case HKCategoryValueSleepAnalysis.asleepCore.rawValue:
+                    totalSleepTime += duration
+                    coreSleepTime += duration
                 case HKCategoryValueSleepAnalysis.asleepDeep.rawValue:
                     totalSleepTime += duration
                     deepSleepTime += duration
                 case HKCategoryValueSleepAnalysis.asleepREM.rawValue:
                     totalSleepTime += duration
-                    // REM sleep is good for quality
-                    deepSleepTime += duration * 0.8
+                    remSleepTime += duration
                 case HKCategoryValueSleepAnalysis.awake.rawValue:
                     awakeTime += duration
                 default:
@@ -275,6 +280,19 @@ class HealthKitManager {
             if totalSleepTime > 0 {
                 let sleepHours = totalSleepTime / 3600 // Convert to hours
                 
+                // Calculate sleep stages percentages
+                let deepPercentage = (deepSleepTime / totalSleepTime) * 100
+                let remPercentage = (remSleepTime / totalSleepTime) * 100
+                let corePercentage = (coreSleepTime / totalSleepTime) * 100
+                let unspecifiedPercentage = (unspecifiedSleepTime / totalSleepTime) * 100
+                
+                let sleepStages = SleepStages(
+                    deep: deepPercentage,
+                    rem: remPercentage,
+                    core: corePercentage,
+                    unspecified: unspecifiedPercentage
+                )
+                
                 // Calculate sleep quality based on:
                 // 1. Total sleep duration (weight: 60%)
                 // 2. Percentage of deep/REM sleep (weight: 30%)
@@ -284,7 +302,7 @@ class HealthKitManager {
                 let durationScore = min(100, (sleepHours / 8) * 100)
                 
                 // 2. Deep sleep score: Ideally 25% of sleep should be deep/REM
-                let deepSleepPercentage = deepSleepTime / max(totalSleepTime, 1)
+                let deepSleepPercentage = (deepSleepTime + remSleepTime) / max(totalSleepTime, 1)
                 let deepSleepScore = min(100, (deepSleepPercentage / 0.25) * 100)
                 
                 // 3. Continuity score: Fewer awakenings is better
@@ -294,7 +312,7 @@ class HealthKitManager {
                 // Weighted quality score (0-100)
                 let qualityScore = (durationScore * 0.6) + (deepSleepScore * 0.3) + (continuityScore * 0.1)
                 
-                return (sleepHours, qualityScore)
+                return (sleepHours, qualityScore, sleepStages)
             } else {
                 return nil
             }
@@ -378,7 +396,7 @@ class HealthKitManager {
                         return total + sample.quantity.doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
                     }
                     let avgValue = totalValue / Double(samplesForDay.count)
-                    metrics.append(RecoveryMetricData(date: date, value: avgValue))
+                    metrics.append(RecoveryMetricData(date: date, value: avgValue, explicitType: .heartRate))
                 }
             }
             
@@ -432,7 +450,7 @@ class HealthKitManager {
                         return total + sample.quantity.doubleValue(for: HKUnit.secondUnit(with: .milli))
                     }
                     let avgValue = totalValue / Double(samplesForDay.count)
-                    metrics.append(RecoveryMetricData(date: date, value: avgValue))
+                    metrics.append(RecoveryMetricData(date: date, value: avgValue, explicitType: .hrv))
                 }
             }
             
@@ -445,11 +463,31 @@ class HealthKitManager {
     
     func fetchDailySleepData(forDays days: Int) async -> [RecoveryMetricData] {
         var metrics: [RecoveryMetricData] = []
+        let calendar = Calendar.current
         
         for dayOffset in 0..<days {
-            let date = Calendar.current.date(byAdding: .day, value: -dayOffset, to: Date())!
+            let date = calendar.date(byAdding: .day, value: -dayOffset, to: Date())!
             if let sleepData = await fetchSleepData(forDate: date) {
-                metrics.append(RecoveryMetricData(date: date, value: sleepData.hours))
+                metrics.append(RecoveryMetricData(date: date, value: sleepData.hours, explicitType: .sleep))
+            }
+        }
+        
+        // If we have some data points, calculate average for fallback values
+        let avgSleepDuration: Double
+        if !metrics.isEmpty {
+            avgSleepDuration = metrics.map { $0.value }.reduce(0, +) / Double(metrics.count)
+        } else {
+            // Default fallback if no data at all (healthy average)
+            avgSleepDuration = 7.5
+        }
+        
+        // Fill in missing days with the average
+        let existingDates = metrics.map { calendar.startOfDay(for: $0.date) }
+        for dayOffset in 0..<days {
+            let date = calendar.date(byAdding: .day, value: -dayOffset, to: Date())!
+            let dayStart = calendar.startOfDay(for: date)
+            if !existingDates.contains(dayStart) {
+                metrics.append(RecoveryMetricData(date: dayStart, value: avgSleepDuration, explicitType: .sleep))
             }
         }
         
@@ -458,14 +496,65 @@ class HealthKitManager {
     
     func fetchDailySleepQualityData(forDays days: Int) async -> [RecoveryMetricData] {
         var qualityMetrics: [RecoveryMetricData] = []
+        let calendar = Calendar.current
         
         for dayOffset in 0..<days {
-            let date = Calendar.current.date(byAdding: .day, value: -dayOffset, to: Date())!
+            let date = calendar.date(byAdding: .day, value: -dayOffset, to: Date())!
             if let sleepData = await fetchSleepData(forDate: date) {
-                qualityMetrics.append(RecoveryMetricData(date: date, value: sleepData.quality))
+                qualityMetrics.append(RecoveryMetricData(date: date, value: sleepData.quality, explicitType: .sleepQuality))
+            }
+        }
+        
+        // If we have some data points, calculate average for fallback values
+        let avgSleepQuality: Double
+        if !qualityMetrics.isEmpty {
+            avgSleepQuality = qualityMetrics.map { $0.value }.reduce(0, +) / Double(qualityMetrics.count)
+        } else {
+            // Default fallback if no data at all (reasonable quality score)
+            avgSleepQuality = 75.0
+        }
+        
+        // Fill in missing days with the average
+        let existingDates = qualityMetrics.map { calendar.startOfDay(for: $0.date) }
+        for dayOffset in 0..<days {
+            let date = calendar.date(byAdding: .day, value: -dayOffset, to: Date())!
+            let dayStart = calendar.startOfDay(for: date)
+            if !existingDates.contains(dayStart) {
+                qualityMetrics.append(RecoveryMetricData(date: dayStart, value: avgSleepQuality, explicitType: .sleepQuality))
             }
         }
         
         return qualityMetrics.sorted { $0.date < $1.date }
     }
+    
+    // New method for fetching daily sleep stages data
+    func fetchDailySleepStagesData(forDays days: Int) async -> [SleepStagesData] {
+        var stagesData: [SleepStagesData] = []
+        
+        for dayOffset in 0..<days {
+            let date = Calendar.current.date(byAdding: .day, value: -dayOffset, to: Date())!
+            if let sleepData = await fetchSleepData(forDate: date) {
+                stagesData.append(SleepStagesData(date: date, stages: sleepData.stages))
+            }
+        }
+        
+        return stagesData.sorted { $0.date < $1.date }
+    }
+}
+
+struct SleepStages {
+    let deep: Double  // Percentage of deep sleep
+    let rem: Double   // Percentage of REM sleep
+    let core: Double  // Percentage of core/light sleep
+    let unspecified: Double // Percentage of unspecified sleep
+    
+    static var sample: SleepStages {
+        return SleepStages(deep: 20, rem: 25, core: 45, unspecified: 10)
+    }
+}
+
+struct SleepStagesData: Identifiable {
+    let id = UUID()
+    let date: Date
+    let stages: SleepStages
 } 
