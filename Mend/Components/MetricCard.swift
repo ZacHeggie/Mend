@@ -97,6 +97,8 @@ struct MetricCard: View {
             return "Current: \(String(format: "%.1f", hours)) hours"
         } else if metric.title.contains("Sleep Quality") {
             return "Current: \(metric.score)/100"
+        } else if metric.title.contains("Sleep Stages") {
+            return "Current: \(metric.score)/100"
         } else if metric.title.contains("Training") {
             // Display the 7-day average for training load
             return "7-day avg: \(metric.score)"
@@ -117,6 +119,8 @@ struct MetricCard: View {
             return "7-day avg: \(String(format: "%.1f", hours)) hours"
         } else if metric.title.contains("Sleep Quality") {
             return "7-day avg: \(String(format: "%.0f", avgValue))/100"
+        } else if metric.title.contains("Sleep Stages") {
+            return "Deep+REM: \(String(format: "%.0f", metric.score/4))%"
         } else if metric.title.contains("Training") {
             // Display the 4-week average for training load
             return "4-week avg: \(String(format: "%.0f", avgValue))"
@@ -141,6 +145,10 @@ struct MetricCard: View {
         } else if metric.title.contains("HRV") || metric.title.contains("Variability") {
             return changeText + (metric.isPositiveDelta ? " (better)" : " (monitor)")
         } else if metric.title.contains("Sleep") {
+            // Special case for sleep stages which doesn't need change text
+            if metric.title.contains("Stages") {
+                return getStageQualityText(score: metric.score)
+            }
             return changeText + (metric.isPositiveDelta ? " (better)" : " (monitor)")
         } else if metric.title.contains("Training") {
             // For Training Load, use more specific labels and show the actual difference
@@ -154,6 +162,20 @@ struct MetricCard: View {
         }
     }
     
+    private func getStageQualityText(score: Int) -> String {
+        let deepRemPercentage = score / 4 // Convert back to percentage
+        
+        if deepRemPercentage >= 40 {
+            return "Excellent (optimal)"
+        } else if deepRemPercentage >= 30 {
+            return "Very good (better)"
+        } else if deepRemPercentage >= 20 {
+            return "Adequate (neutral)"
+        } else {
+            return "Low (monitor)"
+        }
+    }
+    
     private func getCurrentValueFromScore() -> Double {
         if metric.title.contains("Sleep Duration") {
             return Double(metric.score)
@@ -163,13 +185,22 @@ struct MetricCard: View {
     }
     
     private func getTextColor() -> Color {
-        // For HRV, higher values are always good (positive), so we need to handle this specially
-        if metric.title.contains("HRV") || metric.title.contains("Variability") {
-            // HRV: Higher is always better, so positive delta should be green
-            return metric.deltaFromAverage > 0 ? MendColors.positive : MendColors.negative
+        if metric.isPositiveDelta {
+            return MendColors.positive
         } else {
-            // For other metrics, use the isPositiveDelta flag
-            return metric.isPositiveDelta ? MendColors.positive : MendColors.negative
+            // Special case for sleep stages
+            if metric.title.contains("Sleep Stages") {
+                let score = metric.score
+                if score >= 30 * 4 { // 30% deep+REM is very good
+                    return MendColors.positive
+                } else if score >= 20 * 4 { // 20% is adequate
+                    return MendColors.neutral
+                } else {
+                    return MendColors.negative
+                }
+            }
+            
+            return MendColors.negative
         }
     }
 }
