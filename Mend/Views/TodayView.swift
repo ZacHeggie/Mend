@@ -10,6 +10,7 @@ struct TodayView: View {
     @Environment(\.colorScheme) var colorScheme
     @State private var showingAddActivity = false
     @State private var showingNotificationMenu = false
+    @State private var selectedInsight: RecoveryInsight?
     
     // Computed properties for dynamic colors
     private var backgroundColor: Color {
@@ -29,33 +30,51 @@ struct TodayView: View {
     }
     
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
+        NavigationStack {
             ScrollView {
-                if recoveryMetrics.isLoading {
-                    loadingView
-                } else if let recoveryScore = recoveryMetrics.currentRecoveryScore {
-                    VStack(spacing: MendSpacing.large) {
-                        // Recovery Summary
-                        recoveryScoreView(score: recoveryScore)
+                VStack(spacing: MendSpacing.large) {
+                    // Daily recovery score section
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Today's Recovery")
+                            .font(MendFont.headline)
+                            .foregroundColor(secondaryTextColor)
                         
-                        // Recent Activities
-                        if !recentActivities.isEmpty {
-                            recentActivitiesView
-                        }
-                        
-                        // Activity Recommendations
-                        recommendationsView(score: recoveryScore)
-                        
-                        // Recovery Insights
-                        if !recoveryInsights.isEmpty {
-                            recoveryInsightsView
-                        }
+                        Text("Recovery Score: \(recoveryMetrics.currentRecoveryScore?.overallScore ?? 0)")
+                            .font(MendFont.title)
+                            .foregroundColor(textColor)
                     }
                     .padding()
-                    .padding(.bottom, 80) // Add extra padding at bottom for the FAB
-                } else {
-                    noDataView
+                    .background(cardBackgroundColor)
+                    .cornerRadius(MendCornerRadius.medium)
+                    .padding(.horizontal)
+                    
+                    // Cool-down status section (only show when in cool-down)
+                    if recoveryMetrics.isInCooldown {
+                        CooldownStatusView(
+                            isInCooldown: recoveryMetrics.isInCooldown,
+                            percentage: recoveryMetrics.cooldownPercentage,
+                            description: recoveryMetrics.cooldownDescription
+                        )
+                        .padding(.horizontal)
+                    }
+                    
+                    // Activity recommendations
+                    recommendationsSection
+                    
+                    // Recovery insights
+                    if !recoveryInsights.isEmpty {
+                        insightsSection
+                    }
+                    
+                    // Recovery metrics
+                    metricsSection
+                    
+                    // Developer controls (only in debug)
+                    #if DEBUG
+                    developerControls
+                    #endif
                 }
+                .padding(.vertical)
             }
             .background(backgroundColor.ignoresSafeArea())
             .navigationTitle("Today")
@@ -75,23 +94,32 @@ struct TodayView: View {
             }
             .padding(.bottom, 70) // Position above tab bar
             .padding(.trailing, 20)
-        }
-        .onAppear {
-            loadRecentActivities()
             
-            Task {
-                await loadData()
-                loadRecoveryInsights()
+            .sheet(isPresented: $showingAddActivity) {
+                NavigationView {
+                    AddActivityView(isPresented: $showingAddActivity)
+                        .navigationTitle("Add Activity")
+                        .navigationBarItems(leading: Button("Cancel") {
+                            showingAddActivity = false
+                        })
+                        .environmentObject(activityManager)
+                }
             }
-        }
-        .sheet(isPresented: $showingAddActivity) {
-            NavigationView {
-                AddActivityView(isPresented: $showingAddActivity)
-                    .navigationTitle("Add Activity")
-                    .navigationBarItems(leading: Button("Cancel") {
-                        showingAddActivity = false
-                    })
-                    .environmentObject(activityManager)
+            .sheet(item: $selectedInsight) { insight in
+                VStack {
+                    Text(insight.title)
+                        .font(MendFont.title)
+                    Text(insight.detailedDescription)
+                        .font(MendFont.body)
+                    Spacer()
+                }
+                .padding()
+            }
+            .refreshable {
+                await refreshData()
+            }
+            .task {
+                loadRecoveryInsights()
             }
         }
     }
@@ -257,6 +285,23 @@ struct TodayView: View {
     
     // MARK: - Helper Functions
     
+    private func refreshData() async {
+        // Refresh recovery metrics
+        recoveryMetrics.refreshData()
+        
+        // Update activities
+        await activityManager.refreshActivities()
+        loadRecentActivities()
+        
+        // Load personalized recommendations if we have a recovery score
+        if let recoveryScore = recoveryMetrics.currentRecoveryScore {
+            personalizedRecommendations = await recoveryScore.getPersonalizedRecommendations()
+        }
+        
+        // Refresh recovery insights
+        loadRecoveryInsights()
+    }
+    
     private func loadData() async {
         // Load recovery metrics
         recoveryMetrics.refreshData()
@@ -336,6 +381,164 @@ struct TodayView: View {
             return "Reasonably recovered. Moderate training is fine."
         default:
             return "Well recovered. Ready for intense training."
+        }
+    }
+    
+    private var recommendationsSection: some View {
+        VStack(alignment: .leading, spacing: MendSpacing.medium) {
+            Text("Recommended Activities")
+                .font(MendFont.headline)
+                .foregroundColor(secondaryTextColor)
+                .padding(.horizontal, MendSpacing.medium)
+            
+            // Show personalized recommendations if available, otherwise use basic recommendations
+            let recommendationsToShow = !personalizedRecommendations.isEmpty ? 
+                                       personalizedRecommendations : 
+                                       recoveryMetrics.currentRecoveryScore?.recommendedActivities ?? []
+                                       
+            ForEach(recommendationsToShow) { activity in
+                ExpandableActivityCard(activity: activity, colorScheme: colorScheme)
+            }
+        }
+    }
+    
+    private var insightsSection: some View {
+        VStack(alignment: .leading, spacing: MendSpacing.medium) {
+            Text("Recovery Insights")
+                .font(MendFont.headline)
+                .foregroundColor(secondaryTextColor)
+                .padding(.horizontal, MendSpacing.medium)
+            
+            ForEach(recoveryInsights) { insight in
+                RecoveryInsightCard(insight: insight, colorScheme: colorScheme)
+            }
+        }
+    }
+    
+    private var metricsSection: some View {
+        VStack(alignment: .leading, spacing: MendSpacing.medium) {
+            Text("Recovery Metrics")
+                .font(MendFont.headline)
+                .foregroundColor(secondaryTextColor)
+                .padding(.horizontal, MendSpacing.medium)
+            
+            // Heart Rate Metric
+            if let heartRateMetric = recoveryMetrics.heartRateMetric {
+                VStack(alignment: .leading) {
+                    Text(heartRateMetric.title)
+                        .font(MendFont.headline)
+                    Text("Score: \(heartRateMetric.score)")
+                        .font(MendFont.body)
+                }
+                .padding()
+                .background(cardBackgroundColor)
+                .cornerRadius(MendCornerRadius.medium)
+                .padding(.horizontal, MendSpacing.medium)
+            }
+            
+            // HRV Metric
+            if let hrvMetric = recoveryMetrics.hrvMetric {
+                VStack(alignment: .leading) {
+                    Text(hrvMetric.title)
+                        .font(MendFont.headline)
+                    Text("Score: \(hrvMetric.score)")
+                        .font(MendFont.body)
+                }
+                .padding()
+                .background(cardBackgroundColor)
+                .cornerRadius(MendCornerRadius.medium)
+                .padding(.horizontal, MendSpacing.medium)
+            }
+            
+            // Sleep Metric
+            if let sleepMetric = recoveryMetrics.sleepMetric {
+                VStack(alignment: .leading) {
+                    Text(sleepMetric.title)
+                        .font(MendFont.headline)
+                    Text("Score: \(sleepMetric.score)")
+                        .font(MendFont.body)
+                }
+                .padding()
+                .background(cardBackgroundColor)
+                .cornerRadius(MendCornerRadius.medium)
+                .padding(.horizontal, MendSpacing.medium)
+            }
+        }
+    }
+    
+    private var developerControls: some View {
+        VStack(alignment: .leading, spacing: MendSpacing.medium) {
+            Text("Developer Controls")
+                .font(MendFont.headline)
+                .foregroundColor(secondaryTextColor)
+                .padding(.horizontal, MendSpacing.medium)
+            
+            VStack(spacing: MendSpacing.medium) {
+                // Toggle simulated data
+                Button(action: {
+                    recoveryMetrics.toggleSimulatedData()
+                }) {
+                    Text(recoveryMetrics.useSimulatedData ? "Using Simulated Data" : "Use Simulated Data")
+                        .font(MendFont.body)
+                        .foregroundColor(.white)
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(recoveryMetrics.useSimulatedData ? MendColors.primary : MendColors.primary)
+                        .cornerRadius(MendCornerRadius.medium)
+                }
+                
+                // Toggle poor recovery simulation
+                Button(action: {
+                    recoveryMetrics.togglePoorRecoveryData()
+                }) {
+                    Text(recoveryMetrics.usePoorRecoveryData ? "Using Poor Recovery Data" : "Simulate Poor Recovery")
+                        .font(MendFont.body)
+                        .foregroundColor(.white)
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(recoveryMetrics.usePoorRecoveryData ? MendColors.negative : MendColors.primary)
+                        .cornerRadius(MendCornerRadius.medium)
+                }
+                
+                // Simulate a new recent activity to test cool-down
+                Button(action: {
+                    simulateRecentActivity()
+                }) {
+                    Text("Simulate Recent Activity")
+                        .font(MendFont.body)
+                        .foregroundColor(.white)
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(MendColors.primary)
+                        .cornerRadius(MendCornerRadius.medium)
+                }
+            }
+            .padding()
+            .background(cardBackgroundColor)
+            .cornerRadius(MendCornerRadius.medium)
+            .padding(.horizontal, MendSpacing.medium)
+        }
+    }
+    
+    private func simulateRecentActivity() {
+        // Create a recent high-intensity activity to test cool-down
+        let activity = Activity(
+            id: UUID(),
+            title: "Test Activity",
+            type: .run,
+            date: Date().addingTimeInterval(-10 * 60), // 10 minutes ago
+            duration: 3600, // 1 hour
+            distance: 10.0,
+            intensity: .high,
+            source: .manual
+        )
+        
+        // Add to activity manager
+        activityManager.addActivity(activity)
+        
+        // Refresh data to apply cool-down
+        Task {
+            await refreshData()
         }
     }
 }

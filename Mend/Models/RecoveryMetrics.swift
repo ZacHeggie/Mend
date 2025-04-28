@@ -12,6 +12,8 @@ private let kNotificationPreference = "notificationPreference"
 class RecoveryMetrics: ObservableObject {
     static let shared = RecoveryMetrics()
     private let healthKit = HealthKitManager.shared
+    private let activityManager = ActivityManager.shared
+    private let cooldownManager = PostActivityCooldown.shared
     
     @Published var currentRecoveryScore: RecoveryScore?
     @Published var isLoading = false
@@ -19,15 +21,61 @@ class RecoveryMetrics: ObservableObject {
     @Published var useSimulatedData = false
     @Published var usePoorRecoveryData = false
     
+    // Cool-down related properties
+    @Published var isInCooldown: Bool = false
+    @Published var cooldownPercentage: Int = 100
+    @Published var cooldownDescription: String = "Fully recovered"
+    
     private init() {
         Task { 
             do {
                 try await healthKit.requestAuthorization()
                 await loadMetrics()
+                
+                // Update cool-down status based on recent activity
+                updateCooldownStatus()
+                
+                // Set up a timer to update cool-down status periodically
+                startCooldownTimer()
             } catch {
                 self.error = error
             }
         }
+    }
+    
+    // MARK: - Timer for Cool-down Updates
+    
+    private var cooldownTimer: Timer?
+    
+    private func startCooldownTimer() {
+        // Cancel any existing timer first
+        cooldownTimer?.invalidate()
+        
+        // Create a new timer that fires every minute to update recovery status
+        cooldownTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+            Task { [weak self] in
+                await self?.updateCooldownStatus()
+            }
+        }
+    }
+    
+    private func updateCooldownStatus() {
+        // Get the most recent activity
+        if let mostRecentActivity = activityManager.getRecentActivities(days: 7).first {
+            // Process the activity for cool-down status
+            _ = cooldownManager.processActivity(mostRecentActivity)
+        }
+        
+        // Update the cool-down adjustment
+        let cooldownAdjustment = cooldownManager.updateCooldownAdjustment()
+        
+        // Update UI properties
+        isInCooldown = cooldownAdjustment < 100
+        cooldownPercentage = cooldownManager.getRecoveryPercentage()
+        cooldownDescription = cooldownManager.getCooldownDescription()
+        
+        // Recalculate recovery score with the updated cool-down adjustment
+        updateRecoveryScoreWithCooldown(adjustment: cooldownAdjustment)
     }
     
     @MainActor
@@ -36,6 +84,9 @@ class RecoveryMetrics: ObservableObject {
         defer { isLoading = false }
         
         await loadHealthKitData()
+        
+        // Update cool-down status after loading metrics
+        updateCooldownStatus()
     }
     
     @MainActor
@@ -442,6 +493,7 @@ class RecoveryMetrics: ObservableObject {
         
         let overallScore = totalWeight > 0 ? weightedTotal / totalWeight : 0
         
+        // Don't apply cool-down adjustment here as it will be applied in updateRecoveryScoreWithCooldown
         currentRecoveryScore = RecoveryScore(
             date: Date(),
             overallScore: overallScore,
@@ -451,6 +503,36 @@ class RecoveryMetrics: ObservableObject {
             trainingLoadScore: MetricScore.sampleTrainingLoad,
             stressScore: 75
         )
+        
+        // Now apply cool-down adjustment
+        let cooldownAdjustment = cooldownManager.updateCooldownAdjustment()
+        updateRecoveryScoreWithCooldown(adjustment: cooldownAdjustment)
+    }
+    
+    /// Updates the recovery score with the current cool-down adjustment
+    /// - Parameter adjustment: The cool-down adjustment value (0-100, where 100 means no reduction)
+    private func updateRecoveryScoreWithCooldown(adjustment: Int) {
+        guard var score = currentRecoveryScore else { return }
+        
+        // Only apply adjustment if it's less than 100 (meaning there is an active cool-down)
+        if adjustment < 100 {
+            // Calculate the adjusted score
+            // The adjustment is a percentage of the original score
+            let adjustedScore = (score.overallScore * adjustment) / 100
+            
+            // Create a new recovery score with the adjusted value
+            score = RecoveryScore(
+                date: score.date,
+                overallScore: adjustedScore,
+                heartRateScore: score.heartRateScore,
+                hrvScore: score.hrvScore,
+                sleepScore: score.sleepScore,
+                trainingLoadScore: score.trainingLoadScore,
+                stressScore: score.stressScore
+            )
+            
+            currentRecoveryScore = score
+        }
     }
     
     // Properties to store current metrics
