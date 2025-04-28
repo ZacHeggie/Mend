@@ -141,7 +141,7 @@ class PostActivityCooldown {
         case .moderate:
             intensityFactor = 24  // ~24 hours for moderate intensity
         case .high:
-            intensityFactor = 48  // ~48 hours for high intensity
+            intensityFactor = 36  // ~48 hours for high intensity
         }
         
         // Scale by duration - longer workouts need more recovery
@@ -161,16 +161,16 @@ class PostActivityCooldown {
         let baseReduction: Int
         switch activity.intensity {
         case .low:
-            baseReduction = 10  // 10% reduction for low intensity
+            baseReduction = 2  // 10% reduction for low intensity
         case .moderate:
-            baseReduction = 25  // 25% reduction for moderate intensity
+            baseReduction = 15  // 25% reduction for moderate intensity
         case .high:
-            baseReduction = 40  // 40% reduction for high intensity
+            baseReduction = 25  // 40% reduction for high intensity
         }
         
         // Scale by duration - longer workouts cause more initial fatigue
         let durationHours = activity.duration / 3600
-        let durationFactor = min(2.0, 1.0 + (durationHours / 2.0))  // Cap at 2x for very long workouts
+        let durationFactor = min(2.5, 1.0 + (durationHours / 2.0))  // Cap at 2.5x for very long workouts
         
         // Calculate final reduction
         return min(80, Int(Double(baseReduction) * durationFactor))  // Cap at 80% to avoid extreme reductions
