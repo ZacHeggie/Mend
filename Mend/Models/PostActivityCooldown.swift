@@ -22,10 +22,19 @@ class PostActivityCooldown {
     /// Stores the expected full recovery time for the most recent workout
     private var expectedRecoveryTime: TimeInterval = 0
     
+    /// Cached data of historical recovery times by activity type and intensity
+    private var historicalRecoveryData: [String: [ActivityIntensity: TimeInterval]] = [:]
+    
+    /// Cached similar activities for analysis
+    private var similarActivitiesByType: [ActivityType: [Activity]] = [:]
+    
     // MARK: - Initialization
     
     private init() {
         // Private initializer for singleton
+        Task {
+            await analyzeHistoricalRecoveryData()
+        }
     }
     
     // MARK: - Public Methods
@@ -127,10 +136,102 @@ class PostActivityCooldown {
     
     // MARK: - Private Methods
     
+    /// Analyzes historical activity data to determine typical recovery times
+    /// This examines the past month of activities and how they affected recovery
+    @MainActor
+    private func analyzeHistoricalRecoveryData() async {
+        let activityManager = ActivityManager.shared
+        
+        // Get activities from the past month
+        let activities = await activityManager.getRecentActivities(days: 30)
+        
+        // Group activities by type
+        let typeGroups = Dictionary(grouping: activities) { $0.type.rawValue }
+        
+        // For each activity type, analyze recovery time by intensity
+        for (typeKey, typeActivities) in typeGroups {
+            var intensityRecoveryTimes: [ActivityIntensity: [TimeInterval]] = [:]
+            
+            // Group by intensity
+            let intensityGroups = Dictionary(grouping: typeActivities) { $0.intensity }
+            
+            // For each intensity, gather recovery times
+            for (intensity, intensityActivities) in intensityGroups {
+                // Analysis based on activity spacing and duration
+                let recoveryTimes = calculateRecoveryTimesFromActivitySpacing(intensityActivities)
+                intensityRecoveryTimes[intensity] = recoveryTimes
+            }
+            
+            // Calculate average recovery time for each intensity
+            var averageRecoveryByIntensity: [ActivityIntensity: TimeInterval] = [:]
+            
+            for (intensity, times) in intensityRecoveryTimes {
+                if !times.isEmpty {
+                    let averageTime = times.reduce(0, +) / Double(times.count)
+                    averageRecoveryByIntensity[intensity] = averageTime
+                }
+            }
+            
+            historicalRecoveryData[typeKey] = averageRecoveryByIntensity
+        }
+        
+        // Also cache similar activities by type for reuse
+        for activity in activities {
+            if similarActivitiesByType[activity.type] == nil {
+                similarActivitiesByType[activity.type] = []
+            }
+            similarActivitiesByType[activity.type]?.append(activity)
+        }
+    }
+    
+    /// Calculate estimated recovery times based on spacing between similar activities
+    private func calculateRecoveryTimesFromActivitySpacing(_ activities: [Activity]) -> [TimeInterval] {
+        guard activities.count >= 2 else { return [] }
+        
+        // Sort activities by date (oldest first)
+        let sortedActivities = activities.sorted { $0.date < $1.date }
+        var recoveryTimes: [TimeInterval] = []
+        
+        // Look at gaps between activities of the same type
+        for i in 0..<(sortedActivities.count - 1) {
+            let current = sortedActivities[i]
+            let next = sortedActivities[i + 1]
+            
+            // Calculate time between activities
+            let timeBetween = next.date.timeIntervalSince(current.date)
+            
+            // Only consider reasonable recovery periods (between 8 hours and 7 days)
+            // Less than 8 hours likely means activities in same day (not full recovery)
+            // More than 7 days likely means gap in training, not actual recovery need
+            if timeBetween >= 8 * 3600 && timeBetween <= 7 * 24 * 3600 {
+                // Adjust for activity duration - longer activities need more recovery
+                let durationFactor = sqrt(current.duration / 3600) // Square root scaling
+                
+                // Estimate actual recovery time needed
+                let estimatedRecoveryTime = min(timeBetween, timeBetween * durationFactor)
+                recoveryTimes.append(estimatedRecoveryTime)
+            }
+        }
+        
+        return recoveryTimes
+    }
+    
     /// Calculates the expected recovery time for an activity
     /// - Parameter activity: The activity to calculate recovery time for
     /// - Returns: Expected recovery time in seconds
     private func calculateExpectedRecoveryTime(for activity: Activity) -> TimeInterval {
+        // Try to get historical data for this activity type and intensity
+        if let typeData = historicalRecoveryData[activity.type.rawValue],
+           let historicalRecoveryTime = typeData[activity.intensity] {
+            // We have historical data - scale by duration
+            let durationHours = activity.duration / 3600
+            let durationScale = sqrt(durationHours / 1.0) // Square root scaling
+            
+            // Return the personalized recovery time based on user's history
+            return historicalRecoveryTime * durationScale
+        }
+        
+        // Fallback to default calculation if no historical data
         let durationHours = activity.duration / 3600
         
         // Base recovery factors by intensity (in hours)
@@ -141,7 +242,7 @@ class PostActivityCooldown {
         case .moderate:
             intensityFactor = 24  // ~24 hours for moderate intensity
         case .high:
-            intensityFactor = 36  // ~48 hours for high intensity
+            intensityFactor = 36  // ~36 hours for high intensity
         }
         
         // Scale by duration - longer workouts need more recovery
@@ -157,15 +258,42 @@ class PostActivityCooldown {
     /// - Parameter activity: The activity to calculate for
     /// - Returns: Initial score reduction (0-100)
     private func calculateInitialScoreReduction(for activity: Activity) -> Int {
-        // Base reduction by intensity
+        // Try to analyze past activities of similar type/intensity from our cached data
+        if let similarActivities = similarActivitiesByType[activity.type]?.filter({ $0.intensity == activity.intensity }),
+           !similarActivities.isEmpty {
+            
+            // Calculate average duration for similar activities
+            let averageDuration = similarActivities.reduce(0.0) { $0 + $1.duration } / Double(similarActivities.count)
+            
+            // Base reduction by intensity (personalized based on historical patterns)
+            let baseReduction: Int
+            switch activity.intensity {
+            case .low:
+                baseReduction = 5  // 5% reduction for low intensity
+            case .moderate:
+                baseReduction = 20  // 20% reduction for moderate intensity
+            case .high:
+                baseReduction = 35  // 35% reduction for high intensity
+            }
+            
+            // Scale by relation to average duration
+            // If this activity is longer than average, increase reduction
+            let durationRatio = activity.duration / averageDuration
+            let durationFactor = min(2.5, max(0.8, durationRatio)) // Between 0.8x and 2.5x
+            
+            // Calculate final reduction
+            return min(80, Int(Double(baseReduction) * durationFactor))
+        }
+        
+        // Fallback to default calculation if no similar activities
         let baseReduction: Int
         switch activity.intensity {
         case .low:
-            baseReduction = 2  // 10% reduction for low intensity
+            baseReduction = 2  // 2% reduction for low intensity
         case .moderate:
-            baseReduction = 15  // 25% reduction for moderate intensity
+            baseReduction = 15  // 15% reduction for moderate intensity
         case .high:
-            baseReduction = 25  // 40% reduction for high intensity
+            baseReduction = 25  // 25% reduction for high intensity
         }
         
         // Scale by duration - longer workouts cause more initial fatigue

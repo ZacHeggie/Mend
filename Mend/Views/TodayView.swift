@@ -33,27 +33,27 @@ struct TodayView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: MendSpacing.large) {
-                    // Daily recovery score section
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Today's Recovery")
-                            .font(MendFont.headline)
+                    // Daily recovery score section with ring
+                    if let score = recoveryMetrics.currentRecoveryScore {
+                        recoveryScoreView(score: score)
+                    } else {
+                        Text("No recovery data available")
                             .foregroundColor(secondaryTextColor)
-                        
-                        Text("Recovery Score: \(recoveryMetrics.currentRecoveryScore?.overallScore ?? 0)")
-                            .font(MendFont.title)
-                            .foregroundColor(textColor)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding()
                     }
-                    .padding()
-                    .background(cardBackgroundColor)
-                    .cornerRadius(MendCornerRadius.medium)
-                    .padding(.horizontal)
                     
-                    // Cool-down status section (only show when in cool-down)
+                    // Recovery timeline section (only show when in cool-down)
                     if recoveryMetrics.isInCooldown {
-                        CooldownStatusView(
-                            isInCooldown: recoveryMetrics.isInCooldown,
-                            percentage: recoveryMetrics.cooldownPercentage,
-                            description: recoveryMetrics.cooldownDescription
+                        // Calculate remaining days based on cooldown percentage
+                        let cooldownPercentage = recoveryMetrics.cooldownPercentage
+                        let remainingPercent = 100 - cooldownPercentage
+                        // This is a rough estimate based on typical recovery times
+                        let daysRemaining = Double(remainingPercent) / 25.0 // Approximately 4 days for full recovery
+                        
+                        RecoveryTimelineView(
+                            currentPercentage: cooldownPercentage,
+                            daysRemaining: daysRemaining
                         )
                         .padding(.horizontal)
                     }
@@ -68,11 +68,6 @@ struct TodayView: View {
                     
                     // Recovery metrics
                     metricsSection
-                    
-                    // Developer controls (only in debug)
-                    #if DEBUG
-                    developerControls
-                    #endif
                 }
                 .padding(.vertical)
             }
@@ -198,7 +193,7 @@ struct TodayView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(cardBackgroundColor)
             .cornerRadius(MendCornerRadius.medium)
-            .shadow(color: colorScheme == .dark ? Color.black.opacity(0.25) : Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+            .padding(.horizontal, MendSpacing.medium)
         }
     }
     
@@ -465,82 +460,6 @@ struct TodayView: View {
             }
         }
     }
-    
-    private var developerControls: some View {
-        VStack(alignment: .leading, spacing: MendSpacing.medium) {
-            Text("Developer Controls")
-                .font(MendFont.headline)
-                .foregroundColor(secondaryTextColor)
-                .padding(.horizontal, MendSpacing.medium)
-            
-            VStack(spacing: MendSpacing.medium) {
-                // Toggle simulated data
-                Button(action: {
-                    recoveryMetrics.toggleSimulatedData()
-                }) {
-                    Text(recoveryMetrics.useSimulatedData ? "Using Simulated Data" : "Use Simulated Data")
-                        .font(MendFont.body)
-                        .foregroundColor(.white)
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(recoveryMetrics.useSimulatedData ? MendColors.primary : MendColors.primary)
-                        .cornerRadius(MendCornerRadius.medium)
-                }
-                
-                // Toggle poor recovery simulation
-                Button(action: {
-                    recoveryMetrics.togglePoorRecoveryData()
-                }) {
-                    Text(recoveryMetrics.usePoorRecoveryData ? "Using Poor Recovery Data" : "Simulate Poor Recovery")
-                        .font(MendFont.body)
-                        .foregroundColor(.white)
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(recoveryMetrics.usePoorRecoveryData ? MendColors.negative : MendColors.primary)
-                        .cornerRadius(MendCornerRadius.medium)
-                }
-                
-                // Simulate a new recent activity to test cool-down
-                Button(action: {
-                    simulateRecentActivity()
-                }) {
-                    Text("Simulate Recent Activity")
-                        .font(MendFont.body)
-                        .foregroundColor(.white)
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(MendColors.primary)
-                        .cornerRadius(MendCornerRadius.medium)
-                }
-            }
-            .padding()
-            .background(cardBackgroundColor)
-            .cornerRadius(MendCornerRadius.medium)
-            .padding(.horizontal, MendSpacing.medium)
-        }
-    }
-    
-    private func simulateRecentActivity() {
-        // Create a recent high-intensity activity to test cool-down
-        let activity = Activity(
-            id: UUID(),
-            title: "Test Activity",
-            type: .run,
-            date: Date().addingTimeInterval(-10 * 60), // 10 minutes ago
-            duration: 3600, // 1 hour
-            distance: 10.0,
-            intensity: .high,
-            source: .manual
-        )
-        
-        // Add to activity manager
-        activityManager.addActivity(activity)
-        
-        // Refresh data to apply cool-down
-        Task {
-            await refreshData()
-        }
-    }
 }
 
 // MARK: - New Card Components
@@ -798,8 +717,11 @@ struct RecoveryInsightCard: View {
                             .font(MendFont.subheadline.bold())
                             .foregroundColor(textColor)
                         
-                        RecoveryTimelineView(recoveryDays: insight.recoveryDays)
-                            .padding(.bottom, MendSpacing.small)
+                        RecoveryTimelineView(
+                            currentPercentage: 0, // Start at 0% recovered for insights
+                            daysRemaining: insight.recoveryDays
+                        )
+                        .padding(.bottom, MendSpacing.small)
                         
                         Text("Implications for Training")
                             .font(MendFont.subheadline.bold())
@@ -840,109 +762,108 @@ struct RecoveryInsightCard: View {
 }
 
 struct RecoveryTimelineView: View {
-    let recoveryDays: Double
+    let currentPercentage: Int
+    let daysRemaining: Double
+    @Environment(\.colorScheme) var colorScheme
+    
+    private var textColor: Color {
+        colorScheme == .dark ? MendColors.darkText : MendColors.text
+    }
+    
+    private var secondaryTextColor: Color {
+        colorScheme == .dark ? MendColors.darkSecondaryText : MendColors.secondaryText
+    }
+    
+    // Calculate how many timeline segments to show based on days remaining
+    private var segmentCount: Int {
+        return min(5, max(1, Int(ceil(daysRemaining))))
+    }
+    
+    // Helper function to get color for each segment
+    private func colorForSegment(_ index: Int) -> Color {
+        // Fully recovered
+        if currentPercentage >= 100 {
+            return MendColors.positive
+        }
+        
+        // Calculate recovery per day
+        let segmentsRemaining = Double(segmentCount) * (1.0 - Double(currentPercentage) / 100.0)
+        
+        // Convert to integer index for comparison
+        let segmentThreshold = Int(ceil(segmentsRemaining))
+        
+        if index < segmentThreshold {
+            // Segments that are still in recovery process
+            return index == 0 ? MendColors.negative : MendColors.neutral
+        } else {
+            // Segments that will be recovered
+            return MendColors.positive
+        }
+    }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            // Timeline visualization with highlighted "today" starting point
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    // Background track
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.2))
-                        .cornerRadius(4)
-                    
-                    // Timeline of recovery
-                    HStack(spacing: 0) {
-                        // Day 1: Initial fatigue (always red)
-                        Rectangle()
-                            .fill(MendColors.negative)
-                            .frame(width: geometry.size.width * 0.2)
-                        
-                        // Middle days: Recovery progression
-                        let middleWidth = min(geometry.size.width * 0.6, geometry.size.width * Double(recoveryDays - 1) / 5.0)
-                        
-                        Rectangle()
-                            .fill(MendColors.neutral)
-                            .frame(width: middleWidth)
-                        
-                        // Final state: Fully recovered (if applicable in timeline)
-                        if recoveryDays < 5 {
-                            Rectangle()
-                                .fill(MendColors.positive)
-                                .frame(width: geometry.size.width - 0.2 * geometry.size.width - middleWidth)
-                        }
-                    }
-                    .cornerRadius(4)
-                    
-                    // Day markers with more emphasis on today
-                    HStack {
-                        ForEach(0..<6) { i in
-                            Rectangle()
-                                .fill(i == 0 ? Color.white : Color.white.opacity(0.7))
-                                .frame(width: i == 0 ? 2 : 1.5, height: i == 0 ? 10 : 8) 
-                                .padding(.leading, i == 0 ? 0 : (geometry.size.width / 5.0) - 1.5)
-                        }
-                    }
-                    
-                    // Current recovery point indicator
-                    Circle()
-                        .fill(Color.white)
-                        .frame(width: 10, height: 10)
-                        .overlay(
-                            Circle()
-                                .stroke(Color.black, lineWidth: 1)
-                        )
-                        .offset(x: min(geometry.size.width * (recoveryDays / 5.0) - 5, geometry.size.width - 10))
-                }
-            }
-            .frame(height: 35)
+        VStack(alignment: .leading, spacing: MendSpacing.small) {
+            Text("Recovery Timeline")
+                .font(MendFont.headline)
+                .foregroundColor(textColor)
             
-            // Day labels with better formatting
             HStack {
-                ForEach(0..<6) { dayOffset in
-                    VStack(alignment: .center, spacing: 0) {
-                        Text(getDayLabel(for: dayOffset))
-                            .font(.system(size: 10, weight: dayOffset == 0 ? .bold : .medium))
-                            .foregroundColor(dayOffset == 0 ? .primary : .secondary)
-                        
-                        if dayOffset > 0 {
-                            Text(getDayNumber(for: dayOffset))
-                                .font(.system(size: 9))
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
+                Text("Today")
+                    .font(MendFont.caption)
+                    .foregroundColor(secondaryTextColor)
+                
+                Spacer()
+                
+                if segmentCount > 1 {
+                    Text("\(segmentCount) days")
+                        .font(MendFont.caption)
+                        .foregroundColor(secondaryTextColor)
                 }
             }
-            .padding(.top, 2)
+            
+            // Timeline Bar
+            HStack(spacing: 4) {
+                ForEach(0..<segmentCount, id: \.self) { index in
+                    RoundedRectangle(cornerRadius: MendCornerRadius.small)
+                        .fill(colorForSegment(index))
+                        .frame(height: 12)
+                }
+            }
+            
+            // Recovery percentage and description
+            HStack {
+                Text("\(currentPercentage)% Recovered")
+                    .font(MendFont.subheadline)
+                    .foregroundColor(currentPercentage >= 100 ? MendColors.positive : 
+                                     currentPercentage > 50 ? MendColors.neutral : MendColors.negative)
+                
+                Spacer()
+                
+                if currentPercentage < 100 {
+                    Text(formatTimeRemaining(days: daysRemaining))
+                        .font(MendFont.caption)
+                        .foregroundColor(secondaryTextColor)
+                }
+            }
         }
+        .padding()
+        .background(colorScheme == .dark ? MendColors.darkCardBackground : MendColors.cardBackground)
+        .cornerRadius(MendCornerRadius.medium)
     }
     
-    private func getDayLabel(for dayOffset: Int) -> String {
-        let calendar = Calendar.current
-        let date = calendar.date(byAdding: .day, value: dayOffset, to: Date())!
-        
-        // For today and tomorrow, use those words
-        if dayOffset == 0 {
-            return "Today"
-        } else if dayOffset == 1 {
-            return "Tmrw"
+    // Helper function to format remaining time in a user-friendly way
+    private func formatTimeRemaining(days: Double) -> String {
+        if days < 1/24 { // Less than 1 hour
+            return "< 1 hour remaining"
+        } else if days < 1 {
+            let hours = Int(days * 24)
+            return "\(hours) hours remaining"
+        } else if days < 2 {
+            let hours = Int((days - Double(Int(days))) * 24)
+            return "\(Int(days)) day \(hours) hours remaining"
+        } else {
+            return "\(Int(ceil(days))) days remaining"
         }
-        
-        // For other days, use abbreviated day name
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEE"
-        return formatter.string(from: date)
-    }
-    
-    private func getDayNumber(for dayOffset: Int) -> String {
-        let calendar = Calendar.current
-        let date = calendar.date(byAdding: .day, value: dayOffset, to: Date())!
-        
-        let formatter = DateFormatter()
-        formatter.dateFormat = "d"
-        return formatter.string(from: date)
     }
 }
 

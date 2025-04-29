@@ -303,6 +303,7 @@ struct SectionCard<Content: View>: View {
 // MARK: - Simulated Data Settings
 struct SimulatedDataSettings: View {
     @EnvironmentObject var recoveryMetrics: RecoveryMetrics
+    @StateObject private var activityManager = ActivityManager.shared
     @Environment(\.colorScheme) var colorScheme
     
     private var backgroundColor: Color {
@@ -375,6 +376,58 @@ struct SimulatedDataSettings: View {
                 .background(cardBackgroundColor)
                 .cornerRadius(MendCornerRadius.medium)
                 
+                // Developer tools section
+                VStack(alignment: .leading, spacing: MendSpacing.small) {
+                    Text("Developer Tools")
+                        .font(MendFont.headline)
+                        .foregroundColor(secondaryTextColor)
+                        .padding(.horizontal)
+                    
+                    VStack(spacing: MendSpacing.medium) {
+                        // Toggle simulated data
+                        Button(action: {
+                            recoveryMetrics.toggleSimulatedData()
+                        }) {
+                            Text(recoveryMetrics.useSimulatedData ? "Using Simulated Data" : "Use Simulated Data")
+                                .font(MendFont.body)
+                                .foregroundColor(.white)
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(recoveryMetrics.useSimulatedData ? MendColors.primary : MendColors.primary)
+                                .cornerRadius(MendCornerRadius.medium)
+                        }
+                        
+                        // Toggle poor recovery simulation
+                        Button(action: {
+                            recoveryMetrics.togglePoorRecoveryData()
+                        }) {
+                            Text(recoveryMetrics.usePoorRecoveryData ? "Using Poor Recovery Data" : "Simulate Poor Recovery")
+                                .font(MendFont.body)
+                                .foregroundColor(.white)
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(recoveryMetrics.usePoorRecoveryData ? MendColors.negative : MendColors.primary)
+                                .cornerRadius(MendCornerRadius.medium)
+                        }
+                        
+                        // Simulate a new recent activity to test cool-down
+                        Button(action: {
+                            simulateRecentActivity()
+                        }) {
+                            Text("Simulate Recent Activity")
+                                .font(MendFont.body)
+                                .foregroundColor(.white)
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(MendColors.primary)
+                                .cornerRadius(MendCornerRadius.medium)
+                        }
+                    }
+                    .padding()
+                    .background(cardBackgroundColor)
+                    .cornerRadius(MendCornerRadius.medium)
+                }
+                
                 // Refresh button
                 Button {
                     Task {
@@ -397,6 +450,28 @@ struct SimulatedDataSettings: View {
         }
         .background(backgroundColor.ignoresSafeArea())
         .navigationTitle("Simulated Data")
+    }
+    
+    private func simulateRecentActivity() {
+        // Create a recent high-intensity activity to test cool-down
+        let activity = Activity(
+            id: UUID(),
+            title: "Test Activity",
+            type: .run,
+            date: Date().addingTimeInterval(-10 * 60), // 10 minutes ago
+            duration: 3600, // 1 hour
+            distance: 10.0,
+            intensity: .high,
+            source: .manual
+        )
+        
+        // Add to activity manager
+        activityManager.addActivity(activity)
+        
+        // Refresh data to apply cool-down
+        Task {
+            recoveryMetrics.refreshData()
+        }
     }
 }
 
