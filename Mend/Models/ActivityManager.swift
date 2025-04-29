@@ -169,6 +169,11 @@ class ActivityManager: ObservableObject, Sendable {
         }.sorted { $0.date > $1.date } // Sort by most recent first
     }
     
+    // Check if user has any activities in the specified period
+    func hasRecentActivities(days: Int = 7) -> Bool {
+        return !getRecentActivities(days: days).isEmpty
+    }
+    
     // Get activities grouped by day
     func activitiesByDay(days: Int = 7) -> [Date: [Activity]] {
         let recentActivities = getRecentActivities(days: days)
@@ -192,6 +197,23 @@ class ActivityManager: ObservableObject, Sendable {
         activities.append(activity)
         // Sort activities by date - newest first
         activities.sort { $0.date > $1.date }
+    }
+    
+    // Add a test activity for testing recovery score
+    func addTestActivity(intensity: ActivityIntensity = .moderate) -> Activity {
+        let testActivity = Activity(
+            id: UUID(),
+            title: "Test Run",
+            type: .run,
+            date: Date(),
+            duration: 45 * 60, // 45 minutes
+            distance: 5000 / 1000.0, // 5km converted to kilometers
+            intensity: intensity,
+            source: .manual
+        )
+        
+        addActivity(testActivity)
+        return testActivity
     }
     
     // Generate sample data if needed (fallback when no HealthKit data)

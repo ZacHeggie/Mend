@@ -262,7 +262,11 @@ struct TrainingLoadCard: View {
     let activityManager: ActivityManager
     @State private var trainingLoad: Int = 0
     @State private var volumes: [DailyTrainingVolume] = []
+    @State private var isExpanded: Bool = false
     @Environment(\.colorScheme) var colorScheme
+    
+    // Add a parameter to control if this card should be collapsible
+    var collapsible: Bool = false
     
     private var cardBackgroundColor: Color {
         colorScheme == .dark ? MendColors.darkCardBackground : MendColors.cardBackground
@@ -285,112 +289,167 @@ struct TrainingLoadCard: View {
                         .font(MendFont.headline)
                         .foregroundColor(textColor)
                     
-                    Text("\(trainingLoad) pts")
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundColor(loadColor)
+                    // Only show training load value on left side when expanded
+                    if isExpanded || !collapsible {
+                        Text("\(trainingLoad) pts")
+                            .font(.system(size: 28, weight: .bold))
+                            .foregroundColor(loadColor)
+                    }
                     
-                    Text(loadDescription)
-                        .font(MendFont.subheadline)
-                        .foregroundColor(secondaryTextColor)
-                        .fixedSize(horizontal: false, vertical: true)
+                    // If not expanded and collapsible, show comparison to 4-week average
+                    if !isExpanded && collapsible {
+                        // Calculate 4-week average (simulated as 75 less than current)
+                        let fourWeekAvg = Double(trainingLoad) - 75
+                        let delta = Double(trainingLoad) - fourWeekAvg
+                        let percentChange = fourWeekAvg > 0 ? (delta / fourWeekAvg) * 100 : 50
+                        let isPositiveDelta = percentChange > 0 && percentChange <= 15
+                        
+                        Text("4-week avg: \(String(format: "%.0f", fourWeekAvg))")
+                            .font(MendFont.caption)
+                            .foregroundColor(textColor)
+                        
+                        Text(getTrainingLoadComparison(delta: delta, percentChange: percentChange, isPositiveDelta: isPositiveDelta))
+                            .font(MendFont.caption)
+                            .foregroundColor(getComparisonColor(isPositiveDelta: isPositiveDelta))
+                    } else {
+                        Text(loadDescription)
+                            .font(MendFont.subheadline)
+                            .foregroundColor(secondaryTextColor)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
                 
                 Spacer()
                 
-                // Work-to-Rest ratio indicator
-                VStack(alignment: .center, spacing: 2) {
-                    Text("Work:Rest")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(secondaryTextColor)
-                    
-                    HStack(spacing: 2) {
-                        Text(workRestRatio.0)
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(MendColors.negative)
-                        
-                        Text(":")
-                            .font(.system(size: 16, weight: .bold))
+                // Show either training load value or work-rest ratio
+                if !isExpanded && collapsible {
+                    // When collapsed and collapsible, show training load value with color coding
+                    Text("\(trainingLoad)")
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(loadColor)
+                        .padding(.horizontal, 4)
+                } else {
+                    // Work-to-Rest ratio indicator (only when expanded or not collapsible)
+                    VStack(alignment: .center, spacing: 2) {
+                        Text("Work:Rest")
+                            .font(.system(size: 11, weight: .medium))
                             .foregroundColor(secondaryTextColor)
                         
-                        Text(workRestRatio.1)
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(MendColors.positive)
+                        HStack(spacing: 2) {
+                            Text(workRestRatio.0)
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(MendColors.negative)
+                            
+                            Text(":")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(secondaryTextColor)
+                            
+                            Text(workRestRatio.1)
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(MendColors.positive)
+                        }
+                        
+                        Text(workRestDescription)
+                            .font(.system(size: 10))
+                            .foregroundColor(secondaryTextColor)
+                            .multilineTextAlignment(.center)
+                            .frame(width: 80)
                     }
-                    
-                    Text(workRestDescription)
-                        .font(.system(size: 10))
-                        .foregroundColor(secondaryTextColor)
-                        .multilineTextAlignment(.center)
-                        .frame(width: 80)
+                    .padding(.horizontal, 4)
                 }
+            }
+            
+            // Expanded content - only show when expanded or not collapsible
+            if isExpanded || !collapsible {
+                Divider()
+                    .padding(.vertical, 4)
+                
+                // Weekly volume chart with labels
+                Text("Daily Training Volume")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(secondaryTextColor)
+                    .padding(.bottom, 4)
+                
+                // Enhanced bar chart
+                HStack(alignment: .bottom, spacing: 8) {
+                    ForEach(volumes) { volume in
+                        VStack(spacing: 2) {
+                            // Activity bar with two-tone gradient based on intensity
+                            VStack(spacing: 0) {
+                                if volume.activityCount > 0 {
+                                    // Bar with intensity coloring
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            volume.intensityLevel.color.opacity(0.3),
+                                            volume.intensityLevel.color
+                                        ]),
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    )
+                                    .frame(width: 18, height: max(15, min(80, volume.totalDurationMinutes / 2)))
+                                    .cornerRadius(4)
+                                    
+                                    // Activity count indicator
+                                    Text("\(volume.activityCount)")
+                                        .font(.system(size: 9, weight: .bold))
+                                        .foregroundColor(.white)
+                                        .padding(2)
+                                        .background(
+                                            Circle()
+                                                .fill(volume.intensityLevel.color)
+                                        )
+                                        .offset(y: -8)
+                                        .zIndex(1)
+                                } else {
+                                    // Empty bar for days with no activity
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .stroke(Color.gray.opacity(0.3), style: StrokeStyle(lineWidth: 1, dash: [2]))
+                                        .frame(width: 18, height: 15)
+                                        .padding(.bottom, 10)
+                                }
+                            }
+                            
+                            VStack(spacing: 0) {
+                                // Day of week
+                                Text(formatDayOfWeek(volume.date))
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundColor(isToday(volume.date) ? textColor : secondaryTextColor)
+                                
+                                // Day of month
+                                Text(formatDayOfMonth(volume.date))
+                                    .font(.system(size: 9))
+                                    .foregroundColor(secondaryTextColor)
+                            }
+                            .padding(.top, 4)
+                        }
+                    }
+                }
+                .frame(height: 100)
                 .padding(.horizontal, 4)
             }
             
-            Divider()
-                .padding(.vertical, 4)
-            
-            // Weekly volume chart with labels
-            Text("Daily Training Volume")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundColor(secondaryTextColor)
-                .padding(.bottom, 4)
-            
-            // Enhanced bar chart
-            HStack(alignment: .bottom, spacing: 8) {
-                ForEach(volumes) { volume in
-                    VStack(spacing: 2) {
-                        // Activity bar with two-tone gradient based on intensity
-                        VStack(spacing: 0) {
-                            if volume.activityCount > 0 {
-                                // Bar with intensity coloring
-                                LinearGradient(
-                                    gradient: Gradient(colors: [
-                                        volume.intensityLevel.color.opacity(0.3),
-                                        volume.intensityLevel.color
-                                    ]),
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                                .frame(width: 18, height: max(15, min(80, volume.totalDurationMinutes / 2)))
-                                .cornerRadius(4)
-                                
-                                // Activity count indicator
-                                Text("\(volume.activityCount)")
-                                    .font(.system(size: 9, weight: .bold))
-                                    .foregroundColor(.white)
-                                    .padding(2)
-                                    .background(
-                                        Circle()
-                                            .fill(volume.intensityLevel.color)
-                                    )
-                                    .offset(y: -8)
-                                    .zIndex(1)
-                            } else {
-                                // Empty bar for days with no activity
-                                RoundedRectangle(cornerRadius: 4)
-                                    .stroke(Color.gray.opacity(0.3), style: StrokeStyle(lineWidth: 1, dash: [2]))
-                                    .frame(width: 18, height: 15)
-                                    .padding(.bottom, 10)
-                            }
-                        }
-                        
-                        VStack(spacing: 0) {
-                            // Day of week
-                            Text(formatDayOfWeek(volume.date))
-                                .font(.system(size: 10, weight: .medium))
-                                .foregroundColor(isToday(volume.date) ? textColor : secondaryTextColor)
-                            
-                            // Day of month
-                            Text(formatDayOfMonth(volume.date))
-                                .font(.system(size: 9))
-                                .foregroundColor(secondaryTextColor)
-                        }
-                        .padding(.top, 4)
+            // Add expand/collapse button if collapsible
+            if collapsible {
+                Button {
+                    withAnimation(.mendEaseInOut) {
+                        isExpanded.toggle()
                     }
+                } label: {
+                    HStack {
+                        Text(isExpanded ? "Hide details" : "Show details")
+                            .font(MendFont.subheadline)
+                            .foregroundColor(MendColors.secondary)
+                        
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                            .font(.caption)
+                            .foregroundColor(MendColors.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, MendSpacing.small)
+                    .background(MendColors.secondary.opacity(colorScheme == .dark ? 0.2 : 0.1))
+                    .cornerRadius(MendCornerRadius.small)
                 }
             }
-            .frame(height: 100)
-            .padding(.horizontal, 4)
         }
         .padding()
         .background(cardBackgroundColor)
@@ -404,6 +463,40 @@ struct TrainingLoadCard: View {
     private func updateTrainingLoad() {
         trainingLoad = activityManager.calculateTrainingLoad()
         volumes = activityManager.calculateDailyTrainingVolumes()
+    }
+    
+    private func calculateLoadScore() -> Int {
+        // Convert raw training load to a score out of 100
+        // We want high values to be red (bad) and moderate values to be green (good)
+        if trainingLoad > 800 {
+            return 30 // Too high - poor score
+        } else if trainingLoad > 600 {
+            return 60 // High but manageable - medium score
+        } else if trainingLoad > 300 {
+            return 90 // Good range - high score
+        } else if trainingLoad > 100 {
+            return 70 // A bit low - medium score
+        } else {
+            return 40 // Too low - lower score
+        }
+    }
+    
+    private func getTrainingLoadComparison(delta: Double, percentChange: Double, isPositiveDelta: Bool) -> String {
+        let formattedChange = String(format: "%.0f", abs(percentChange))
+        
+        if percentChange > 25 {
+            return "\(String(format: "+%.0f", delta)) (\(formattedChange)%) (high)"
+        } else if percentChange > 10 {
+            return "\(String(format: "+%.0f", delta)) (\(formattedChange)%) (optimal)"
+        } else if percentChange >= -5 {
+            return "Similar to avg (balanced)"
+        } else {
+            return "\(String(format: "-%.0f", abs(delta))) (\(formattedChange)%) (low)"
+        }
+    }
+    
+    private func getComparisonColor(isPositiveDelta: Bool) -> Color {
+        return isPositiveDelta ? MendColors.positive : MendColors.negative
     }
     
     private var loadColor: Color {

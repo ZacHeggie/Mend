@@ -52,9 +52,9 @@ struct SettingsView: View {
                 
                 SectionCard {
                     Button(action: {
-                        // Refresh health data directly
+                        // Refresh health data with full reset to ensure proper recalculation
                         Task {
-                            await recoveryMetrics.refreshData()
+                            await recoveryMetrics.refreshWithReset()
                         }
                     }) {
                         menuRow(icon: "arrow.clockwise", title: "Refresh Health Data", showArrow: false)
@@ -107,6 +107,50 @@ struct SettingsView: View {
                         menuRow(icon: "lock.fill", title: "Privacy policy", showArrow: true)
                     }
                 }
+                
+                // DEVELOPER TESTING section - Only in debug mode
+                #if DEBUG
+                sectionHeader(title: "DEVELOPER TESTING")
+                
+                SectionCard {
+                    Button(action: {
+                        // Add a test activity
+                        let activity = ActivityManager.shared.addTestActivity()
+                        // Refresh data to trigger recovery score update
+                        Task {
+                            await recoveryMetrics.refreshWithReset()
+                        }
+                    }) {
+                        menuRow(icon: "figure.run", title: "Add Test Activity", showArrow: false)
+                    }
+                    
+                    Divider()
+                    
+                    Button(action: {
+                        // Add a high intensity test activity
+                        let activity = ActivityManager.shared.addTestActivity(intensity: .high)
+                        // Refresh data to trigger recovery score update
+                        Task {
+                            await recoveryMetrics.refreshWithReset()
+                        }
+                    }) {
+                        menuRow(icon: "figure.highintensity.intervaltraining", title: "Add High Intensity Activity", showArrow: false)
+                    }
+                    
+                    Divider()
+                    
+                    Button(action: {
+                        // Reset processed activities in cooldown manager
+                        PostActivityCooldown.shared.resetAllProcessedActivities()
+                        // Refresh data
+                        Task {
+                            await recoveryMetrics.refreshWithReset()
+                        }
+                    }) {
+                        menuRow(icon: "arrow.triangle.2.circlepath", title: "Reset Processed Activities", showArrow: false)
+                    }
+                }
+                #endif
                 
                 // Version at the bottom
                 Text("Mend for iOS - 1.0.0")
@@ -431,7 +475,7 @@ struct SimulatedDataSettings: View {
                 // Refresh button
                 Button {
                     Task {
-                        recoveryMetrics.refreshData()
+                        recoveryMetrics.refreshWithReset()
                     }
                 } label: {
                     HStack {
@@ -470,7 +514,7 @@ struct SimulatedDataSettings: View {
         
         // Refresh data to apply cool-down
         Task {
-            recoveryMetrics.refreshData()
+            recoveryMetrics.refreshWithReset()
         }
     }
 }

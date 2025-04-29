@@ -31,64 +31,53 @@ struct TodayView: View {
     
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: MendSpacing.large) {
-                    // Daily recovery score section with ring
-                    if let score = recoveryMetrics.currentRecoveryScore {
-                        recoveryScoreView(score: score)
-                    } else {
-                        Text("No recovery data available")
-                            .foregroundColor(secondaryTextColor)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding()
-                    }
-                    
-                    // Recovery timeline section (only show when in cool-down)
-                    if recoveryMetrics.isInCooldown {
-                        // Calculate remaining days based on cooldown percentage
-                        let cooldownPercentage = recoveryMetrics.cooldownPercentage
-                        let remainingPercent = 100 - cooldownPercentage
-                        // This is a rough estimate based on typical recovery times
-                        let daysRemaining = Double(remainingPercent) / 25.0 // Approximately 4 days for full recovery
+            ZStack(alignment: .bottomTrailing) {
+                ScrollView {
+                    VStack(spacing: MendSpacing.large) {
+                        // Daily recovery score section with ring
+                        if let score = recoveryMetrics.currentRecoveryScore {
+                            recoveryScoreView(score: score)
+                        } else {
+                            Text("No recovery data available")
+                                .foregroundColor(secondaryTextColor)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .padding()
+                        }
                         
-                        RecoveryTimelineView(
-                            currentPercentage: cooldownPercentage,
-                            daysRemaining: daysRemaining
-                        )
-                        .padding(.horizontal)
+                        // Activity recommendations
+                        recommendationsSection
+                        
+                        // Recovery insights
+                        if !recoveryInsights.isEmpty {
+                            insightsSection
+                        }
                     }
-                    
-                    // Activity recommendations
-                    recommendationsSection
-                    
-                    // Recovery insights
-                    if !recoveryInsights.isEmpty {
-                        insightsSection
-                    }
-                    
-                    // Recovery metrics
-                    metricsSection
+                    .padding(.vertical)
                 }
-                .padding(.vertical)
+                .background(backgroundColor.ignoresSafeArea())
+                .navigationTitle("Today")
+                .navigationBarItems(trailing: notificationButton)
+                .onAppear {
+                    Task {
+                        await refreshData()
+                    }
+                }
+                
+                // Floating Action Button for adding activity
+                Button(action: {
+                    showingAddActivity = true
+                }) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(width: 56, height: 56)
+                        .background(MendColors.primary)
+                        .clipShape(Circle())
+                        .shadow(color: colorScheme == .dark ? Color.black.opacity(0.4) : Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
+                }
+                .padding(.bottom, 70)
+                .padding(.trailing, 20)
             }
-            .background(backgroundColor.ignoresSafeArea())
-            .navigationTitle("Today")
-            .navigationBarItems(trailing: notificationButton)
-            
-            // Floating Action Button for adding activity
-            Button(action: {
-                showingAddActivity = true
-            }) {
-                Image(systemName: "plus")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundColor(.white)
-                    .frame(width: 56, height: 56)
-                    .background(MendColors.primary)
-                    .clipShape(Circle())
-                    .shadow(color: colorScheme == .dark ? Color.black.opacity(0.4) : Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
-            }
-            .padding(.bottom, 70) // Position above tab bar
-            .padding(.trailing, 20)
             
             .sheet(isPresented: $showingAddActivity) {
                 NavigationView {
@@ -150,10 +139,8 @@ struct TodayView: View {
                 .font(MendFont.subheadline)
                 .foregroundColor(secondaryTextColor)
             
-            Button("Refresh Now") {
-                Task {
-                    recoveryMetrics.refreshData()
-                }
+            Button("Refresh") {
+                recoveryMetrics.refreshWithReset()
             }
             .padding(.vertical, MendSpacing.medium)
             .padding(.horizontal, MendSpacing.large)
@@ -186,6 +173,25 @@ struct TodayView: View {
                         .font(MendFont.subheadline)
                         .foregroundColor(secondaryTextColor)
                         .fixedSize(horizontal: false, vertical: true)
+                    
+                    // Add recovery time info when in cooldown
+                    if recoveryMetrics.isInCooldown && activityManager.hasRecentActivities(days: 7) {
+                        let daysRemaining = recoveryMetrics.getRemainingRecoveryDays()
+                        
+                        HStack(spacing: MendSpacing.small) {
+                            Image(systemName: "clock.arrow.circlepath")
+                                .foregroundColor(
+                                    recoveryMetrics.cooldownPercentage >= 100 ? MendColors.positive : 
+                                    recoveryMetrics.cooldownPercentage > 50 ? MendColors.neutral : MendColors.negative
+                                )
+                                .font(.system(size: 12))
+                            
+                            Text("Approximately \(String(format: "%.1f", daysRemaining)) more days to fully recover.")
+                                .font(MendFont.subheadline)
+                                .foregroundColor(secondaryTextColor)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
                 }
                 .padding(.trailing, MendSpacing.medium)
             }
@@ -282,7 +288,7 @@ struct TodayView: View {
     
     private func refreshData() async {
         // Refresh recovery metrics
-        recoveryMetrics.refreshData()
+        recoveryMetrics.refreshWithReset()
         
         // Update activities
         await activityManager.refreshActivities()
@@ -393,6 +399,7 @@ struct TodayView: View {
                                        
             ForEach(recommendationsToShow) { activity in
                 ExpandableActivityCard(activity: activity, colorScheme: colorScheme)
+                    .padding(.horizontal, MendSpacing.medium)
             }
         }
     }
@@ -406,57 +413,6 @@ struct TodayView: View {
             
             ForEach(recoveryInsights) { insight in
                 RecoveryInsightCard(insight: insight, colorScheme: colorScheme)
-            }
-        }
-    }
-    
-    private var metricsSection: some View {
-        VStack(alignment: .leading, spacing: MendSpacing.medium) {
-            Text("Recovery Metrics")
-                .font(MendFont.headline)
-                .foregroundColor(secondaryTextColor)
-                .padding(.horizontal, MendSpacing.medium)
-            
-            // Heart Rate Metric
-            if let heartRateMetric = recoveryMetrics.heartRateMetric {
-                VStack(alignment: .leading) {
-                    Text(heartRateMetric.title)
-                        .font(MendFont.headline)
-                    Text("Score: \(heartRateMetric.score)")
-                        .font(MendFont.body)
-                }
-                .padding()
-                .background(cardBackgroundColor)
-                .cornerRadius(MendCornerRadius.medium)
-                .padding(.horizontal, MendSpacing.medium)
-            }
-            
-            // HRV Metric
-            if let hrvMetric = recoveryMetrics.hrvMetric {
-                VStack(alignment: .leading) {
-                    Text(hrvMetric.title)
-                        .font(MendFont.headline)
-                    Text("Score: \(hrvMetric.score)")
-                        .font(MendFont.body)
-                }
-                .padding()
-                .background(cardBackgroundColor)
-                .cornerRadius(MendCornerRadius.medium)
-                .padding(.horizontal, MendSpacing.medium)
-            }
-            
-            // Sleep Metric
-            if let sleepMetric = recoveryMetrics.sleepMetric {
-                VStack(alignment: .leading) {
-                    Text(sleepMetric.title)
-                        .font(MendFont.headline)
-                    Text("Score: \(sleepMetric.score)")
-                        .font(MendFont.body)
-                }
-                .padding()
-                .background(cardBackgroundColor)
-                .cornerRadius(MendCornerRadius.medium)
-                .padding(.horizontal, MendSpacing.medium)
             }
         }
     }
@@ -774,81 +730,41 @@ struct RecoveryTimelineView: View {
         colorScheme == .dark ? MendColors.darkSecondaryText : MendColors.secondaryText
     }
     
-    // Calculate how many timeline segments to show based on days remaining
-    private var segmentCount: Int {
-        return min(5, max(1, Int(ceil(daysRemaining))))
-    }
-    
-    // Helper function to get color for each segment
-    private func colorForSegment(_ index: Int) -> Color {
-        // Fully recovered
-        if currentPercentage >= 100 {
-            return MendColors.positive
-        }
-        
-        // Calculate recovery per day
-        let segmentsRemaining = Double(segmentCount) * (1.0 - Double(currentPercentage) / 100.0)
-        
-        // Convert to integer index for comparison
-        let segmentThreshold = Int(ceil(segmentsRemaining))
-        
-        if index < segmentThreshold {
-            // Segments that are still in recovery process
-            return index == 0 ? MendColors.negative : MendColors.neutral
-        } else {
-            // Segments that will be recovered
-            return MendColors.positive
-        }
+    private var cardBackgroundColor: Color {
+        colorScheme == .dark ? MendColors.darkCardBackground : MendColors.cardBackground
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: MendSpacing.small) {
-            Text("Recovery Timeline")
+        VStack(alignment: .leading, spacing: MendSpacing.medium) {
+            Text("Recovery Status")
                 .font(MendFont.headline)
-                .foregroundColor(textColor)
+                .foregroundColor(secondaryTextColor)
+                .padding(.horizontal, MendSpacing.medium)
             
-            HStack {
-                Text("Today")
-                    .font(MendFont.caption)
-                    .foregroundColor(secondaryTextColor)
-                
-                Spacer()
-                
-                if segmentCount > 1 {
-                    Text("\(segmentCount) days")
-                        .font(MendFont.caption)
-                        .foregroundColor(secondaryTextColor)
-                }
-            }
-            
-            // Timeline Bar
-            HStack(spacing: 4) {
-                ForEach(0..<segmentCount, id: \.self) { index in
-                    RoundedRectangle(cornerRadius: MendCornerRadius.small)
-                        .fill(colorForSegment(index))
-                        .frame(height: 12)
-                }
-            }
-            
-            // Recovery percentage and description
-            HStack {
-                Text("\(currentPercentage)% Recovered")
-                    .font(MendFont.subheadline)
-                    .foregroundColor(currentPercentage >= 100 ? MendColors.positive : 
+            HStack(spacing: MendSpacing.small) {
+                Image(systemName: "clock.arrow.circlepath")
+                    .foregroundColor(currentPercentage >= 100 ? 
+                                     MendColors.positive : 
                                      currentPercentage > 50 ? MendColors.neutral : MendColors.negative)
+                    .font(.system(size: 18))
                 
-                Spacer()
-                
-                if currentPercentage < 100 {
-                    Text(formatTimeRemaining(days: daysRemaining))
-                        .font(MendFont.caption)
-                        .foregroundColor(secondaryTextColor)
+                if currentPercentage >= 100 {
+                    Text("You've fully recovered and are ready for training.")
+                        .font(MendFont.subheadline)
+                        .foregroundColor(textColor)
+                } else {
+                    Text("Based on your recent activities, you need approximately \(String(format: "%.1f", daysRemaining)) more days to fully recover.")
+                        .font(MendFont.subheadline)
+                        .foregroundColor(textColor)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
+            .padding()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(cardBackgroundColor)
+            .cornerRadius(MendCornerRadius.medium)
+            .padding(.horizontal, MendSpacing.medium)
         }
-        .padding()
-        .background(colorScheme == .dark ? MendColors.darkCardBackground : MendColors.cardBackground)
-        .cornerRadius(MendCornerRadius.medium)
     }
     
     // Helper function to format remaining time in a user-friendly way

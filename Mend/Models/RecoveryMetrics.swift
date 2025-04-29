@@ -26,14 +26,22 @@ class RecoveryMetrics: ObservableObject {
     @Published var cooldownPercentage: Int = 100
     @Published var cooldownDescription: String = "Fully recovered"
     
+    /// Returns the remaining recovery time in days
+    func getRemainingRecoveryDays() -> Double {
+        guard isInCooldown else {
+            return 0
+        }
+        
+        return cooldownManager.getRemainingRecoveryDays()
+    }
+    
     private init() {
         Task { 
             do {
                 try await healthKit.requestAuthorization()
-                await loadMetrics()
                 
-                // Update cool-down status based on recent activity
-                updateCooldownStatus()
+                // On initial launch, do a complete metrics load and full cooldown calculation
+                await refreshWithReset()
                 
                 // Set up a timer to update cool-down status periodically
                 startCooldownTimer()
@@ -54,15 +62,31 @@ class RecoveryMetrics: ObservableObject {
         // Create a new timer that fires every minute to update recovery status
         cooldownTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             Task { [weak self] in
-                await self?.updateCooldownStatus()
+                // Only update UI properties, don't recalculate the score
+                await self?.updateCooldownDisplay()
             }
         }
     }
     
+    // This function only updates the UI display elements without modifying the score
+    private func updateCooldownDisplay() {
+        // Get the current cooldown state from the manager
+        let currentPercentage = cooldownManager.getRecoveryPercentage()
+        let currentDescription = cooldownManager.getCooldownDescription()
+        
+        // Only update UI properties
+        isInCooldown = currentPercentage < 100
+        cooldownPercentage = currentPercentage
+        cooldownDescription = currentDescription
+    }
+    
+    // This function performs a full update including score recalculation
+    // It should only be called during explicit refresh operations
     private func updateCooldownStatus() {
         // Get the most recent activity
         if let mostRecentActivity = activityManager.getRecentActivities(days: 7).first {
-            // Process the activity for cool-down status
+            // The cooldownManager now keeps track of already processed activities
+            // and will handle the check internally
             _ = cooldownManager.processActivity(mostRecentActivity)
         }
         
@@ -85,7 +109,8 @@ class RecoveryMetrics: ObservableObject {
         
         await loadHealthKitData()
         
-        // Update cool-down status after loading metrics
+        // Update cooldown status once after loading metrics
+        // The cooldown manager now prevents redundant processing of activities
         updateCooldownStatus()
     }
     
@@ -578,6 +603,42 @@ class RecoveryMetrics: ObservableObject {
     func refreshData() {
         Task {
             await loadMetrics()
+        }
+    }
+    
+    /// Refreshes data with a complete reset of processed activities
+    /// This allows recalculation of recovery score from scratch while still accounting for time elapsed
+    @MainActor
+    func refreshWithReset() {
+        Task {
+            // Reset all processed activities in the cooldown manager
+            cooldownManager.resetAllProcessedActivities()
+            
+            // Load metrics data from HealthKit or simulated data
+            await loadHealthKitData()
+            
+            // Get recent activities and recalculate their impact on recovery score
+            // based on their actual timestamps (preserving time elapsed)
+            let recentActivities = activityManager.getRecentActivities(days: 7)
+            
+            // Sort by date (oldest first) to process in chronological order
+            let sortedActivities = recentActivities.sorted { $0.date < $1.date }
+            
+            // Process each activity to calculate its impact on recovery
+            for activity in sortedActivities {
+                _ = cooldownManager.processActivity(activity)
+            }
+            
+            // Update the cool-down adjustment based on the most recent state
+            let cooldownAdjustment = cooldownManager.updateCooldownAdjustment()
+            
+            // Update UI properties
+            isInCooldown = cooldownAdjustment < 100
+            cooldownPercentage = cooldownManager.getRecoveryPercentage()
+            cooldownDescription = cooldownManager.getCooldownDescription()
+            
+            // Recalculate recovery score with the updated cool-down adjustment
+            updateRecoveryScoreWithCooldown(adjustment: cooldownAdjustment)
         }
     }
     

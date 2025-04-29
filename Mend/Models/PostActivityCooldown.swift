@@ -11,16 +11,16 @@ class PostActivityCooldown {
     static let shared = PostActivityCooldown()
     
     /// Last processed activity to avoid duplicate processing
-    private var lastProcessedActivityID: UUID?
+    public var lastProcessedActivityID: UUID?
     
     /// Last time when recovery score was affected by post-activity cool-down
-    private var lastCooldownAdjustmentTime: Date?
+    public var lastCooldownAdjustmentTime: Date?
     
     /// Recovery score adjustment due to recent activity (0-100 scale, where 0 means maximum reduction)
     private var currentCooldownAdjustment: Int = 100
     
     /// Stores the expected full recovery time for the most recent workout
-    private var expectedRecoveryTime: TimeInterval = 0
+    public var expectedRecoveryTime: TimeInterval = 0
     
     /// Cached data of historical recovery times by activity type and intensity
     private var historicalRecoveryData: [String: [ActivityIntensity: TimeInterval]] = [:]
@@ -28,12 +28,19 @@ class PostActivityCooldown {
     /// Cached similar activities for analysis
     private var similarActivitiesByType: [ActivityType: [Activity]] = [:]
     
+    /// Set of activities that have already been processed
+    /// This is used to ensure each activity only affects the recovery score once
+    private var processedActivityIDs: Set<UUID> = []
+    
     // MARK: - Initialization
     
     private init() {
         // Private initializer for singleton
         Task {
             await analyzeHistoricalRecoveryData()
+            
+            // Load processed activities from UserDefaults if available
+            loadProcessedActivities()
         }
     }
     
@@ -44,7 +51,7 @@ class PostActivityCooldown {
     /// - Returns: The recovery score adjustment (0-100, where 100 means no reduction)
     func processActivity(_ activity: Activity) -> Int {
         // Skip if we've already processed this activity
-        if activity.id == lastProcessedActivityID {
+        if processedActivityIDs.contains(activity.id) {
             return currentCooldownAdjustment
         }
         
@@ -58,6 +65,10 @@ class PostActivityCooldown {
         lastProcessedActivityID = activity.id
         lastCooldownAdjustmentTime = Date()
         currentCooldownAdjustment = 100 - initialReduction
+        
+        // Add to processed activities set and save
+        processedActivityIDs.insert(activity.id)
+        saveProcessedActivities()
         
         return currentCooldownAdjustment
     }
@@ -89,7 +100,12 @@ class PostActivityCooldown {
         let initialReduction = 100 - currentCooldownAdjustment
         let currentReduction = Int(Double(initialReduction) * (1.0 - adjustedProgress))
         
-        currentCooldownAdjustment = 100 - currentReduction
+        // Calculate new adjustment - this will always be >= to currentCooldownAdjustment 
+        // as time passes (guaranteeing monotonic recovery)
+        let newAdjustment = 100 - currentReduction
+        
+        // Store the highest adjustment value to ensure recovery never decreases
+        currentCooldownAdjustment = max(currentCooldownAdjustment, newAdjustment)
         
         return currentCooldownAdjustment
     }
@@ -132,6 +148,20 @@ class PostActivityCooldown {
         let progress = min(1.0, elapsedTime / expectedRecoveryTime)
         
         return Int(progress * 100)
+    }
+    
+    /// Returns the remaining recovery time in days
+    /// - Returns: Remaining recovery time in days
+    func getRemainingRecoveryDays() -> Double {
+        guard currentCooldownAdjustment < 100, let lastAdjustment = lastCooldownAdjustmentTime else {
+            return 0
+        }
+        
+        let elapsedTime = Date().timeIntervalSince(lastAdjustment)
+        let remainingTime = max(0, expectedRecoveryTime - elapsedTime)
+        
+        // Convert seconds to days
+        return remainingTime / 86400
     }
     
     // MARK: - Private Methods
@@ -308,8 +338,18 @@ class PostActivityCooldown {
     /// - Parameter progress: Raw linear progress (0.0 to 1.0)
     /// - Returns: Adjusted progress value following a recovery curve
     private func recoveryFunction(progress: Double) -> Double {
-        // Sigmoid-like function that starts slow, accelerates in the middle, and tapers at the end
-        return 1.0 / (1.0 + exp(-10 * (progress - 0.5)))
+        // Modified sigmoid function that ensures recovery steadily increases over time
+        // This gives a more natural recovery progression:
+        // - Starts slower (initial recovery phase)
+        // - Accelerates in the middle (primary recovery phase)
+        // - Tapers at the end (final adaptation phase)
+        
+        // Make sure progress is constrained between 0 and 1
+        let constrainedProgress = min(1.0, max(0.0, progress))
+        
+        // Apply sigmoid transformation for a natural recovery curve
+        // This function guarantees monotonic increase (recovery always improves, never declines)
+        return 1.0 / (1.0 + exp(-12 * (constrainedProgress - 0.5)))
     }
     
     /// Resets the cooldown state
@@ -317,5 +357,45 @@ class PostActivityCooldown {
         currentCooldownAdjustment = 100
         lastCooldownAdjustmentTime = nil
         expectedRecoveryTime = 0
+    }
+    
+    /// Saves the list of processed activity IDs to UserDefaults
+    private func saveProcessedActivities() {
+        let processedIDs = processedActivityIDs.map { $0.uuidString }
+        UserDefaults.standard.set(processedIDs, forKey: "processedActivityIDs")
+    }
+    
+    /// Loads the list of processed activity IDs from UserDefaults
+    private func loadProcessedActivities() {
+        guard let savedIDs = UserDefaults.standard.array(forKey: "processedActivityIDs") as? [String] else {
+            return
+        }
+        
+        // Convert strings back to UUIDs
+        processedActivityIDs = Set(savedIDs.compactMap { UUID(uuidString: $0) })
+    }
+    
+    /// Cleans up old processed activities that are no longer relevant
+    /// This should be called periodically to prevent the set from growing too large
+    func cleanupOldProcessedActivities(olderThan days: Int = 60) {
+        // This would typically remove activities older than the specified period
+        // But since we don't store dates with the IDs, we'll just keep this as a placeholder
+        // In a real implementation, you might want to store activity IDs with dates
+        
+        // For now, we'll just cap the size of the set to prevent unbounded growth
+        if processedActivityIDs.count > 1000 {
+            // Just reset if we get too many
+            processedActivityIDs = []
+            saveProcessedActivities()
+        }
+    }
+    
+    /// Resets all processed activities - used for testing
+    func resetAllProcessedActivities() {
+        processedActivityIDs = []
+        saveProcessedActivities()
+        
+        // Also reset cooldown state
+        resetCooldown()
     }
 } 

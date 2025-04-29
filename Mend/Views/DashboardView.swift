@@ -2,6 +2,7 @@ import SwiftUI
 
 struct DashboardView: View {
     @EnvironmentObject private var recoveryMetrics: RecoveryMetrics
+    @StateObject private var activityManager = ActivityManager.shared
     @Environment(\.colorScheme) var colorScheme
     
     private var backgroundColor: Color {
@@ -52,24 +53,26 @@ struct DashboardView: View {
                             .foregroundColor(textColor)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         
+                        // Training Load - use the same card as in ActivityView
+                        TrainingLoadCard(activityManager: activityManager, collapsible: true)
+                        
+                        // Heart Rate
                         MetricCard(metric: recoveryScore.heartRateScore)
                         
-                        // Get HRV metric directly from the model
+                        // HRV
                         if let hrvMetric = recoveryMetrics.hrvMetric {
                             MetricCard(metric: hrvMetric)
                         } else {
                             MetricCard(metric: MetricScore.createHRVMetric(score: recoveryScore.hrvScore))
                         }
                         
-                        // Always show Sleep Duration - use actual data or create a placeholder
+                        // Sleep Duration
                         let sleepMetric = recoveryMetrics.sleepMetric ?? recoveryMetrics.createSleepMetric()
                         MetricCard(metric: sleepMetric)
                         
-                        // Always show Sleep Quality - use actual data or create a placeholder
+                        // Sleep Quality
                         let sleepQualityMetric = recoveryMetrics.sleepQualityMetric ?? recoveryMetrics.createSleepQualityMetric()
                         MetricCard(metric: sleepQualityMetric)
-                        
-                        MetricCard(metric: recoveryScore.trainingLoadScore)
                     }
                 }
                 .padding()
@@ -90,7 +93,7 @@ struct DashboardView: View {
                     
                     Button("Refresh Now") {
                         Task {
-                            recoveryMetrics.refreshData()
+                            recoveryMetrics.refreshWithReset()
                         }
                     }
                     .padding(.vertical, MendSpacing.medium)
@@ -108,7 +111,7 @@ struct DashboardView: View {
         .navigationTitle("Dashboard")
         .onAppear {
             Task {
-                recoveryMetrics.refreshData()
+                recoveryMetrics.refreshWithReset()
             }
         }
     }
