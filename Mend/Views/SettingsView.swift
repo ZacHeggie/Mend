@@ -110,46 +110,7 @@ struct SettingsView: View {
                 
                 // DEVELOPER TESTING section - Only in debug mode
                 #if DEBUG
-                sectionHeader(title: "DEVELOPER TESTING")
-                
-                SectionCard {
-                    Button(action: {
-                        // Add a test activity
-                        let activity = ActivityManager.shared.addTestActivity()
-                        // Refresh data to trigger recovery score update
-                        Task {
-                            await recoveryMetrics.refreshWithReset()
-                        }
-                    }) {
-                        menuRow(icon: "figure.run", title: "Add Test Activity", showArrow: false)
-                    }
-                    
-                    Divider()
-                    
-                    Button(action: {
-                        // Add a high intensity test activity
-                        let activity = ActivityManager.shared.addTestActivity(intensity: .high)
-                        // Refresh data to trigger recovery score update
-                        Task {
-                            await recoveryMetrics.refreshWithReset()
-                        }
-                    }) {
-                        menuRow(icon: "figure.highintensity.intervaltraining", title: "Add High Intensity Activity", showArrow: false)
-                    }
-                    
-                    Divider()
-                    
-                    Button(action: {
-                        // Reset processed activities in cooldown manager
-                        PostActivityCooldown.shared.resetAllProcessedActivities()
-                        // Refresh data
-                        Task {
-                            await recoveryMetrics.refreshWithReset()
-                        }
-                    }) {
-                        menuRow(icon: "arrow.triangle.2.circlepath", title: "Reset Processed Activities", showArrow: false)
-                    }
-                }
+                // Removed the developer testing section from the main settings menu
                 #endif
                 
                 // Version at the bottom
@@ -454,11 +415,65 @@ struct SimulatedDataSettings: View {
                                 .cornerRadius(MendCornerRadius.medium)
                         }
                         
+                        // Add Test Activity
+                        Button(action: {
+                            // Add a test activity
+                            let _ = activityManager.addTestActivity()
+                            // Refresh data to trigger recovery score update
+                            Task {
+                                await recoveryMetrics.refreshWithReset()
+                            }
+                        }) {
+                            Text("Add Test Activity")
+                                .font(MendFont.body)
+                                .foregroundColor(.white)
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(MendColors.primary)
+                                .cornerRadius(MendCornerRadius.medium)
+                        }
+                        
+                        // Add High Intensity Activity
+                        Button(action: {
+                            // Add a high intensity test activity
+                            let _ = activityManager.addTestActivity(intensity: .high)
+                            // Refresh data to trigger recovery score update
+                            Task {
+                                await recoveryMetrics.refreshWithReset()
+                            }
+                        }) {
+                            Text("Add High Intensity Activity")
+                                .font(MendFont.body)
+                                .foregroundColor(.white)
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(MendColors.primary)
+                                .cornerRadius(MendCornerRadius.medium)
+                        }
+                        
                         // Simulate a new recent activity to test cool-down
                         Button(action: {
                             simulateRecentActivity()
                         }) {
                             Text("Simulate Recent Activity")
+                                .font(MendFont.body)
+                                .foregroundColor(.white)
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(MendColors.primary)
+                                .cornerRadius(MendCornerRadius.medium)
+                        }
+                        
+                        // Reset Processed Activities
+                        Button(action: {
+                            // Reset processed activities in cooldown manager
+                            PostActivityCooldown.shared.resetAllProcessedActivities()
+                            // Refresh data
+                            Task {
+                                await recoveryMetrics.refreshWithReset()
+                            }
+                        }) {
+                            Text("Reset Processed Activities")
                                 .font(MendFont.body)
                                 .foregroundColor(.white)
                                 .padding()
@@ -475,7 +490,7 @@ struct SimulatedDataSettings: View {
                 // Refresh button
                 Button {
                     Task {
-                        recoveryMetrics.refreshWithReset()
+                        await recoveryMetrics.refreshWithReset()
                     }
                 } label: {
                     HStack {
@@ -514,7 +529,7 @@ struct SimulatedDataSettings: View {
         
         // Refresh data to apply cool-down
         Task {
-            recoveryMetrics.refreshWithReset()
+            await recoveryMetrics.refreshWithReset()
         }
     }
 }

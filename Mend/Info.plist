@@ -29,7 +29,17 @@
         <key>UIApplicationSupportsMultipleScenes</key>
         <false/>
         <key>UISceneConfigurations</key>
-        <dict/>
+        <dict>
+            <key>UIWindowSceneSessionRoleApplication</key>
+            <array>
+                <dict>
+                    <key>UISceneConfigurationName</key>
+                    <string>Default Configuration</string>
+                    <key>UISceneDelegateClassName</key>
+                    <string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
+                </dict>
+            </array>
+        </dict>
     </dict>
     <key>UIApplicationSupportsIndirectInputEvents</key>
     <true/>
@@ -45,6 +55,11 @@
         <string>UIInterfaceOrientationPortraitUpsideDown</string>
         <string>UIInterfaceOrientationLandscapeLeft</string>
         <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>fetch</string>
+        <string>processing</string>
     </array>
 </dict>
 </plist> 

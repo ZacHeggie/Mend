@@ -16,7 +16,7 @@ class RecoveryMetrics: ObservableObject {
     private let cooldownManager = PostActivityCooldown.shared
     
     @Published var currentRecoveryScore: RecoveryScore?
-    @Published var isLoading = false
+    @Published var isLoading = true // Start with loading state as true
     @Published var error: Error?
     @Published var useSimulatedData = false
     @Published var usePoorRecoveryData = false
@@ -25,6 +25,9 @@ class RecoveryMetrics: ObservableObject {
     @Published var isInCooldown: Bool = false
     @Published var cooldownPercentage: Int = 100
     @Published var cooldownDescription: String = "Fully recovered"
+    
+    // Track if initial data load is complete
+    @Published var isInitialLoadComplete = false
     
     /// Returns the remaining recovery time in days
     func getRemainingRecoveryDays() -> Double {
@@ -36,19 +39,65 @@ class RecoveryMetrics: ObservableObject {
     }
     
     private init() {
+        // Reset currentRecoveryScore to ensure we don't show stale data
+        currentRecoveryScore = nil
+        isLoading = true
+        isInitialLoadComplete = false
+        
+        // Setup initial data load
         Task { 
             do {
                 try await healthKit.requestAuthorization()
                 
-                // On initial launch, do a complete metrics load and full cooldown calculation
-                await refreshWithReset()
+                // On initial launch, do a complete metrics load with full cooldown calculation
+                await performInitialDataLoad()
                 
                 // Set up a timer to update cool-down status periodically
                 startCooldownTimer()
+                
+                // Mark initial load as complete
+                isInitialLoadComplete = true
             } catch {
                 self.error = error
+                isLoading = false
             }
         }
+    }
+    
+    // MARK: - Initial Data Loading
+    
+    /// Performs the initial data load when the app first launches
+    private func performInitialDataLoad() async {
+        isLoading = true
+        
+        // Reset processed activities to start fresh
+        cooldownManager.resetAllProcessedActivities()
+        
+        // Load health data (either from HealthKit or simulated)
+        await loadHealthKitData()
+        
+        // Process activities in chronological order
+        let recentActivities = activityManager.getRecentActivities(days: 7)
+        let sortedActivities = recentActivities.sorted { $0.date < $1.date }
+        
+        // Process each activity to calculate its impact on recovery
+        for activity in sortedActivities {
+            _ = cooldownManager.processActivity(activity)
+        }
+        
+        // Update the cool-down adjustment based on the most recent state
+        let cooldownAdjustment = cooldownManager.updateCooldownAdjustment()
+        
+        // Update UI properties
+        isInCooldown = cooldownAdjustment < 100
+        cooldownPercentage = cooldownManager.getRecoveryPercentage()
+        cooldownDescription = cooldownManager.getCooldownDescription()
+        
+        // Recalculate recovery score with the updated cool-down adjustment
+        updateRecoveryScoreWithCooldown(adjustment: cooldownAdjustment)
+        
+        // Finish loading
+        isLoading = false
     }
     
     // MARK: - Timer for Cool-down Updates
@@ -62,7 +111,8 @@ class RecoveryMetrics: ObservableObject {
         // Create a new timer that fires every minute to update recovery status
         cooldownTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             Task { [weak self] in
-                // Only update UI properties, don't recalculate the score
+                // This should ONLY update UI elements, not recalculate the recovery score
+                // This prevents the score from dropping over time when the app is open
                 await self?.updateCooldownDisplay()
             }
         }
@@ -74,10 +124,13 @@ class RecoveryMetrics: ObservableObject {
         let currentPercentage = cooldownManager.getRecoveryPercentage()
         let currentDescription = cooldownManager.getCooldownDescription()
         
-        // Only update UI properties
+        // Only update UI properties that relate to cooldown display
         isInCooldown = currentPercentage < 100
         cooldownPercentage = currentPercentage
         cooldownDescription = currentDescription
+        
+        // Important: Do NOT call updateRecoveryScoreWithCooldown here
+        // This prevents the recovery score from decreasing over time
     }
     
     // This function performs a full update including score recalculation
@@ -609,37 +662,40 @@ class RecoveryMetrics: ObservableObject {
     /// Refreshes data with a complete reset of processed activities
     /// This allows recalculation of recovery score from scratch while still accounting for time elapsed
     @MainActor
-    func refreshWithReset() {
-        Task {
-            // Reset all processed activities in the cooldown manager
-            cooldownManager.resetAllProcessedActivities()
-            
-            // Load metrics data from HealthKit or simulated data
-            await loadHealthKitData()
-            
-            // Get recent activities and recalculate their impact on recovery score
-            // based on their actual timestamps (preserving time elapsed)
-            let recentActivities = activityManager.getRecentActivities(days: 7)
-            
-            // Sort by date (oldest first) to process in chronological order
-            let sortedActivities = recentActivities.sorted { $0.date < $1.date }
-            
-            // Process each activity to calculate its impact on recovery
-            for activity in sortedActivities {
-                _ = cooldownManager.processActivity(activity)
-            }
-            
-            // Update the cool-down adjustment based on the most recent state
-            let cooldownAdjustment = cooldownManager.updateCooldownAdjustment()
-            
-            // Update UI properties
-            isInCooldown = cooldownAdjustment < 100
-            cooldownPercentage = cooldownManager.getRecoveryPercentage()
-            cooldownDescription = cooldownManager.getCooldownDescription()
-            
-            // Recalculate recovery score with the updated cool-down adjustment
-            updateRecoveryScoreWithCooldown(adjustment: cooldownAdjustment)
+    func refreshWithReset() async {
+        isLoading = true
+        
+        // Reset all processed activities in the cooldown manager
+        cooldownManager.resetAllProcessedActivities()
+        
+        // Load metrics data from HealthKit or simulated data
+        await loadHealthKitData()
+        
+        // Get recent activities and recalculate their impact on recovery score
+        // based on their actual timestamps (preserving time elapsed)
+        let recentActivities = activityManager.getRecentActivities(days: 7)
+        
+        // Sort by date (oldest first) to process in chronological order
+        let sortedActivities = recentActivities.sorted { $0.date < $1.date }
+        
+        // Process each activity to calculate its impact on recovery
+        for activity in sortedActivities {
+            _ = cooldownManager.processActivity(activity)
         }
+        
+        // Update the cool-down adjustment based on the most recent state
+        let cooldownAdjustment = cooldownManager.updateCooldownAdjustment()
+        
+        // Update UI properties
+        isInCooldown = cooldownAdjustment < 100
+        cooldownPercentage = cooldownManager.getRecoveryPercentage()
+        cooldownDescription = cooldownManager.getCooldownDescription()
+        
+        // Recalculate recovery score with the updated cool-down adjustment
+        updateRecoveryScoreWithCooldown(adjustment: cooldownAdjustment)
+        
+        // Finish loading
+        isLoading = false
     }
     
     private func loadNormalSimulatedData() {

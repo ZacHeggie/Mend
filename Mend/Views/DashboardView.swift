@@ -93,7 +93,7 @@ struct DashboardView: View {
                     
                     Button("Refresh Now") {
                         Task {
-                            recoveryMetrics.refreshWithReset()
+                            await recoveryMetrics.refreshWithReset()
                         }
                     }
                     .padding(.vertical, MendSpacing.medium)
@@ -111,7 +111,7 @@ struct DashboardView: View {
         .navigationTitle("Dashboard")
         .onAppear {
             Task {
-                recoveryMetrics.refreshWithReset()
+                await recoveryMetrics.refreshWithReset()
             }
         }
     }

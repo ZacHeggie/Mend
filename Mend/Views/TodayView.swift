@@ -34,22 +34,23 @@ struct TodayView: View {
             ZStack(alignment: .bottomTrailing) {
                 ScrollView {
                     VStack(spacing: MendSpacing.large) {
-                        // Daily recovery score section with ring
-                        if let score = recoveryMetrics.currentRecoveryScore {
+                        if recoveryMetrics.isLoading {
+                            // Show loading view while data is being fetched
+                            loadingView
+                        } else if let score = recoveryMetrics.currentRecoveryScore {
+                            // Only show the score when we have valid data
                             recoveryScoreView(score: score)
+                            
+                            // Activity recommendations
+                            recommendationsSection
+                            
+                            // Recovery insights
+                            if !recoveryInsights.isEmpty {
+                                insightsSection
+                            }
                         } else {
-                            Text("No recovery data available")
-                                .foregroundColor(secondaryTextColor)
-                                .frame(maxWidth: .infinity, alignment: .center)
-                                .padding()
-                        }
-                        
-                        // Activity recommendations
-                        recommendationsSection
-                        
-                        // Recovery insights
-                        if !recoveryInsights.isEmpty {
-                            insightsSection
+                            // Show no data view when loading is complete but no data is available
+                            noDataView
                         }
                     }
                     .padding(.vertical)
@@ -62,33 +63,46 @@ struct TodayView: View {
                         await refreshData()
                     }
                 }
-                
-                // Floating Action Button for adding activity
-                Button(action: {
-                    showingAddActivity = true
-                }) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundColor(.white)
-                        .frame(width: 56, height: 56)
-                        .background(MendColors.primary)
-                        .clipShape(Circle())
-                        .shadow(color: colorScheme == .dark ? Color.black.opacity(0.4) : Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
+                .refreshable {
+                    await refreshData()
                 }
-                .padding(.bottom, 70)
-                .padding(.trailing, 20)
+                
+                // Only show the add activity button when we're not loading
+                if !recoveryMetrics.isLoading {
+                    // Floating Action Button for adding activity
+                    Button(action: {
+                        showingAddActivity = true
+                    }) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 56, height: 56)
+                            .background(MendColors.primary)
+                            .clipShape(Circle())
+                            .shadow(radius: 4)
+                    }
+                    .padding(.trailing, 20)
+                    .padding(.bottom, 70)
+                    .sheet(isPresented: $showingAddActivity) {
+                        NavigationView {
+                            AddActivityView(isPresented: $showingAddActivity)
+                                .navigationTitle("Add Activity")
+                                .navigationBarItems(leading: Button("Cancel") {
+                                    showingAddActivity = false
+                                })
+                                .environmentObject(activityManager)
+                                .onDisappear {
+                                    // Refresh data when activity sheet is dismissed
+                                    Task {
+                                        await recoveryMetrics.refreshWithReset()
+                                        loadRecentActivities()
+                                    }
+                                }
+                        }
+                    }
+                }
             }
             
-            .sheet(isPresented: $showingAddActivity) {
-                NavigationView {
-                    AddActivityView(isPresented: $showingAddActivity)
-                        .navigationTitle("Add Activity")
-                        .navigationBarItems(leading: Button("Cancel") {
-                            showingAddActivity = false
-                        })
-                        .environmentObject(activityManager)
-                }
-            }
             .sheet(item: $selectedInsight) { insight in
                 VStack {
                     Text(insight.title)
@@ -98,12 +112,6 @@ struct TodayView: View {
                     Spacer()
                 }
                 .padding()
-            }
-            .refreshable {
-                await refreshData()
-            }
-            .task {
-                loadRecoveryInsights()
             }
         }
     }
@@ -140,7 +148,9 @@ struct TodayView: View {
                 .foregroundColor(secondaryTextColor)
             
             Button("Refresh") {
-                recoveryMetrics.refreshWithReset()
+                Task {
+                    await recoveryMetrics.refreshWithReset()
+                }
             }
             .padding(.vertical, MendSpacing.medium)
             .padding(.horizontal, MendSpacing.large)
@@ -287,8 +297,14 @@ struct TodayView: View {
     // MARK: - Helper Functions
     
     private func refreshData() async {
-        // Refresh recovery metrics
-        recoveryMetrics.refreshWithReset()
+        // Start by setting loading state
+        if !recoveryMetrics.isInitialLoadComplete {
+            // Don't need to do anything here, as the initial load is already in progress
+            return
+        }
+        
+        // Refresh recovery metrics - use await to ensure we wait for completion
+        await recoveryMetrics.refreshWithReset()
         
         // Update activities
         await activityManager.refreshActivities()
