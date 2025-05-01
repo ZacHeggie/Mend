@@ -49,8 +49,9 @@ struct MetricCard: View {
                 VStack(alignment: .leading, spacing: MendSpacing.medium) {
                     // Chart
                     MetricChart(data: metric.dailyData, title: metric.title, colorScheme: colorScheme)
-                        .frame(height: 150)
+                        .frame(height: 180)
                         .padding(.top, MendSpacing.small)
+                        .padding(.bottom, MendSpacing.medium)
                     
                     // Description
                     Text(metric.description)
@@ -59,11 +60,12 @@ struct MetricCard: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))
+                .animation(.easeInOut(duration: 0.3), value: isExpanded)
             }
             
             // Expand/collapse button
             Button {
-                withAnimation(.mendEaseInOut) {
+                withAnimation(.easeInOut(duration: 0.3)) {
                     isExpanded.toggle()
                 }
             } label: {
@@ -342,47 +344,28 @@ struct MetricChart: View {
                             y: .value("Value", selected.value)
                         )
                         .foregroundStyle(MendColors.secondary)
-                        .symbolSize(120)
-                    }
-                    
-                    // Add rules at the start of each week for clearer time intervals
-                    ForEach(weekStartDates, id: \.self) { date in
-                        RuleMark(
-                            x: .value("Week Start", date, unit: .day)
-                        )
-                        .foregroundStyle(colorScheme == .dark ? Color.white.opacity(0.15) : Color.black.opacity(0.1))
-                        .lineStyle(StrokeStyle(lineWidth: 1, dash: []))
+                        .symbolSize(160)
                     }
                 }
                 .chartForegroundStyleScale([
                     "Value": MendColors.primary
                 ])
                 .chartXAxis {
-                    AxisMarks(preset: .extended, values: .stride(by: .day)) { value in
+                    // Use only week start marks to keep axis clean and readable
+                    AxisMarks(values: .stride(by: .weekOfYear)) { value in
                         if let date = value.as(Date.self) {
-                            let calendar = Calendar.current
-                            let isWeekStart = calendar.component(.weekday, from: date) == calendar.firstWeekday
+                            // Clear, prominent week dividers
+                            AxisGridLine(stroke: StrokeStyle(lineWidth: 1.5))
+                                .foregroundStyle(colorScheme == .dark ? Color.white.opacity(0.25) : Color.black.opacity(0.2))
                             
-                            if isWeekStart {
-                                // Show date for week starts
-                                AxisValueLabel {
-                                    Text(date, format: .dateTime.day().month(.defaultDigits))
-                                        .font(MendFont.caption)
-                                        .foregroundColor(secondaryTextColor)
-                                }
-                                AxisGridLine(stroke: StrokeStyle(lineWidth: 1))
-                                    .foregroundStyle(colorScheme == .dark ? Color.white.opacity(0.2) : Color.black.opacity(0.15))
-                            } else {
-                                // Show just day marker for other days
-                                AxisTick(stroke: StrokeStyle(lineWidth: 0.5))
-                                    .foregroundStyle(colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.1))
-                                if calendar.component(.weekday, from: date) == 4 { // Show middle of week
-                                    AxisValueLabel {
-                                        Text(date, format: .dateTime.weekday(.narrow))
-                                            .font(MendFont.caption2)
-                                            .foregroundColor(secondaryTextColor.opacity(0.7))
-                                    }
-                                }
+                            // Improved date labels that are always visible
+                            AxisValueLabel {
+                                Text(date, format: .dateTime.day().month())
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(textColor)
+                                    .fixedSize()
+                                    .frame(width: 40, alignment: .center)
+                                    .rotationEffect(.degrees(-10)) // Slight angle to prevent overlap
                             }
                         }
                     }
@@ -432,7 +415,7 @@ struct MetricChart: View {
                 // Selected value overlay
                 if let selectedPoint = selectedPoint, isValidDataPoint(selectedPoint) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(selectedPoint.date, format: .dateTime.month().day())
+                        Text(selectedPoint.date, format: .dateTime.day().month())
                             .font(MendFont.caption)
                             .foregroundColor(secondaryTextColor)
                         

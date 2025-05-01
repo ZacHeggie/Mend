@@ -858,12 +858,15 @@ struct RecentActivityCard: View {
         let calendar = Calendar.current
         
         if calendar.isDateInToday(date) {
-            return "Today"
+            let formatter = DateFormatter()
+            formatter.dateStyle = .none
+            formatter.timeStyle = .short
+            return formatter.string(from: date)
         } else if calendar.isDateInYesterday(date) {
             return "Yesterday"
         } else {
             let formatter = DateFormatter()
-            formatter.dateFormat = "E"
+            formatter.dateFormat = "dd/MM/yyyy"
             return formatter.string(from: date)
         }
     }
@@ -939,7 +942,7 @@ func formatRelativeDate(_ date: Date) -> String {
         return "Yesterday"
     } else {
         let formatter = DateFormatter()
-        formatter.dateFormat = "MMM d"
+        formatter.dateFormat = "dd/MM/yyyy"
         return formatter.string(from: date)
     }
 }

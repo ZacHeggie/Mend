@@ -252,9 +252,15 @@ struct ActivityView: View {
         } else if Calendar.current.isDateInYesterday(date) {
             return "Yesterday"
         } else {
-            formatter.dateFormat = "EEEE, MMMM d"
+            formatter.dateFormat = "dd/MM, EEEE"
             return formatter.string(from: date)
         }
+    }
+    
+    private func formatDayOfMonth(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "dd"
+        return formatter.string(from: date)
     }
 }
 
@@ -571,7 +577,7 @@ struct TrainingLoadCard: View {
     
     private func formatDayOfMonth(_ date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "d"
+        formatter.dateFormat = "dd"
         return formatter.string(from: date)
     }
     
@@ -754,7 +760,7 @@ struct ActivityCard: View {
                 
                 Spacer()
                 
-                Text(activity.formattedDate)
+                Text(formatActivityDate(activity.date))
                     .font(.caption)
                     .foregroundColor(secondaryTextColor)
             }
@@ -792,6 +798,13 @@ struct ActivityCard: View {
         .background(cardBackgroundColor)
         .cornerRadius(10)
         .shadow(color: colorScheme == .dark ? Color.black.opacity(0.3) : Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
+    }
+    
+    // Helper method to format date as dd/MM/yyyy
+    private func formatActivityDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "dd/MM/yyyy"
+        return formatter.string(from: date)
     }
 }
 
