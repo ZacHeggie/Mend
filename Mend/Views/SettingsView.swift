@@ -466,14 +466,13 @@ struct SimulatedDataSettings: View {
                         
                         // Reset Processed Activities
                         Button(action: {
-                            // Reset processed activities in cooldown manager
-                            PostActivityCooldown.shared.resetAllProcessedActivities()
-                            // Refresh data
+                            // No more cooldown processing needed
+                            // Just refresh data
                             Task {
                                 await recoveryMetrics.refreshWithReset()
                             }
                         }) {
-                            Text("Reset Processed Activities")
+                            Text("Reset Data Processing")
                                 .font(MendFont.body)
                                 .foregroundColor(.white)
                                 .padding()
@@ -512,7 +511,7 @@ struct SimulatedDataSettings: View {
     }
     
     private func simulateRecentActivity() {
-        // Create a recent high-intensity activity to test cool-down
+        // Create a recent high-intensity activity
         let activity = Activity(
             id: UUID(),
             title: "Test Activity",
@@ -527,7 +526,7 @@ struct SimulatedDataSettings: View {
         // Add to activity manager
         activityManager.addActivity(activity)
         
-        // Refresh data to apply cool-down
+        // Refresh data
         Task {
             await recoveryMetrics.refreshWithReset()
         }

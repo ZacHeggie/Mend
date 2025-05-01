@@ -296,15 +296,15 @@ struct TrainingLoadCard: View {
                             .foregroundColor(loadColor)
                     }
                     
-                    // If not expanded and collapsible, show comparison to 4-week average
+                    // If not expanded and collapsible, show comparison to 28-day average
                     if !isExpanded && collapsible {
-                        // Calculate 4-week average (simulated as 75 less than current)
-                        let fourWeekAvg = Double(trainingLoad) - 75
-                        let delta = Double(trainingLoad) - fourWeekAvg
-                        let percentChange = fourWeekAvg > 0 ? (delta / fourWeekAvg) * 100 : 50
+                        // Calculate 28-day average (simulated as 75 less than current)
+                        let twentyEightDayAvg = Double(trainingLoad) - 75
+                        let delta = Double(trainingLoad) - twentyEightDayAvg
+                        let percentChange = twentyEightDayAvg > 0 ? (delta / twentyEightDayAvg) * 100 : 50
                         let isPositiveDelta = percentChange > 0 && percentChange <= 15
                         
-                        Text("4-week avg: \(String(format: "%.0f", fourWeekAvg))")
+                        Text("28-day avg: \(String(format: "%.0f", twentyEightDayAvg))")
                             .font(MendFont.caption)
                             .foregroundColor(textColor)
                         
@@ -324,10 +324,19 @@ struct TrainingLoadCard: View {
                 // Show either training load value or work-rest ratio
                 if !isExpanded && collapsible {
                     // When collapsed and collapsible, show training load value with color coding
-                    Text("\(trainingLoad)")
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundColor(loadColor)
-                        .padding(.horizontal, 4)
+                    VStack(alignment: .center) {
+                        // Training load value
+                        Text("\(trainingLoad)")
+                            .font(.system(size: 32, weight: .bold))
+                            .foregroundColor(loadColor)
+                            .multilineTextAlignment(.center)
+                        
+                        // Units
+                        Text("pts")
+                            .font(.system(size: 14))
+                            .foregroundColor(secondaryTextColor)
+                    }
+                    .frame(minWidth: 70)
                 } else {
                     // Work-to-Rest ratio indicator (only when expanded or not collapsible)
                     VStack(alignment: .center, spacing: 2) {

@@ -13,7 +13,6 @@ class RecoveryMetrics: ObservableObject {
     static let shared = RecoveryMetrics()
     private let healthKit = HealthKitManager.shared
     private let activityManager = ActivityManager.shared
-    private let cooldownManager = PostActivityCooldown.shared
     
     @Published var currentRecoveryScore: RecoveryScore?
     @Published var isLoading = true // Start with loading state as true
@@ -21,7 +20,8 @@ class RecoveryMetrics: ObservableObject {
     @Published var useSimulatedData = false
     @Published var usePoorRecoveryData = false
     
-    // Cool-down related properties
+    // Keep cool-down related UI properties even though we're removing the actual functionality
+    // This ensures the UI remains consistent
     @Published var isInCooldown: Bool = false
     @Published var cooldownPercentage: Int = 100
     @Published var cooldownDescription: String = "Fully recovered"
@@ -31,11 +31,8 @@ class RecoveryMetrics: ObservableObject {
     
     /// Returns the remaining recovery time in days
     func getRemainingRecoveryDays() -> Double {
-        guard isInCooldown else {
-            return 0
-        }
-        
-        return cooldownManager.getRemainingRecoveryDays()
+        // Always return 0 as we're removing cool-down functionality
+        return 0
     }
     
     private init() {
@@ -49,11 +46,8 @@ class RecoveryMetrics: ObservableObject {
             do {
                 try await healthKit.requestAuthorization()
                 
-                // On initial launch, do a complete metrics load with full cooldown calculation
+                // Perform initial data load without cool-down calculation
                 await performInitialDataLoad()
-                
-                // Set up a timer to update cool-down status periodically
-                startCooldownTimer()
                 
                 // Mark initial load as complete
                 isInitialLoadComplete = true
@@ -70,89 +64,16 @@ class RecoveryMetrics: ObservableObject {
     private func performInitialDataLoad() async {
         isLoading = true
         
-        // Reset processed activities to start fresh
-        cooldownManager.resetAllProcessedActivities()
-        
         // Load health data (either from HealthKit or simulated)
         await loadHealthKitData()
         
-        // Process activities in chronological order
-        let recentActivities = activityManager.getRecentActivities(days: 7)
-        let sortedActivities = recentActivities.sorted { $0.date < $1.date }
-        
-        // Process each activity to calculate its impact on recovery
-        for activity in sortedActivities {
-            _ = cooldownManager.processActivity(activity)
-        }
-        
-        // Update the cool-down adjustment based on the most recent state
-        let cooldownAdjustment = cooldownManager.updateCooldownAdjustment()
-        
-        // Update UI properties
-        isInCooldown = cooldownAdjustment < 100
-        cooldownPercentage = cooldownManager.getRecoveryPercentage()
-        cooldownDescription = cooldownManager.getCooldownDescription()
-        
-        // Recalculate recovery score with the updated cool-down adjustment
-        updateRecoveryScoreWithCooldown(adjustment: cooldownAdjustment)
+        // Set default values for UI properties
+        isInCooldown = false
+        cooldownPercentage = 100
+        cooldownDescription = "Fully recovered"
         
         // Finish loading
         isLoading = false
-    }
-    
-    // MARK: - Timer for Cool-down Updates
-    
-    private var cooldownTimer: Timer?
-    
-    private func startCooldownTimer() {
-        // Cancel any existing timer first
-        cooldownTimer?.invalidate()
-        
-        // Create a new timer that fires every minute to update recovery status
-        cooldownTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
-            Task { [weak self] in
-                // This should ONLY update UI elements, not recalculate the recovery score
-                // This prevents the score from dropping over time when the app is open
-                await self?.updateCooldownDisplay()
-            }
-        }
-    }
-    
-    // This function only updates the UI display elements without modifying the score
-    private func updateCooldownDisplay() {
-        // Get the current cooldown state from the manager
-        let currentPercentage = cooldownManager.getRecoveryPercentage()
-        let currentDescription = cooldownManager.getCooldownDescription()
-        
-        // Only update UI properties that relate to cooldown display
-        isInCooldown = currentPercentage < 100
-        cooldownPercentage = currentPercentage
-        cooldownDescription = currentDescription
-        
-        // Important: Do NOT call updateRecoveryScoreWithCooldown here
-        // This prevents the recovery score from decreasing over time
-    }
-    
-    // This function performs a full update including score recalculation
-    // It should only be called during explicit refresh operations
-    private func updateCooldownStatus() {
-        // Get the most recent activity
-        if let mostRecentActivity = activityManager.getRecentActivities(days: 7).first {
-            // The cooldownManager now keeps track of already processed activities
-            // and will handle the check internally
-            _ = cooldownManager.processActivity(mostRecentActivity)
-        }
-        
-        // Update the cool-down adjustment
-        let cooldownAdjustment = cooldownManager.updateCooldownAdjustment()
-        
-        // Update UI properties
-        isInCooldown = cooldownAdjustment < 100
-        cooldownPercentage = cooldownManager.getRecoveryPercentage()
-        cooldownDescription = cooldownManager.getCooldownDescription()
-        
-        // Recalculate recovery score with the updated cool-down adjustment
-        updateRecoveryScoreWithCooldown(adjustment: cooldownAdjustment)
     }
     
     @MainActor
@@ -161,10 +82,6 @@ class RecoveryMetrics: ObservableObject {
         defer { isLoading = false }
         
         await loadHealthKitData()
-        
-        // Update cooldown status once after loading metrics
-        // The cooldown manager now prevents redundant processing of activities
-        updateCooldownStatus()
     }
     
     @MainActor
@@ -185,10 +102,10 @@ class RecoveryMetrics: ObservableObject {
         async let sleep = healthKit.fetchSleepData(forDate: Date())
         
         // Fetch daily metrics for each specific type
-        async let restingHeartRateDailyData = healthKit.fetchDailyRestingHeartRateData(forDays: 7)
-        async let hrvDailyData = healthKit.fetchDailyHRVData(forDays: 7)
-        async let sleepDailyData = healthKit.fetchDailySleepData(forDays: 7)
-        async let sleepQualityDailyData = healthKit.fetchDailySleepQualityData(forDays: 7)
+        async let restingHeartRateDailyData = healthKit.fetchDailyRestingHeartRateData(forDays: 28)
+        async let hrvDailyData = healthKit.fetchDailyHRVData(forDays: 28)
+        async let sleepDailyData = healthKit.fetchDailySleepData(forDays: 28)
+        async let sleepQualityDailyData = healthKit.fetchDailySleepQualityData(forDays: 28)
         
         let (heartRateValue, hrvValue, sleepData, heartRateMetrics, hrvMetrics, sleepMetrics, sleepQualityMetrics) = 
             await (restingHeartRate, hrv, sleep, restingHeartRateDailyData, hrvDailyData, sleepDailyData, sleepQualityDailyData)
@@ -340,7 +257,28 @@ class RecoveryMetrics: ObservableObject {
             return (0, true)
         }
         
-        let average = previousMetrics.map { $0.value }.reduce(0, +) / Double(previousMetrics.count)
+        // Only use valid data points for the average calculation
+        let validMetrics: [RecoveryMetricData]
+        
+        // For sleep metrics, ensure we only include realistic sleep durations (at least 2 hours)
+        if let firstMetric = metrics.first, firstMetric.metricType == .sleep {
+            validMetrics = previousMetrics.filter { $0.value >= 2.0 }
+        } else if let firstMetric = metrics.first, firstMetric.metricType == .sleepQuality {
+            validMetrics = previousMetrics.filter { $0.value > 0 }
+        } else if let firstMetric = metrics.first, firstMetric.metricType == .heartRate {
+            validMetrics = previousMetrics.filter { $0.value >= 30 && $0.value <= 120 }
+        } else if let firstMetric = metrics.first, firstMetric.metricType == .hrv {
+            validMetrics = previousMetrics.filter { $0.value > 0 && $0.value <= 200 }
+        } else {
+            validMetrics = previousMetrics.filter { $0.value > 0 }
+        }
+        
+        // If there are no valid metrics after filtering, return no delta
+        guard validMetrics.count > 0 else {
+            return (0, true)
+        }
+        
+        let average = validMetrics.map { $0.value }.reduce(0, +) / Double(validMetrics.count)
         let delta = currentValue - average
         
         // For heart rate, lower is better (negative delta is positive)
@@ -534,17 +472,18 @@ class RecoveryMetrics: ObservableObject {
     @MainActor
     private func updateRecoveryScore() {
         // Calculate overall score based on available metrics with weighted importance
-        // Heart rate and HRV will be weighted more heavily
         var weightedTotal = 0
         var totalWeight = 0
         
-        // Constants for weighting different metrics
-        let heartRateWeight = 3  // Heart rate is 3x more important
-        let hrvWeight = 3        // HRV is 3x more important
-        let sleepWeight = 2      // Sleep is 2x more important
-        let sleepQualityWeight = 1
-        let _ = 1  // Sleep stages also contribute to recovery
-        let _ = 2  // Training load is 2x more important
+        // Constants for weighting different metrics based on order of importance
+        let hrvWeight = 5        // HRV is most important
+        let heartRateWeight = 4  // Heart rate is second most important
+        let sleepWeight = 3      // Sleep duration is third most important
+        let sleepQualityWeight = 2 // Sleep quality is fourth most important
+        let trainingLoadWeight = 1 // Training load is fifth most important
+        
+        // Get training load data for past week compared to 28-day average
+        let trainingLoadScore = calculateTrainingLoadScore()
         
         if let heartRateMetric = self._heartRateMetric {
             // For heart rate, we need to invert the score because a higher heart rate 
@@ -569,47 +508,87 @@ class RecoveryMetrics: ObservableObject {
             totalWeight += sleepQualityWeight
         }
         
+        // Add training load score
+        weightedTotal += trainingLoadScore * trainingLoadWeight
+        totalWeight += trainingLoadWeight
+        
         let overallScore = totalWeight > 0 ? weightedTotal / totalWeight : 0
         
-        // Don't apply cool-down adjustment here as it will be applied in updateRecoveryScoreWithCooldown
+        // Create recovery score object
         currentRecoveryScore = RecoveryScore(
             date: Date(),
             overallScore: overallScore,
             heartRateScore: _heartRateMetric ?? MetricScore.sampleHeartRate,
             hrvScore: _hrvMetric?.score ?? 0,
             sleepScore: _sleepMetric?.score ?? 0,
-            trainingLoadScore: MetricScore.sampleTrainingLoad,
+            trainingLoadScore: MetricScore(
+                score: trainingLoadScore,
+                title: "Training Load",
+                description: getTrainingLoadDescription(score: trainingLoadScore),
+                dailyData: [],
+                deltaFromAverage: 0,
+                isPositiveDelta: true
+            ),
             stressScore: 75
         )
-        
-        // Now apply cool-down adjustment
-        let cooldownAdjustment = cooldownManager.updateCooldownAdjustment()
-        updateRecoveryScoreWithCooldown(adjustment: cooldownAdjustment)
     }
     
-    /// Updates the recovery score with the current cool-down adjustment
-    /// - Parameter adjustment: The cool-down adjustment value (0-100, where 100 means no reduction)
-    private func updateRecoveryScoreWithCooldown(adjustment: Int) {
-        guard var score = currentRecoveryScore else { return }
+    /// Calculates training load score by comparing past week to 28-day average
+    private func calculateTrainingLoadScore() -> Int {
+        let activityManager = ActivityManager.shared
         
-        // Only apply adjustment if it's less than 100 (meaning there is an active cool-down)
-        if adjustment < 100 {
-            // Calculate the adjusted score
-            // The adjustment is a percentage of the original score
-            let adjustedScore = (score.overallScore * adjustment) / 100
-            
-            // Create a new recovery score with the adjusted value
-            score = RecoveryScore(
-                date: score.date,
-                overallScore: adjustedScore,
-                heartRateScore: score.heartRateScore,
-                hrvScore: score.hrvScore,
-                sleepScore: score.sleepScore,
-                trainingLoadScore: score.trainingLoadScore,
-                stressScore: score.stressScore
-            )
-            
-            currentRecoveryScore = score
+        // Get 7-day training load
+        let weekLoad = activityManager.calculateTrainingLoad(forDays: 7)
+        
+        // Get 28-day training load and calculate the average weekly load
+        let monthLoad = activityManager.calculateTrainingLoad(forDays: 28)
+        
+        // Use actual available weeks for a more accurate average
+        let availableWeeks = min(4, max(1, 28 / 7))
+        let avgWeeklyLoad = monthLoad / availableWeeks
+        
+        // If there's no historical training load, return a default score
+        if avgWeeklyLoad == 0 {
+            return 75 // Default neutral score
+        }
+        
+        // Calculate ratio of current week to average (1.0 means equal)
+        let loadRatio = Double(weekLoad) / Double(max(1, avgWeeklyLoad))
+        
+        // Optimal range is 0.8-1.2 of average weekly load
+        // Too little training (< 0.5) or too much (> 1.5) both reduce score
+        let score: Int
+        
+        if loadRatio < 0.5 {
+            // Too little training
+            score = 60 + Int(min(30, loadRatio * 60)) // 60-90 range for very low training
+        } else if loadRatio <= 0.8 {
+            // Slightly below optimal but still good
+            score = 90 + Int(min(5, (loadRatio - 0.5) * 50)) // 90-95 range
+        } else if loadRatio <= 1.2 {
+            // Optimal training load
+            score = 95 + Int(min(5, (1.0 - abs(loadRatio - 1.0)) * 10)) // 95-100 range, 100 at perfect 1.0
+        } else if loadRatio <= 1.5 {
+            // Slightly above optimal
+            score = 80 + Int(min(15, (1.5 - loadRatio) * 50)) // 80-95 range
+        } else {
+            // Too much training (overtraining)
+            score = 60 + Int(min(20, (2.0 - loadRatio) * 50)) // 60-80 range for high load
+        }
+        
+        return score
+    }
+    
+    /// Gets description for training load based on score
+    private func getTrainingLoadDescription(score: Int) -> String {
+        if score >= 95 {
+            return "Your training load is optimal relative to your 28-day average. This balanced approach promotes recovery and adaptation."
+        } else if score >= 80 {
+            return "Your training load is slightly off your optimal range compared to your 28-day average, but still supporting good recovery."
+        } else if score >= 60 {
+            return "Your training load is considerably different from your 28-day average. This may impact recovery and adaptation."
+        } else {
+            return "Your training load shows a significant imbalance compared to your normal patterns. Consider adjusting your training schedule."
         }
     }
     
@@ -659,54 +638,32 @@ class RecoveryMetrics: ObservableObject {
         }
     }
     
-    /// Refreshes data with a complete reset of processed activities
-    /// This allows recalculation of recovery score from scratch while still accounting for time elapsed
+    /// Refreshes data with a complete reset
     @MainActor
     func refreshWithReset() async {
         isLoading = true
         
-        // Reset all processed activities in the cooldown manager
-        cooldownManager.resetAllProcessedActivities()
-        
         // Load metrics data from HealthKit or simulated data
         await loadHealthKitData()
         
-        // Get recent activities and recalculate their impact on recovery score
-        // based on their actual timestamps (preserving time elapsed)
-        let recentActivities = activityManager.getRecentActivities(days: 7)
-        
-        // Sort by date (oldest first) to process in chronological order
-        let sortedActivities = recentActivities.sorted { $0.date < $1.date }
-        
-        // Process each activity to calculate its impact on recovery
-        for activity in sortedActivities {
-            _ = cooldownManager.processActivity(activity)
-        }
-        
-        // Update the cool-down adjustment based on the most recent state
-        let cooldownAdjustment = cooldownManager.updateCooldownAdjustment()
-        
-        // Update UI properties
-        isInCooldown = cooldownAdjustment < 100
-        cooldownPercentage = cooldownManager.getRecoveryPercentage()
-        cooldownDescription = cooldownManager.getCooldownDescription()
-        
-        // Recalculate recovery score with the updated cool-down adjustment
-        updateRecoveryScoreWithCooldown(adjustment: cooldownAdjustment)
+        // Set default values for UI properties
+        isInCooldown = false
+        cooldownPercentage = 100
+        cooldownDescription = "Fully recovered"
         
         // Finish loading
         isLoading = false
     }
     
     private func loadNormalSimulatedData() {
-        // Generate daily data for the last 7 days
+        // Generate daily data for the last 28 days
         let calendar = Calendar.current
         let now = Date()
         
         // Create simulated heart rate data
         let heartRateValue = 58.0
         var heartRateData: [RecoveryMetricData] = []
-        for day in 0..<7 {
+        for day in 0..<28 {
             let date = calendar.date(byAdding: .day, value: -day, to: now)!
             // Simulate slight daily variations
             let variation = Double.random(in: -5...5)
@@ -717,7 +674,7 @@ class RecoveryMetrics: ObservableObject {
         // Create simulated HRV data
         let hrvValue = 65.0
         var hrvData: [RecoveryMetricData] = []
-        for day in 0..<7 {
+        for day in 0..<28 {
             let date = calendar.date(byAdding: .day, value: -day, to: now)!
             // Simulate slight daily variations
             let variation = Double.random(in: -10...10)
@@ -730,7 +687,7 @@ class RecoveryMetrics: ObservableObject {
         let sleepQualityValue = 85.0 // Sleep quality score 0-100
         var sleepData: [RecoveryMetricData] = []
         var sleepQualityData: [RecoveryMetricData] = []
-        for day in 0..<7 {
+        for day in 0..<28 {
             let date = calendar.date(byAdding: .day, value: -day, to: now)!
             // Simulate slight daily variations
             let variation = Double.random(in: -1.0...1.0)
@@ -960,13 +917,13 @@ class RecoveryMetrics: ObservableObject {
         // Create description based on the comparison
         let description: String
         if percentChange > 25 {
-            description = "Your training load is \(String(format: "%.0f", trainingLoadDelta)) points (\(String(format: "%.0f", percentChange))%) higher than your 4-week average, suggesting a significant increase in workload. Consider implementing a recovery week soon."
+            description = "Your training load is \(String(format: "%.0f", trainingLoadDelta)) points (\(String(format: "%.0f", percentChange))%) higher than your 28-day average, suggesting a significant increase in workload. Consider implementing a recovery week soon."
         } else if percentChange > 10 {
-            description = "Your training load is \(String(format: "%.0f", trainingLoadDelta)) points (\(String(format: "%.0f", percentChange))%) higher than your 4-week average, indicating a moderate progression in training volume."
+            description = "Your training load is \(String(format: "%.0f", trainingLoadDelta)) points (\(String(format: "%.0f", percentChange))%) higher than your 28-day average, indicating a moderate progression in training volume."
         } else if percentChange >= -5 {
-            description = "Your training load is similar to your 4-week average, showing consistent training patterns."
+            description = "Your training load is similar to your 28-day average, showing consistent training patterns."
         } else {
-            description = "Your training load is \(String(format: "%.0f", abs(trainingLoadDelta))) points (\(String(format: "%.0f", abs(percentChange)))%) lower than your 4-week average, showing a reduction in training volume."
+            description = "Your training load is \(String(format: "%.0f", abs(trainingLoadDelta))) points (\(String(format: "%.0f", abs(percentChange)))%) lower than your 28-day average, showing a reduction in training volume."
         }
         
         // Calculate recovery score - poor overall score
@@ -1100,7 +1057,7 @@ extension MetricScore {
         MetricScore(
             score: 68,
             title: "Resting Heart Rate",
-            description: "Your resting heart rate is 3 BPM lower than your 7-day average, which is a positive sign of recovery.",
+            description: "Your resting heart rate is 3 BPM lower than your 28-day average, which is a positive sign of recovery.",
             dailyData: [
                 RecoveryMetricData(date: Date().addingTimeInterval(-6 * 86400), value: 62, explicitType: .heartRate),
                 RecoveryMetricData(date: Date().addingTimeInterval(-5 * 86400), value: 65, explicitType: .heartRate),
@@ -1119,7 +1076,7 @@ extension MetricScore {
         MetricScore(
             score: 76,
             title: "Heart Rate Variability",
-            description: "Your HRV is 5 ms higher than your 7-day average, indicating better recovery and less stress.",
+            description: "Your HRV is 5 ms higher than your 28-day average, indicating better recovery and less stress.",
             dailyData: [
                 RecoveryMetricData(date: Date().addingTimeInterval(-6 * 86400), value: 58, explicitType: .hrv),
                 RecoveryMetricData(date: Date().addingTimeInterval(-5 * 86400), value: 55, explicitType: .hrv),
@@ -1202,13 +1159,13 @@ extension MetricScore {
         // Create description based on the comparison
         let description: String
         if percentChange > 25 {
-            description = "Your training load is \(String(format: "%.0f", delta)) units (\(String(format: "%.0f", percentChange))%) higher than your 4-week average, suggesting a significant increase in workload. Consider implementing a recovery week soon."
+            description = "Your training load is \(String(format: "%.0f", delta)) units (\(String(format: "%.0f", percentChange))%) higher than your 28-day average, suggesting a significant increase in workload. Consider implementing a recovery week soon."
         } else if percentChange > 10 {
-            description = "Your training load is \(String(format: "%.0f", delta)) units (\(String(format: "%.0f", percentChange))%) higher than your 4-week average, indicating a moderate progression in training volume."
+            description = "Your training load is \(String(format: "%.0f", delta)) units (\(String(format: "%.0f", percentChange))%) higher than your 28-day average, indicating a moderate progression in training volume."
         } else if percentChange >= -5 {
-            description = "Your training load is similar to your 4-week average, showing consistent training patterns."
+            description = "Your training load is similar to your 28-day average, showing consistent training patterns."
         } else {
-            description = "Your training load is \(String(format: "%.0f", abs(delta))) units (\(String(format: "%.0f", abs(percentChange)))%) lower than your 4-week average, showing a reduction in training volume."
+            description = "Your training load is \(String(format: "%.0f", abs(delta))) units (\(String(format: "%.0f", abs(percentChange)))%) lower than your 28-day average, showing a reduction in training volume."
         }
         
         return MetricScore(

@@ -74,12 +74,12 @@ struct TodayView: View {
                         showingAddActivity = true
                     }) {
                         Image(systemName: "plus")
-                            .font(.system(size: 20, weight: .bold))
+                            .font(.system(size: 22, weight: .semibold))
                             .foregroundColor(.white)
                             .frame(width: 56, height: 56)
                             .background(MendColors.primary)
                             .clipShape(Circle())
-                            .shadow(radius: 4)
+                            .shadow(color: colorScheme == .dark ? Color.black.opacity(0.4) : Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
                     }
                     .padding(.trailing, 20)
                     .padding(.bottom, 70)
@@ -183,25 +183,6 @@ struct TodayView: View {
                         .font(MendFont.subheadline)
                         .foregroundColor(secondaryTextColor)
                         .fixedSize(horizontal: false, vertical: true)
-                    
-                    // Add recovery time info when in cooldown
-                    if recoveryMetrics.isInCooldown && activityManager.hasRecentActivities(days: 7) {
-                        let daysRemaining = recoveryMetrics.getRemainingRecoveryDays()
-                        
-                        HStack(spacing: MendSpacing.small) {
-                            Image(systemName: "clock.arrow.circlepath")
-                                .foregroundColor(
-                                    recoveryMetrics.cooldownPercentage >= 100 ? MendColors.positive : 
-                                    recoveryMetrics.cooldownPercentage > 50 ? MendColors.neutral : MendColors.negative
-                                )
-                                .font(.system(size: 12))
-                            
-                            Text("Approximately \(String(format: "%.1f", daysRemaining)) more days to fully recover.")
-                                .font(MendFont.subheadline)
-                                .foregroundColor(secondaryTextColor)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
                 }
                 .padding(.trailing, MendSpacing.medium)
             }
