@@ -28,7 +28,7 @@ struct MetricCard: View {
                         .foregroundColor(textColor)
                     
                     // Summary text showing current value and delta
-                    Text("\(getValueDisplayText()) | \(getDeltaDisplayText())")
+                    Text("\(getDeltaDisplayText())")
                         .font(MendFont.caption)
                         .foregroundColor(textColor)
                     
@@ -40,7 +40,8 @@ struct MetricCard: View {
                 
                 Spacer()
                 
-                ScoreRing(score: metric.score, size: 60, lineWidth: 8)
+                // Display large color-coded metric value with units instead of ring
+                getColorCodedValueDisplay()
             }
             
             // Expandable content
@@ -48,8 +49,9 @@ struct MetricCard: View {
                 VStack(alignment: .leading, spacing: MendSpacing.medium) {
                     // Chart
                     MetricChart(data: metric.dailyData, title: metric.title, colorScheme: colorScheme)
-                        .frame(height: 150)
+                        .frame(height: 180)
                         .padding(.top, MendSpacing.small)
+                        .padding(.bottom, MendSpacing.medium)
                     
                     // Description
                     Text(metric.description)
@@ -58,11 +60,12 @@ struct MetricCard: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))
+                .animation(.easeInOut(duration: 0.3), value: isExpanded)
             }
             
             // Expand/collapse button
             Button {
-                withAnimation(.mendEaseInOut) {
+                withAnimation(.easeInOut(duration: 0.3)) {
                     isExpanded.toggle()
                 }
             } label: {
@@ -87,23 +90,63 @@ struct MetricCard: View {
         .shadow(color: colorScheme == .dark ? Color.black.opacity(0.3) : Color.black.opacity(0.05), radius: 8, x: 0, y: 4)
     }
     
-    private func getValueDisplayText() -> String {
+    @ViewBuilder
+    private func getColorCodedValueDisplay() -> some View {
+        // Get value with units and background color
+        let (valueText, units) = getFormattedValueWithUnits()
+        
+        VStack(alignment: .center) {
+            // Value with units
+            Text(valueText)
+                .font(.system(size: 32, weight: .bold))
+                .foregroundColor(getMetricColor())
+                .multilineTextAlignment(.center)
+            
+            // Units if available
+            if !units.isEmpty {
+                Text(units)
+                    .font(.system(size: 14))
+                    .foregroundColor(secondaryTextColor)
+            }
+        }
+        .frame(minWidth: 70)
+    }
+    
+    private func getFormattedValueWithUnits() -> (String, String) {
         if metric.title.contains("Heart Rate") && !metric.title.contains("Variability") {
-            return "Current: \(metric.score) BPM"
+            return ("\(metric.score)", "BPM")
         } else if metric.title.contains("HRV") || metric.title.contains("Variability") {
-            return "Current: \(metric.score) ms"
+            return ("\(metric.score)", "ms")
         } else if metric.title.contains("Sleep Duration") {
             let hours = Double(metric.score) * 8.0 / 100.0
-            return "Current: \(String(format: "%.1f", hours)) hours"
+            return (String(format: "%.1f", hours), "hours")
         } else if metric.title.contains("Sleep Quality") {
-            return "Current: \(metric.score)/100"
-        } else if metric.title.contains("Sleep Stages") {
-            return "Current: \(metric.score)/100"
+            return ("\(metric.score)", "/100")
         } else if metric.title.contains("Training") {
-            // Display the 7-day average for training load
-            return "7-day avg: \(metric.score)"
+            return ("\(metric.score)", "pts")
         } else {
-            return "Current: \(metric.score)"
+            return ("\(metric.score)", "")
+        }
+    }
+    
+    private func getMetricColor() -> Color {
+        // Determine if change is significant for color coding
+        let absChange = abs(metric.deltaFromAverage)
+        let avgValue = getCurrentValueFromScore() - metric.deltaFromAverage
+        let percentChange = avgValue != 0 ? (absChange / avgValue) * 100 : 0
+        
+        // For significant changes (more than 3%), color code based on good/bad
+        if percentChange >= 3 {
+            // For heart rate, lower is better (negative delta is positive)
+            if metric.title.contains("Heart Rate") && !metric.title.contains("Variability") {
+                return metric.deltaFromAverage < 0 ? MendColors.positive : MendColors.negative
+            }
+            
+            // For all other metrics, rely on isPositiveDelta flag
+            return metric.isPositiveDelta ? MendColors.positive : MendColors.negative
+        } else {
+            // For small changes, use neutral color
+            return textColor
         }
     }
     
@@ -111,21 +154,21 @@ struct MetricCard: View {
         let avgValue = getCurrentValueFromScore() - metric.deltaFromAverage
         
         if metric.title.contains("Heart Rate") && !metric.title.contains("Variability") {
-            return "7-day avg: \(String(format: "%.0f", avgValue)) BPM"
+            return "28-day avg: \(String(format: "%.0f", avgValue)) BPM"
         } else if metric.title.contains("HRV") || metric.title.contains("Variability") {
-            return "7-day avg: \(String(format: "%.0f", avgValue)) ms"
+            return "28-day avg: \(String(format: "%.0f", avgValue)) ms"
         } else if metric.title.contains("Sleep Duration") {
             let hours = avgValue * 8.0 / 100.0
-            return "7-day avg: \(String(format: "%.1f", hours)) hours"
+            return "28-day avg: \(String(format: "%.1f", hours)) hours"
         } else if metric.title.contains("Sleep Quality") {
-            return "7-day avg: \(String(format: "%.0f", avgValue))/100"
+            return "28-day avg: \(String(format: "%.0f", avgValue))/100"
         } else if metric.title.contains("Sleep Stages") {
             return "Deep+REM: \(String(format: "%.0f", metric.score/4))%"
         } else if metric.title.contains("Training") {
-            // Display the 4-week average for training load
-            return "4-week avg: \(String(format: "%.0f", avgValue))"
+            // Display the 28-day average for training load
+            return "28-day avg: \(String(format: "%.0f", avgValue))"
         } else {
-            return "7-day avg: \(String(format: "%.1f", avgValue))"
+            return "28-day avg: \(String(format: "%.1f", avgValue))"
         }
     }
     
@@ -140,25 +183,15 @@ struct MetricCard: View {
         let changeText = abs(displayValue) < 0.1 ? "No change" : 
                          "\(String(format: "%.1f", displayValue)) from avg"
         
-        if metric.title.contains("Heart Rate") && !metric.title.contains("Variability") {
-            return changeText + (metric.isPositiveDelta ? " (better)" : " (monitor)")
-        } else if metric.title.contains("HRV") || metric.title.contains("Variability") {
-            return changeText + (metric.isPositiveDelta ? " (better)" : " (monitor)")
-        } else if metric.title.contains("Sleep") {
-            // Special case for sleep stages which doesn't need change text
-            if metric.title.contains("Stages") {
-                return getStageQualityText(score: metric.score)
-            }
-            return changeText + (metric.isPositiveDelta ? " (better)" : " (monitor)")
-        } else if metric.title.contains("Training") {
-            // For Training Load, use more specific labels and show the actual difference
-            if metric.deltaFromAverage > 0 {
-                return String(format: "+%.1f", displayValue) + (metric.isPositiveDelta ? " (optimal)" : " (high)")
-            } else {
-                return String(format: "-%.1f", displayValue) + " (low)"
-            }
+        // Simplify this to use a consistent format
+        if metric.title.contains("Sleep Stages") {
+            return getStageQualityText(score: metric.score)
+        } else if abs(displayValue) < 0.1 {
+            return "No change (stable)"
+        } else if metric.isPositiveDelta {
+            return changeText + " (better)"
         } else {
-            return changeText
+            return changeText + " (monitor)"
         }
     }
     
@@ -227,6 +260,34 @@ struct MetricChart: View {
         colorScheme == .dark ? MendColors.darkSecondaryText : MendColors.secondaryText
     }
     
+    // Get the dates that mark the start of each week in the dataset
+    private var weekStartDates: [Date] {
+        guard !data.isEmpty else { return [] }
+        
+        let calendar = Calendar.current
+        let sortedDates = data.map(\.date).sorted()
+        
+        guard let firstDate = sortedDates.first, let lastDate = sortedDates.last else {
+            return []
+        }
+        
+        // Find the first day of the week containing the first date
+        let firstWeekStart = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: firstDate))!
+        
+        // Calculate how many weeks we need to cover
+        let weeksBetween = calendar.dateComponents([.weekOfYear], from: firstWeekStart, to: lastDate).weekOfYear ?? 0
+        
+        // Generate a date for the start of each week
+        var weekStarts: [Date] = []
+        for weekOffset in 0...weeksBetween {
+            if let weekStart = calendar.date(byAdding: .weekOfYear, value: weekOffset, to: firstWeekStart) {
+                weekStarts.append(weekStart)
+            }
+        }
+        
+        return weekStarts
+    }
+    
     var body: some View {
         if data.isEmpty {
             Text("No data available")
@@ -239,39 +300,72 @@ struct MetricChart: View {
             ZStack(alignment: .topLeading) {
                 Chart {
                     ForEach(data) { item in
-                        LineMark(
-                            x: .value("Day", item.date, unit: .day),
-                            y: .value("Value", item.value)
-                        )
-                        .foregroundStyle(MendColors.primary)
-                        .interpolationMethod(.catmullRom)
-                        
-                        PointMark(
-                            x: .value("Day", item.date, unit: .day),
-                            y: .value("Value", item.value)
-                        )
-                        .foregroundStyle(MendColors.primary)
-                        .symbolSize(selectedPoint?.id == item.id ? 100 : 30)
+                        // Only include valid sleep data points (for sleep, filter out low values)
+                        if isValidDataPoint(item) {
+                            LineMark(
+                                x: .value("Day", item.date, unit: .day),
+                                y: .value("Value", item.value)
+                            )
+                            .foregroundStyle(MendColors.primary)
+                            .interpolationMethod(.catmullRom)
+                            .lineStyle(StrokeStyle(lineWidth: 2))
+                            
+                            PointMark(
+                                x: .value("Day", item.date, unit: .day),
+                                y: .value("Value", item.value)
+                            )
+                            .foregroundStyle(MendColors.primary)
+                            .symbolSize(selectedPoint?.id == item.id ? 100 : 40)
+                        }
                     }
                     
-                    if let selected = selectedPoint {
+                    // Add average line for reference
+                    if let avgValue = calculateAverage() {
+                        RuleMark(
+                            y: .value("Average", avgValue)
+                        )
+                        .foregroundStyle(colorScheme == .dark ? Color.white.opacity(0.4) : Color.black.opacity(0.3))
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                        .annotation(position: .trailing) {
+                            Text("Avg")
+                                .font(MendFont.caption2)
+                                .foregroundColor(secondaryTextColor)
+                                .padding(.horizontal, 4)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 2)
+                                        .fill(colorScheme == .dark ? Color.black.opacity(0.4) : Color.white.opacity(0.7))
+                                )
+                        }
+                    }
+                    
+                    if let selected = selectedPoint, isValidDataPoint(selected) {
                         PointMark(
                             x: .value("Day", selected.date, unit: .day),
                             y: .value("Value", selected.value)
                         )
                         .foregroundStyle(MendColors.secondary)
-                        .symbolSize(120)
+                        .symbolSize(160)
                     }
                 }
                 .chartForegroundStyleScale([
                     "Value": MendColors.primary
                 ])
                 .chartXAxis {
-                    AxisMarks(values: .stride(by: .day)) { value in
+                    // Use only week start marks to keep axis clean and readable
+                    AxisMarks(values: .stride(by: .weekOfYear)) { value in
                         if let date = value.as(Date.self) {
+                            // Clear, prominent week dividers
+                            AxisGridLine(stroke: StrokeStyle(lineWidth: 1.5))
+                                .foregroundStyle(colorScheme == .dark ? Color.white.opacity(0.25) : Color.black.opacity(0.2))
+                            
+                            // Improved date labels that are always visible
                             AxisValueLabel {
-                                Text(date, format: .dateTime.weekday(.narrow))
-                                    .foregroundColor(secondaryTextColor)
+                                Text(date, format: .dateTime.day().month())
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(textColor)
+                                    .fixedSize()
+                                    .frame(width: 40, alignment: .center)
+                                    .rotationEffect(.degrees(-10)) // Slight angle to prevent overlap
                             }
                         }
                     }
@@ -319,9 +413,9 @@ struct MetricChart: View {
                     .padding(8)
                 
                 // Selected value overlay
-                if let selectedPoint = selectedPoint {
+                if let selectedPoint = selectedPoint, isValidDataPoint(selectedPoint) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(selectedPoint.date, format: .dateTime.month().day())
+                        Text(selectedPoint.date, format: .dateTime.day().month())
                             .font(MendFont.caption)
                             .foregroundColor(secondaryTextColor)
                         
@@ -348,6 +442,33 @@ struct MetricChart: View {
         }
     }
     
+    // Helper function to determine if a data point is valid and should be displayed
+    private func isValidDataPoint(_ dataPoint: RecoveryMetricData) -> Bool {
+        // For sleep data, filter out very low values that are likely incorrect
+        if dataPoint.metricType == .sleep {
+            // Minimum threshold of 2 hours for sleep to be considered valid
+            // This helps filter out partial recordings or tracking errors
+            return dataPoint.value >= 2.0
+        }
+        
+        // For sleep quality, filter out zero values
+        if dataPoint.metricType == .sleepQuality {
+            return dataPoint.value > 0
+        }
+        
+        // For heart rate and HRV, ensure values are within a reasonable range
+        if dataPoint.metricType == .heartRate {
+            return dataPoint.value >= 30 && dataPoint.value <= 120
+        }
+        
+        if dataPoint.metricType == .hrv {
+            return dataPoint.value > 0 && dataPoint.value <= 200
+        }
+        
+        // For other metrics, accept non-zero values
+        return dataPoint.value > 0
+    }
+    
     private func updateSelectedPoint(at location: CGPoint, in geometry: GeometryProxy, proxy: ChartProxy) {
         guard !data.isEmpty else { return }
         
@@ -360,10 +481,13 @@ struct MetricChart: View {
         var closestPoint: RecoveryMetricData?
         
         for point in data {
-            let distance = abs(point.date.timeIntervalSince(date))
-            if distance < minDistance {
-                minDistance = distance
-                closestPoint = point
+            // Only consider valid data points
+            if isValidDataPoint(point) {
+                let distance = abs(point.date.timeIntervalSince(date))
+                if distance < minDistance {
+                    minDistance = distance
+                    closestPoint = point
+                }
             }
         }
         
@@ -461,6 +585,14 @@ struct MetricChart: View {
         } else {
             return String(format: "%.0f", value)
         }
+    }
+    
+    private func calculateAverage() -> Double? {
+        guard !data.isEmpty else { return nil }
+        
+        let values = data.map { $0.value }
+        let sum = values.reduce(0, +)
+        return sum / Double(values.count)
     }
 }
 

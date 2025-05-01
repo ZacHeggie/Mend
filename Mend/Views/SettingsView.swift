@@ -52,9 +52,9 @@ struct SettingsView: View {
                 
                 SectionCard {
                     Button(action: {
-                        // Refresh health data directly
+                        // Refresh health data with full reset to ensure proper recalculation
                         Task {
-                            await recoveryMetrics.refreshData()
+                            await recoveryMetrics.refreshWithReset()
                         }
                     }) {
                         menuRow(icon: "arrow.clockwise", title: "Refresh Health Data", showArrow: false)
@@ -107,6 +107,11 @@ struct SettingsView: View {
                         menuRow(icon: "lock.fill", title: "Privacy policy", showArrow: true)
                     }
                 }
+                
+                // DEVELOPER TESTING section - Only in debug mode
+                #if DEBUG
+                // Removed the developer testing section from the main settings menu
+                #endif
                 
                 // Version at the bottom
                 Text("Mend for iOS - 1.0.0")
@@ -303,6 +308,7 @@ struct SectionCard<Content: View>: View {
 // MARK: - Simulated Data Settings
 struct SimulatedDataSettings: View {
     @EnvironmentObject var recoveryMetrics: RecoveryMetrics
+    @StateObject private var activityManager = ActivityManager.shared
     @Environment(\.colorScheme) var colorScheme
     
     private var backgroundColor: Color {
@@ -375,10 +381,115 @@ struct SimulatedDataSettings: View {
                 .background(cardBackgroundColor)
                 .cornerRadius(MendCornerRadius.medium)
                 
+                // Developer tools section
+                VStack(alignment: .leading, spacing: MendSpacing.small) {
+                    Text("Developer Tools")
+                        .font(MendFont.headline)
+                        .foregroundColor(secondaryTextColor)
+                        .padding(.horizontal)
+                    
+                    VStack(spacing: MendSpacing.medium) {
+                        // Toggle simulated data
+                        Button(action: {
+                            recoveryMetrics.toggleSimulatedData()
+                        }) {
+                            Text(recoveryMetrics.useSimulatedData ? "Using Simulated Data" : "Use Simulated Data")
+                                .font(MendFont.body)
+                                .foregroundColor(.white)
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(recoveryMetrics.useSimulatedData ? MendColors.primary : MendColors.primary)
+                                .cornerRadius(MendCornerRadius.medium)
+                        }
+                        
+                        // Toggle poor recovery simulation
+                        Button(action: {
+                            recoveryMetrics.togglePoorRecoveryData()
+                        }) {
+                            Text(recoveryMetrics.usePoorRecoveryData ? "Using Poor Recovery Data" : "Simulate Poor Recovery")
+                                .font(MendFont.body)
+                                .foregroundColor(.white)
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(recoveryMetrics.usePoorRecoveryData ? MendColors.negative : MendColors.primary)
+                                .cornerRadius(MendCornerRadius.medium)
+                        }
+                        
+                        // Add Test Activity
+                        Button(action: {
+                            // Add a test activity
+                            let _ = activityManager.addTestActivity()
+                            // Refresh data to trigger recovery score update
+                            Task {
+                                await recoveryMetrics.refreshWithReset()
+                            }
+                        }) {
+                            Text("Add Test Activity")
+                                .font(MendFont.body)
+                                .foregroundColor(.white)
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(MendColors.primary)
+                                .cornerRadius(MendCornerRadius.medium)
+                        }
+                        
+                        // Add High Intensity Activity
+                        Button(action: {
+                            // Add a high intensity test activity
+                            let _ = activityManager.addTestActivity(intensity: .high)
+                            // Refresh data to trigger recovery score update
+                            Task {
+                                await recoveryMetrics.refreshWithReset()
+                            }
+                        }) {
+                            Text("Add High Intensity Activity")
+                                .font(MendFont.body)
+                                .foregroundColor(.white)
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(MendColors.primary)
+                                .cornerRadius(MendCornerRadius.medium)
+                        }
+                        
+                        // Simulate a new recent activity to test cool-down
+                        Button(action: {
+                            simulateRecentActivity()
+                        }) {
+                            Text("Simulate Recent Activity")
+                                .font(MendFont.body)
+                                .foregroundColor(.white)
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(MendColors.primary)
+                                .cornerRadius(MendCornerRadius.medium)
+                        }
+                        
+                        // Reset Processed Activities
+                        Button(action: {
+                            // No more cooldown processing needed
+                            // Just refresh data
+                            Task {
+                                await recoveryMetrics.refreshWithReset()
+                            }
+                        }) {
+                            Text("Reset Data Processing")
+                                .font(MendFont.body)
+                                .foregroundColor(.white)
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(MendColors.primary)
+                                .cornerRadius(MendCornerRadius.medium)
+                        }
+                    }
+                    .padding()
+                    .background(cardBackgroundColor)
+                    .cornerRadius(MendCornerRadius.medium)
+                }
+                
                 // Refresh button
                 Button {
                     Task {
-                        recoveryMetrics.refreshData()
+                        await recoveryMetrics.refreshWithReset()
                     }
                 } label: {
                     HStack {
@@ -397,6 +508,28 @@ struct SimulatedDataSettings: View {
         }
         .background(backgroundColor.ignoresSafeArea())
         .navigationTitle("Simulated Data")
+    }
+    
+    private func simulateRecentActivity() {
+        // Create a recent high-intensity activity
+        let activity = Activity(
+            id: UUID(),
+            title: "Test Activity",
+            type: .run,
+            date: Date().addingTimeInterval(-10 * 60), // 10 minutes ago
+            duration: 3600, // 1 hour
+            distance: 10.0,
+            intensity: .high,
+            source: .manual
+        )
+        
+        // Add to activity manager
+        activityManager.addActivity(activity)
+        
+        // Refresh data
+        Task {
+            await recoveryMetrics.refreshWithReset()
+        }
     }
 }
 

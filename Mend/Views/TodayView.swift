@@ -10,6 +10,7 @@ struct TodayView: View {
     @Environment(\.colorScheme) var colorScheme
     @State private var showingAddActivity = false
     @State private var showingNotificationMenu = false
+    @State private var selectedInsight: RecoveryInsight?
     
     // Computed properties for dynamic colors
     private var backgroundColor: Color {
@@ -29,69 +30,88 @@ struct TodayView: View {
     }
     
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
-            ScrollView {
-                if recoveryMetrics.isLoading {
-                    loadingView
-                } else if let recoveryScore = recoveryMetrics.currentRecoveryScore {
+        NavigationStack {
+            ZStack(alignment: .bottomTrailing) {
+                ScrollView {
                     VStack(spacing: MendSpacing.large) {
-                        // Recovery Summary
-                        recoveryScoreView(score: recoveryScore)
-                        
-                        // Recent Activities
-                        if !recentActivities.isEmpty {
-                            recentActivitiesView
-                        }
-                        
-                        // Activity Recommendations
-                        recommendationsView(score: recoveryScore)
-                        
-                        // Recovery Insights
-                        if !recoveryInsights.isEmpty {
-                            recoveryInsightsView
+                        if recoveryMetrics.isLoading {
+                            // Show loading view while data is being fetched
+                            loadingView
+                        } else if let score = recoveryMetrics.currentRecoveryScore {
+                            // Only show the score when we have valid data
+                            recoveryScoreView(score: score)
+                            
+                            // Activity recommendations
+                            recommendationsSection
+                            
+                            // Recovery insights
+                            if !recoveryInsights.isEmpty {
+                                insightsSection
+                            }
+                        } else {
+                            // Show no data view when loading is complete but no data is available
+                            noDataView
                         }
                     }
-                    .padding()
-                    .padding(.bottom, 80) // Add extra padding at bottom for the FAB
-                } else {
-                    noDataView
+                    .padding(.vertical)
+                }
+                .background(backgroundColor.ignoresSafeArea())
+                .navigationTitle("Today")
+                .navigationBarItems(trailing: notificationButton)
+                .onAppear {
+                    Task {
+                        await refreshData()
+                    }
+                }
+                .refreshable {
+                    await refreshData()
+                }
+                
+                // Only show the add activity button when we're not loading
+                if !recoveryMetrics.isLoading {
+                    // Floating Action Button for adding activity
+                    Button(action: {
+                        showingAddActivity = true
+                    }) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(width: 56, height: 56)
+                            .background(MendColors.primary)
+                            .clipShape(Circle())
+                            .shadow(color: colorScheme == .dark ? Color.black.opacity(0.4) : Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
+                    }
+                    .padding(.trailing, 20)
+                    .padding(.bottom, 70)
+                    .sheet(isPresented: $showingAddActivity) {
+                        NavigationView {
+                            AddActivityView(isPresented: $showingAddActivity)
+                                .navigationTitle("Add Activity")
+                                .navigationBarItems(leading: Button("Cancel") {
+                                    showingAddActivity = false
+                                })
+                                .environmentObject(activityManager)
+                                .onDisappear {
+                                    // Refresh data when activity sheet is dismissed
+                                    Task {
+                                        await recoveryMetrics.refreshWithReset()
+                                        loadRecentActivities()
+                                    }
+                                }
+                        }
+                    }
                 }
             }
-            .background(backgroundColor.ignoresSafeArea())
-            .navigationTitle("Today")
-            .navigationBarItems(trailing: notificationButton)
             
-            // Floating Action Button for adding activity
-            Button(action: {
-                showingAddActivity = true
-            }) {
-                Image(systemName: "plus")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundColor(.white)
-                    .frame(width: 56, height: 56)
-                    .background(MendColors.primary)
-                    .clipShape(Circle())
-                    .shadow(color: colorScheme == .dark ? Color.black.opacity(0.4) : Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
-            }
-            .padding(.bottom, 70) // Position above tab bar
-            .padding(.trailing, 20)
-        }
-        .onAppear {
-            loadRecentActivities()
-            
-            Task {
-                await loadData()
-                loadRecoveryInsights()
-            }
-        }
-        .sheet(isPresented: $showingAddActivity) {
-            NavigationView {
-                AddActivityView(isPresented: $showingAddActivity)
-                    .navigationTitle("Add Activity")
-                    .navigationBarItems(leading: Button("Cancel") {
-                        showingAddActivity = false
-                    })
-                    .environmentObject(activityManager)
+            .sheet(item: $selectedInsight) { insight in
+                VStack {
+                    Text(insight.title)
+                        .font(MendFont.title)
+                    Text(insight.detailedDescription)
+                        .font(MendFont.body)
+                    Spacer()
+                }
+                .padding()
             }
         }
     }
@@ -127,9 +147,9 @@ struct TodayView: View {
                 .font(MendFont.subheadline)
                 .foregroundColor(secondaryTextColor)
             
-            Button("Refresh Now") {
+            Button("Refresh") {
                 Task {
-                    recoveryMetrics.refreshData()
+                    await recoveryMetrics.refreshWithReset()
                 }
             }
             .padding(.vertical, MendSpacing.medium)
@@ -170,7 +190,7 @@ struct TodayView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(cardBackgroundColor)
             .cornerRadius(MendCornerRadius.medium)
-            .shadow(color: colorScheme == .dark ? Color.black.opacity(0.25) : Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+            .padding(.horizontal, MendSpacing.medium)
         }
     }
     
@@ -257,6 +277,29 @@ struct TodayView: View {
     
     // MARK: - Helper Functions
     
+    private func refreshData() async {
+        // Start by setting loading state
+        if !recoveryMetrics.isInitialLoadComplete {
+            // Don't need to do anything here, as the initial load is already in progress
+            return
+        }
+        
+        // Refresh recovery metrics - use await to ensure we wait for completion
+        await recoveryMetrics.refreshWithReset()
+        
+        // Update activities
+        await activityManager.refreshActivities()
+        loadRecentActivities()
+        
+        // Load personalized recommendations if we have a recovery score
+        if let recoveryScore = recoveryMetrics.currentRecoveryScore {
+            personalizedRecommendations = await recoveryScore.getPersonalizedRecommendations()
+        }
+        
+        // Refresh recovery insights
+        loadRecoveryInsights()
+    }
+    
     private func loadData() async {
         // Load recovery metrics
         recoveryMetrics.refreshData()
@@ -336,6 +379,38 @@ struct TodayView: View {
             return "Reasonably recovered. Moderate training is fine."
         default:
             return "Well recovered. Ready for intense training."
+        }
+    }
+    
+    private var recommendationsSection: some View {
+        VStack(alignment: .leading, spacing: MendSpacing.medium) {
+            Text("Recommended Activities")
+                .font(MendFont.headline)
+                .foregroundColor(secondaryTextColor)
+                .padding(.horizontal, MendSpacing.medium)
+            
+            // Show personalized recommendations if available, otherwise use basic recommendations
+            let recommendationsToShow = !personalizedRecommendations.isEmpty ? 
+                                       personalizedRecommendations : 
+                                       recoveryMetrics.currentRecoveryScore?.recommendedActivities ?? []
+                                       
+            ForEach(recommendationsToShow) { activity in
+                ExpandableActivityCard(activity: activity, colorScheme: colorScheme)
+                    .padding(.horizontal, MendSpacing.medium)
+            }
+        }
+    }
+    
+    private var insightsSection: some View {
+        VStack(alignment: .leading, spacing: MendSpacing.medium) {
+            Text("Recovery Insights")
+                .font(MendFont.headline)
+                .foregroundColor(secondaryTextColor)
+                .padding(.horizontal, MendSpacing.medium)
+            
+            ForEach(recoveryInsights) { insight in
+                RecoveryInsightCard(insight: insight, colorScheme: colorScheme)
+            }
         }
     }
 }
@@ -595,8 +670,11 @@ struct RecoveryInsightCard: View {
                             .font(MendFont.subheadline.bold())
                             .foregroundColor(textColor)
                         
-                        RecoveryTimelineView(recoveryDays: insight.recoveryDays)
-                            .padding(.bottom, MendSpacing.small)
+                        RecoveryTimelineView(
+                            currentPercentage: 0, // Start at 0% recovered for insights
+                            daysRemaining: insight.recoveryDays
+                        )
+                        .padding(.bottom, MendSpacing.small)
                         
                         Text("Implications for Training")
                             .font(MendFont.subheadline.bold())
@@ -637,109 +715,68 @@ struct RecoveryInsightCard: View {
 }
 
 struct RecoveryTimelineView: View {
-    let recoveryDays: Double
+    let currentPercentage: Int
+    let daysRemaining: Double
+    @Environment(\.colorScheme) var colorScheme
+    
+    private var textColor: Color {
+        colorScheme == .dark ? MendColors.darkText : MendColors.text
+    }
+    
+    private var secondaryTextColor: Color {
+        colorScheme == .dark ? MendColors.darkSecondaryText : MendColors.secondaryText
+    }
+    
+    private var cardBackgroundColor: Color {
+        colorScheme == .dark ? MendColors.darkCardBackground : MendColors.cardBackground
+    }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            // Timeline visualization with highlighted "today" starting point
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    // Background track
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.2))
-                        .cornerRadius(4)
-                    
-                    // Timeline of recovery
-                    HStack(spacing: 0) {
-                        // Day 1: Initial fatigue (always red)
-                        Rectangle()
-                            .fill(MendColors.negative)
-                            .frame(width: geometry.size.width * 0.2)
-                        
-                        // Middle days: Recovery progression
-                        let middleWidth = min(geometry.size.width * 0.6, geometry.size.width * Double(recoveryDays - 1) / 5.0)
-                        
-                        Rectangle()
-                            .fill(MendColors.neutral)
-                            .frame(width: middleWidth)
-                        
-                        // Final state: Fully recovered (if applicable in timeline)
-                        if recoveryDays < 5 {
-                            Rectangle()
-                                .fill(MendColors.positive)
-                                .frame(width: geometry.size.width - 0.2 * geometry.size.width - middleWidth)
-                        }
-                    }
-                    .cornerRadius(4)
-                    
-                    // Day markers with more emphasis on today
-                    HStack {
-                        ForEach(0..<6) { i in
-                            Rectangle()
-                                .fill(i == 0 ? Color.white : Color.white.opacity(0.7))
-                                .frame(width: i == 0 ? 2 : 1.5, height: i == 0 ? 10 : 8) 
-                                .padding(.leading, i == 0 ? 0 : (geometry.size.width / 5.0) - 1.5)
-                        }
-                    }
-                    
-                    // Current recovery point indicator
-                    Circle()
-                        .fill(Color.white)
-                        .frame(width: 10, height: 10)
-                        .overlay(
-                            Circle()
-                                .stroke(Color.black, lineWidth: 1)
-                        )
-                        .offset(x: min(geometry.size.width * (recoveryDays / 5.0) - 5, geometry.size.width - 10))
-                }
-            }
-            .frame(height: 35)
+        VStack(alignment: .leading, spacing: MendSpacing.medium) {
+            Text("Recovery Status")
+                .font(MendFont.headline)
+                .foregroundColor(secondaryTextColor)
+                .padding(.horizontal, MendSpacing.medium)
             
-            // Day labels with better formatting
-            HStack {
-                ForEach(0..<6) { dayOffset in
-                    VStack(alignment: .center, spacing: 0) {
-                        Text(getDayLabel(for: dayOffset))
-                            .font(.system(size: 10, weight: dayOffset == 0 ? .bold : .medium))
-                            .foregroundColor(dayOffset == 0 ? .primary : .secondary)
-                        
-                        if dayOffset > 0 {
-                            Text(getDayNumber(for: dayOffset))
-                                .font(.system(size: 9))
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
+            HStack(spacing: MendSpacing.small) {
+                Image(systemName: "clock.arrow.circlepath")
+                    .foregroundColor(currentPercentage >= 100 ? 
+                                     MendColors.positive : 
+                                     currentPercentage > 50 ? MendColors.neutral : MendColors.negative)
+                    .font(.system(size: 18))
+                
+                if currentPercentage >= 100 {
+                    Text("You've fully recovered and are ready for training.")
+                        .font(MendFont.subheadline)
+                        .foregroundColor(textColor)
+                } else {
+                    Text("Based on your recent activities, you need approximately \(String(format: "%.1f", daysRemaining)) more days to fully recover.")
+                        .font(MendFont.subheadline)
+                        .foregroundColor(textColor)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            .padding(.top, 2)
+            .padding()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(cardBackgroundColor)
+            .cornerRadius(MendCornerRadius.medium)
+            .padding(.horizontal, MendSpacing.medium)
         }
     }
     
-    private func getDayLabel(for dayOffset: Int) -> String {
-        let calendar = Calendar.current
-        let date = calendar.date(byAdding: .day, value: dayOffset, to: Date())!
-        
-        // For today and tomorrow, use those words
-        if dayOffset == 0 {
-            return "Today"
-        } else if dayOffset == 1 {
-            return "Tmrw"
+    // Helper function to format remaining time in a user-friendly way
+    private func formatTimeRemaining(days: Double) -> String {
+        if days < 1/24 { // Less than 1 hour
+            return "< 1 hour remaining"
+        } else if days < 1 {
+            let hours = Int(days * 24)
+            return "\(hours) hours remaining"
+        } else if days < 2 {
+            let hours = Int((days - Double(Int(days))) * 24)
+            return "\(Int(days)) day \(hours) hours remaining"
+        } else {
+            return "\(Int(ceil(days))) days remaining"
         }
-        
-        // For other days, use abbreviated day name
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEE"
-        return formatter.string(from: date)
-    }
-    
-    private func getDayNumber(for dayOffset: Int) -> String {
-        let calendar = Calendar.current
-        let date = calendar.date(byAdding: .day, value: dayOffset, to: Date())!
-        
-        let formatter = DateFormatter()
-        formatter.dateFormat = "d"
-        return formatter.string(from: date)
     }
 }
 
@@ -821,12 +858,15 @@ struct RecentActivityCard: View {
         let calendar = Calendar.current
         
         if calendar.isDateInToday(date) {
-            return "Today"
+            let formatter = DateFormatter()
+            formatter.dateStyle = .none
+            formatter.timeStyle = .short
+            return formatter.string(from: date)
         } else if calendar.isDateInYesterday(date) {
             return "Yesterday"
         } else {
             let formatter = DateFormatter()
-            formatter.dateFormat = "E"
+            formatter.dateFormat = "dd/MM/yyyy"
             return formatter.string(from: date)
         }
     }
@@ -902,7 +942,7 @@ func formatRelativeDate(_ date: Date) -> String {
         return "Yesterday"
     } else {
         let formatter = DateFormatter()
-        formatter.dateFormat = "MMM d"
+        formatter.dateFormat = "dd/MM/yyyy"
         return formatter.string(from: date)
     }
 }

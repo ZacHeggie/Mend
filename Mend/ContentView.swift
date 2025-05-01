@@ -10,6 +10,7 @@ import SwiftUI
 struct ContentView: View {
     @State private var selectedTab: Int = 0
     @Environment(\.colorScheme) var systemColorScheme
+    @EnvironmentObject private var recoveryMetrics: RecoveryMetrics
     
     var body: some View {
         ZStack(alignment: .bottom) {

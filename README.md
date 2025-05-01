@@ -13,13 +13,21 @@ Mend is an iOS app designed to help athletes and fitness enthusiasts track and v
 - **Interactive Charts**: Expand each metric to view a 7-day trend and detailed explanation
 - **Modern UI**: Clean, intuitive interface with smooth animations and transitions
 
+## Recent Fixes
+
+- **Recovery Score Issue Fixed**: Fixed an issue where refreshing the app multiple times would cause the recovery score to continuously improve. Activities are now properly tracked in a persistent list to ensure the same activity doesn't affect the recovery score multiple times.
+- **Developer Testing Tools**: Added testing functionality in the Settings screen (Debug mode only) to add test activities and reset processed activities for testing recovery score functionality.
+
 ## Technical Details
 
 - Built with SwiftUI
 - Chart visualization using Swift Charts
 - Custom animations and transitions
 - Dark mode support
-- Simulated data (can be connected to HealthKit in future versions)
+- Integration with HealthKit for real data
+- Simulated data option
+- Workout recommendations based on recovery score
+- Notification system for recovery alerts
 
 ## Requirements
 
@@ -29,6 +37,4 @@ Mend is an iOS app designed to help athletes and fitness enthusiasts track and v
 ## Future Enhancements
 
 - HealthKit integration for real-time data
-- Workout recommendations based on recovery score
-- Notification system for recovery alerts
 - Custom recovery strategies and protocols 

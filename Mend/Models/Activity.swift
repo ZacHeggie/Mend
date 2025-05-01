@@ -27,8 +27,7 @@ struct Activity: Identifiable, Codable {
     
     var formattedDate: String {
         let formatter = DateFormatter()
-        formatter.dateStyle = .short
-        formatter.timeStyle = .short
+        formatter.dateFormat = "dd/MM/yyyy"
         return formatter.string(from: date)
     }
 }
