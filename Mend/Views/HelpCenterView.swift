@@ -143,7 +143,7 @@ struct ContactSupportSection: View {
                 .multilineTextAlignment(.center)
             
             Button(action: {
-                if let url = URL(string: "mailto:support@mendapp.com") {
+                if let url = URL(string: "mailto:mendsupport@icloud.com") {
                     UIApplication.shared.open(url)
                 }
             }) {
