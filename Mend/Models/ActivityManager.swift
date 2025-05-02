@@ -71,19 +71,26 @@ class ActivityManager: ObservableObject, Sendable {
         isLoading = false
     }
     
-    /// Calculate training load
-    func calculateTrainingLoad(forDays days: Int = 7) -> Int {
-        let recentActivities = getRecentActivities(days: days)
-        
-        // Calculate training load as the product of duration and intensity
+    /// Calculate total training load for the specified number of days
+    func calculateTrainingLoad(forDays days: Int = 14) -> Int {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
         var totalLoad = 0
         
-        for activity in recentActivities {
-            // Base factors
-            let durationInMinutes = activity.duration / 60
+        // Filter activities from specified days
+        for activity in activities {
+            let activityDate = calendar.startOfDay(for: activity.date)
+            let dayDifference = calendar.dateComponents([.day], from: activityDate, to: today).day ?? 0
             
-            // Intensity factor based on intensity level
+            // Skip if activity is outside the time range
+            if dayDifference >= days || dayDifference < 0 {
+                continue
+            }
+            
+            // Calculate load based on duration and intensity
+            let durationInMinutes = activity.duration / 60
             let intensityFactor: Double
+            
             switch activity.intensity {
             case .low:
                 intensityFactor = 1.0
@@ -103,8 +110,8 @@ class ActivityManager: ObservableObject, Sendable {
         return totalLoad
     }
     
-    /// Calculate daily training volumes for the past week
-    func calculateDailyTrainingVolumes(forDays days: Int = 7) -> [DailyTrainingVolume] {
+    /// Calculate daily training volumes for the past two weeks
+    func calculateDailyTrainingVolumes(forDays days: Int = 14) -> [DailyTrainingVolume] {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         var volumes: [DailyTrainingVolume] = []
@@ -158,8 +165,8 @@ class ActivityManager: ObservableObject, Sendable {
         return volumes.sorted { $0.date < $1.date }
     }
     
-    // Get activities from the past week
-    func getRecentActivities(days: Int = 7) -> [Activity] {
+    // Get activities from the past two weeks
+    func getRecentActivities(days: Int = 14) -> [Activity] {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         let pastDate = calendar.date(byAdding: .day, value: -days, to: today)!
@@ -170,12 +177,12 @@ class ActivityManager: ObservableObject, Sendable {
     }
     
     // Check if user has any activities in the specified period
-    func hasRecentActivities(days: Int = 7) -> Bool {
+    func hasRecentActivities(days: Int = 14) -> Bool {
         return !getRecentActivities(days: days).isEmpty
     }
     
     // Get activities grouped by day
-    func activitiesByDay(days: Int = 7) -> [Date: [Activity]] {
+    func activitiesByDay(days: Int = 14) -> [Date: [Activity]] {
         let recentActivities = getRecentActivities(days: days)
         
         return Dictionary(grouping: recentActivities) { activity in

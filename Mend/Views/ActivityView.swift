@@ -291,7 +291,7 @@ struct TrainingLoadCard: View {
             // Title and summary
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("7-Day Training Load")
+                    Text("14-Day Training Load")
                         .font(MendFont.headline)
                         .foregroundColor(textColor)
                     

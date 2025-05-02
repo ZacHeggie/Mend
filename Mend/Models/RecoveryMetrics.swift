@@ -477,10 +477,10 @@ class RecoveryMetrics: ObservableObject {
         
         // Constants for weighting different metrics based on order of importance
         let hrvWeight = 5        // HRV is most important
-        let heartRateWeight = 4  // Heart rate is second most important
-        let sleepWeight = 3      // Sleep duration is third most important
-        let sleepQualityWeight = 2 // Sleep quality is fourth most important
-        let trainingLoadWeight = 1 // Training load is fifth most important
+        let heartRateWeight = 4  // Resting heart rate is second most important
+        let sleepWeight = 2      // Sleep duration is fourth most important
+        let sleepQualityWeight = 3 // Sleep quality is third most important
+        let trainingLoadWeight = 2 // Training load is fifth most important
         
         // Get training load data for past week compared to 28-day average
         let trainingLoadScore = calculateTrainingLoadScore()

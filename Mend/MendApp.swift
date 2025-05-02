@@ -61,10 +61,13 @@ struct MendApp: App {
                     }
                 }
         }
-        .backgroundTask(.appRefresh("com.mend.dataRefresh")) {
-            // This runs during a background app refresh
-            refreshData()
-        }
+        // Note: We're already handling background tasks in AppDelegate, 
+        // so we're removing the duplicate registration here to avoid conflicts
+        // that might cause unsafe registrations
+        // .backgroundTask(.appRefresh("com.mend.dataRefresh")) {
+        //    refreshData()
+        // }
+        
         // Handle user activity for state restoration
         .handlesExternalEvents(matching: ["com.mend.restorationActivity"])
     }

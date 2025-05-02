@@ -11,8 +11,8 @@ import BackgroundTasks
 class AppDelegate: UIResponder, UIApplicationDelegate {
     
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Register for background refresh tasks
-        BGTaskScheduler.shared.register(forTaskWithIdentifier: "com.mend.dataRefresh", using: nil) { task in
+        // Register for background refresh tasks with a specific queue instead of nil
+        BGTaskScheduler.shared.register(forTaskWithIdentifier: "com.mend.dataRefresh", using: DispatchQueue.global()) { task in
             self.handleAppRefresh(task: task as! BGAppRefreshTask)
         }
         
