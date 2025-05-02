@@ -291,7 +291,7 @@ struct TrainingLoadCard: View {
             // Title and summary
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("14-Day Training Load")
+                    Text("7-Day Training Load")
                         .font(MendFont.headline)
                         .foregroundColor(textColor)
                     
@@ -476,8 +476,8 @@ struct TrainingLoadCard: View {
     }
     
     private func updateTrainingLoad() {
-        trainingLoad = activityManager.calculateTrainingLoad()
-        volumes = activityManager.calculateDailyTrainingVolumes()
+        trainingLoad = activityManager.calculateTrainingLoad(forDays: 7)
+        volumes = activityManager.calculateDailyTrainingVolumes(forDays: 14)
     }
     
     private func calculateLoadScore() -> Int {

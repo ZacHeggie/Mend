@@ -41,6 +41,11 @@ struct TodayView: View {
                             // Only show the score when we have valid data
                             recoveryScoreView(score: score)
                             
+                            // Recent activities from the last 24 hours
+                            if !recentActivities.isEmpty {
+                                recentActivitiesView
+                            }
+                            
                             // Activity recommendations
                             recommendationsSection
                             
@@ -170,27 +175,62 @@ struct TodayView: View {
                 .foregroundColor(secondaryTextColor)
                 .padding(.horizontal, MendSpacing.medium)
             
-            HStack(spacing: MendSpacing.large) {
-                ScoreRing(score: score.overallScore, size: 90, lineWidth: 10)
-                    .padding(.leading, MendSpacing.medium)
-                
-                VStack(alignment: .leading, spacing: MendSpacing.small) {
-                    Text("\(score.overallScore)")
-                        .font(MendFont.title)
-                        .foregroundColor(textColor)
+            VStack(spacing: 0) {
+                HStack(spacing: MendSpacing.large) {
+                    ScoreRing(score: score.overallScore, size: 90, lineWidth: 10)
+                        .padding(.leading, MendSpacing.medium)
                     
-                    Text(recoveryScoreDescription(for: score))
-                        .font(MendFont.subheadline)
-                        .foregroundColor(secondaryTextColor)
-                        .fixedSize(horizontal: false, vertical: true)
+                    VStack(alignment: .leading, spacing: MendSpacing.small) {
+                        Text("\(score.overallScore)")
+                            .font(MendFont.title)
+                            .foregroundColor(textColor)
+                        
+                        Text(recoveryScoreDescription(for: score))
+                            .font(MendFont.subheadline)
+                            .foregroundColor(secondaryTextColor)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.trailing, MendSpacing.medium)
                 }
-                .padding(.trailing, MendSpacing.medium)
+                .padding(.vertical, MendSpacing.medium)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                
+                RecoveryHistoryToggle()
             }
-            .padding(.vertical, MendSpacing.medium)
-            .frame(maxWidth: .infinity, alignment: .leading)
             .background(cardBackgroundColor)
             .cornerRadius(MendCornerRadius.medium)
             .padding(.horizontal, MendSpacing.medium)
+        }
+    }
+    
+    @ViewBuilder
+    private func RecoveryHistoryToggle() -> some View {
+        VStack(spacing: 0) {
+            Divider()
+                .padding(.horizontal, MendSpacing.medium)
+
+            DisclosureGroup {
+                RecoveryHistoryChart(
+                    history: recoveryMetrics.recoveryScoreHistory,
+                    colorScheme: colorScheme
+                )
+                .padding(.horizontal, MendSpacing.medium)
+                .padding(.vertical, MendSpacing.small)
+            } label: {
+                HStack {
+                    Text("View 28-Day History")
+                        .font(MendFont.subheadline)
+                        .foregroundColor(MendColors.primary)
+                    
+                    Spacer()
+                    
+                    // The arrow icon will be automatically added by DisclosureGroup
+                    // but we need to make sure it doesn't overlap with the edge
+                }
+                .padding(.horizontal, MendSpacing.medium)
+                .padding(.vertical, MendSpacing.small)
+            }
+            .padding(.trailing, MendSpacing.medium) // Add extra padding on the trailing edge to ensure chevron doesn't overlap
         }
     }
     
@@ -311,10 +351,13 @@ struct TodayView: View {
     }
     
     private func loadRecentActivities() {
-        // Filter only today's activities
+        // Filter activities from the last 24 hours
         let calendar = Calendar.current
-        recentActivities = activityManager.getRecentActivities(days: 1)
-            .filter { calendar.isDateInToday($0.date) }
+        let now = Date()
+        let twentyFourHoursAgo = calendar.date(byAdding: .hour, value: -24, to: now)!
+        
+        recentActivities = activityManager.getRecentActivities(days: 2) // Get 2 days to ensure we have all data
+            .filter { $0.date >= twentyFourHoursAgo && $0.date <= now }
     }
     
     private func loadRecoveryInsights() {

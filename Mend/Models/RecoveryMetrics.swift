@@ -5,6 +5,7 @@ import HealthKit
 // Keys for UserDefaults
 private let kRecoveryScore = "recoveryScore"
 private let kNotificationPreference = "notificationPreference"
+private let kRecoveryScoreHistory = "recoveryScoreHistory"
 
 // MARK: - Models
 
@@ -15,6 +16,7 @@ class RecoveryMetrics: ObservableObject {
     private let activityManager = ActivityManager.shared
     
     @Published var currentRecoveryScore: RecoveryScore?
+    @Published var recoveryScoreHistory: [RecoveryScore] = []
     @Published var isLoading = true // Start with loading state as true
     @Published var error: Error?
     @Published var useSimulatedData = false
@@ -41,6 +43,9 @@ class RecoveryMetrics: ObservableObject {
         isLoading = true
         isInitialLoadComplete = false
         
+        // Load historical recovery scores
+        loadRecoveryScoreHistory()
+        
         // Setup initial data load
         Task { 
             do {
@@ -56,6 +61,315 @@ class RecoveryMetrics: ObservableObject {
                 isLoading = false
             }
         }
+    }
+    
+    // MARK: - Recovery Score History
+    
+    /// Loads recovery score history from UserDefaults
+    private func loadRecoveryScoreHistory() {
+        if let historyData = UserDefaults.standard.data(forKey: kRecoveryScoreHistory),
+           let decoded = try? JSONDecoder().decode([RecoveryScoreData].self, from: historyData) {
+            // Convert RecoveryScoreData objects back to RecoveryScore objects
+            recoveryScoreHistory = decoded.map { data in
+                RecoveryScore(
+                    date: data.date,
+                    overallScore: data.overallScore,
+                    heartRateScore: MetricScore.sampleHeartRate, // Use sample as placeholder
+                    hrvScore: data.hrvScore,
+                    sleepScore: data.sleepScore,
+                    trainingLoadScore: MetricScore.sampleTrainingLoad, // Use sample as placeholder
+                    stressScore: data.stressScore,
+                    timeOfDay: data.timeOfDay
+                )
+            }.sorted(by: { $0.date > $1.date }) // Sort by date (newest first)
+        }
+        
+        // If history is empty, try to generate historical data
+        if recoveryScoreHistory.isEmpty {
+            Task {
+                await generateHistoricalRecoveryScores()
+            }
+        }
+    }
+    
+    /// Generates recovery scores for past 28 days when history buffer is empty
+    @MainActor
+    private func generateHistoricalRecoveryScores() async {
+        // Only proceed if we have no existing history
+        guard recoveryScoreHistory.isEmpty else { return }
+        
+        // Show loading indicator while generating historical data
+        isLoading = true
+        
+        // Get current date and calendar
+        let today = Date()
+        let calendar = Calendar.current
+        
+        // Fetch required historical data for the past 28 days
+        async let heartRateData = healthKit.fetchDailyRestingHeartRateData(forDays: 28)
+        async let hrvData = healthKit.fetchDailyHRVData(forDays: 28)
+        async let sleepData = healthKit.fetchDailySleepData(forDays: 28)
+        async let sleepQualityData = healthKit.fetchDailySleepQualityData(forDays: 28)
+        
+        // Await all data fetches
+        let (heartRateMetrics, hrvMetrics, sleepMetrics, sleepQualityMetrics) = 
+            await (heartRateData, hrvData, sleepData, sleepQualityData)
+        
+        // Group the data by date for easy lookup
+        let heartRateByDate = Dictionary(grouping: heartRateMetrics, by: { calendar.startOfDay(for: $0.date) })
+            .mapValues { values in values.first?.value ?? 0 }
+        
+        let hrvByDate = Dictionary(grouping: hrvMetrics, by: { calendar.startOfDay(for: $0.date) })
+            .mapValues { values in values.first?.value ?? 0 }
+        
+        let sleepByDate = Dictionary(grouping: sleepMetrics, by: { calendar.startOfDay(for: $0.date) })
+            .mapValues { values in values.first?.value ?? 0 }
+        
+        let sleepQualityByDate = Dictionary(grouping: sleepQualityMetrics, by: { calendar.startOfDay(for: $0.date) })
+            .mapValues { values in values.first?.value ?? 0 }
+        
+        // Only continue if we have at least some data
+        guard !heartRateByDate.isEmpty || !hrvByDate.isEmpty || !sleepByDate.isEmpty || !sleepQualityByDate.isEmpty else {
+            isLoading = false
+            return
+        }
+        
+        // Generate scores for each of the last 28 days
+        var generatedScores: [RecoveryScore] = []
+        
+        for dayOffset in 0..<28 {
+            // Calculate the date for this historical entry
+            let targetDate = calendar.date(byAdding: .day, value: -dayOffset, to: today) ?? today
+            let dayStart = calendar.startOfDay(for: targetDate)
+            
+            // Get values for this date if available
+            let heartRateValue = heartRateByDate[dayStart]
+            let hrvValue = hrvByDate[dayStart]
+            let sleepValue = sleepByDate[dayStart]
+            let sleepQualityValue = sleepQualityByDate[dayStart]
+            
+            // Only create scores if we have at least some valid data for this day
+            if heartRateValue != nil || hrvValue != nil || sleepValue != nil || sleepQualityValue != nil {
+                // Create the three time points for this day
+                let timesOfDay: [RecoveryScoreData.TimeOfDay] = [.morning, .noon, .evening]
+                
+                // For each time of day, create a slightly different score to simulate variation throughout the day
+                for (_, timeOfDay) in timesOfDay.enumerated() {
+                    // Create date components for each time of day
+                    var dateComponents = calendar.dateComponents([.year, .month, .day], from: dayStart)
+                    switch timeOfDay {
+                    case .morning:
+                        dateComponents.hour = 8
+                    case .noon:
+                        dateComponents.hour = 13
+                    case .evening:
+                        dateComponents.hour = 19
+                    }
+                    let timePoint = calendar.date(from: dateComponents) ?? dayStart
+                    
+                    // Calculate the overall score based on available metrics with slight variations
+                    var weightedTotal = 0
+                    var totalWeight = 0
+                    
+                    // Variable to create natural daily variation
+                    // Morning scores tend to be better, afternoon dips, evenings recover
+                    let timeVariation: Int
+                    switch timeOfDay {
+                    case .morning: 
+                        timeVariation = Int.random(in: 0...5) // Slight boost
+                    case .noon: 
+                        timeVariation = Int.random(in: -8...0) // Usually a dip
+                    case .evening: 
+                        timeVariation = Int.random(in: -3...3) // Mixed recovery
+                    }
+                    
+                    // Also add some natural daily variation
+                    let dailyVariation = Int.random(in: -5...5)
+                    
+                    // Add heart rate score (inverted since lower is better)
+                    if let hr = heartRateValue, hr > 0 {
+                        // Heart rate is usually higher in the morning and evening, lower at rest
+                        let hrVariation: Double
+                        switch timeOfDay {
+                        case .morning: hrVariation = 2.0
+                        case .noon: hrVariation = -1.0
+                        case .evening: hrVariation = 3.0
+                        }
+                        
+                        let adjustedHr = hr + hrVariation
+                        let invertedScore = max(40, 100 - Int(adjustedHr))
+                        weightedTotal += invertedScore * 4 // Heart rate weight
+                        totalWeight += 4
+                    }
+                    
+                    // Add HRV score
+                    if let hrv = hrvValue, hrv > 0 {
+                        // HRV tends to be higher at night/morning, lower during day activities
+                        let hrvVariation: Double
+                        switch timeOfDay {
+                        case .morning: hrvVariation = 5.0
+                        case .noon: hrvVariation = -3.0
+                        case .evening: hrvVariation = 0.0
+                        }
+                        
+                        let adjustedHrv = hrv + hrvVariation
+                        // Normalize HRV to 0-100 scale using reasonable min/max values
+                        let normalizedHrv = min(100, max(30, Int(adjustedHrv * 100 / 80)))
+                        weightedTotal += normalizedHrv * 5 // HRV weight
+                        totalWeight += 5
+                    }
+                    
+                    // Add sleep duration score
+                    if let sleep = sleepValue, sleep > 0 {
+                        // Convert sleep hours to 0-100 scale (8 hours = 100)
+                        let sleepScore = min(100, Int(sleep * 100 / 8))
+                        weightedTotal += sleepScore * 2 // Sleep weight
+                        totalWeight += 2
+                    }
+                    
+                    // Add sleep quality score
+                    if let quality = sleepQualityValue, quality > 0 {
+                        weightedTotal += Int(quality) * 3 // Sleep quality weight
+                        totalWeight += 3
+                    }
+                    
+                    // Add a reasonable training load score as a fallback
+                    let trainingLoadScore = 75 // Default neutral score
+                    weightedTotal += trainingLoadScore * 2 // Training load weight
+                    totalWeight += 2
+                    
+                    // Calculate final score with variations
+                    let baseScore = totalWeight > 0 ? weightedTotal / totalWeight : 0
+                    let overallScore = max(0, min(100, baseScore + timeVariation + dailyVariation))
+                    
+                    // Create a recovery score for this date and time of day
+                    let historicalScore = RecoveryScore(
+                        date: timePoint,
+                        overallScore: overallScore,
+                        heartRateScore: MetricScore.sampleHeartRate, // Placeholder
+                        hrvScore: hrvValue != nil ? Int(hrvValue!) : 0,
+                        sleepScore: sleepValue != nil ? Int(sleepValue! * 100 / 8) : 0,
+                        trainingLoadScore: MetricScore.sampleTrainingLoad, // Placeholder
+                        stressScore: 75, // Default neutral value
+                        timeOfDay: timeOfDay
+                    )
+                    
+                    generatedScores.append(historicalScore)
+                }
+            }
+        }
+        
+        // If we generated any scores, save them to history
+        if !generatedScores.isEmpty {
+            // Sort by date (newest first) and time of day
+            let calendar = Calendar.current
+            recoveryScoreHistory = generatedScores.sorted { (score1, score2) in
+                if calendar.isDate(score1.date, inSameDayAs: score2.date) {
+                    // Same day, sort by time of day (evening is "latest")
+                    let timeOrder: [RecoveryScoreData.TimeOfDay] = [.evening, .noon, .morning]
+                    let index1 = timeOrder.firstIndex(of: score1.timeOfDay) ?? 0
+                    let index2 = timeOrder.firstIndex(of: score2.timeOfDay) ?? 0
+                    return index1 < index2
+                } else {
+                    // Different days, sort by date (newest first)
+                    return score1.date > score2.date
+                }
+            }
+            
+            // Keep only the last 28 days
+            let oldestAllowedDate = calendar.date(byAdding: .day, value: -28, to: Date()) ?? Date()
+            recoveryScoreHistory.removeAll(where: { $0.date < oldestAllowedDate })
+            
+            // Save to UserDefaults
+            saveRecoveryScoreHistory()
+        }
+        
+        isLoading = false
+    }
+    
+    /// Saves the recovery score history to UserDefaults
+    private func saveRecoveryScoreHistory() {
+        // Convert RecoveryScore objects to RecoveryScoreData for storage
+        let historyData = recoveryScoreHistory.map { score -> RecoveryScoreData in
+            RecoveryScoreData(
+                date: score.date,
+                overallScore: score.overallScore,
+                hrvScore: score.hrvScore,
+                sleepScore: score.sleepScore,
+                stressScore: score.stressScore,
+                timeOfDay: score.timeOfDay
+            )
+        }
+        
+        if let encoded = try? JSONEncoder().encode(historyData) {
+            UserDefaults.standard.set(encoded, forKey: kRecoveryScoreHistory)
+        }
+    }
+    
+    /// Saves the current recovery score to history
+    private func saveCurrentScoreToHistory() {
+        guard let currentScore = currentRecoveryScore else { return }
+        
+        // Determine the current time of day
+        let currentTimeOfDay = RecoveryScoreData.TimeOfDay.current()
+        
+        // Check if we already have a score for today with the same time of day
+        let calendar = Calendar.current
+        let existingScores = recoveryScoreHistory.filter { 
+            calendar.isDate($0.date, inSameDayAs: currentScore.date) && 
+            $0.timeOfDay == currentTimeOfDay
+        }
+        
+        // Remove any existing scores for the same time of day
+        if !existingScores.isEmpty {
+            recoveryScoreHistory.removeAll(where: { score in
+                existingScores.contains(where: { $0.id == score.id })
+            })
+        }
+        
+        // Add the current score to history
+        recoveryScoreHistory.append(currentScore)
+        
+        // Sort by date (newest first) and then by time of day (evening, noon, morning)
+        recoveryScoreHistory.sort { (score1, score2) in
+            if calendar.isDate(score1.date, inSameDayAs: score2.date) {
+                // Same day, sort by time of day (evening is "latest")
+                let timeOrder: [RecoveryScoreData.TimeOfDay] = [.evening, .noon, .morning]
+                let index1 = timeOrder.firstIndex(of: score1.timeOfDay) ?? 0
+                let index2 = timeOrder.firstIndex(of: score2.timeOfDay) ?? 0
+                return index1 < index2
+            } else {
+                // Different days, sort by date (newest first)
+                return score1.date > score2.date
+            }
+        }
+        
+        // Limit to scores from the last 28 days
+        let oldestAllowedDate = calendar.date(byAdding: .day, value: -28, to: Date()) ?? Date()
+        recoveryScoreHistory.removeAll(where: { $0.date < oldestAllowedDate })
+        
+        // Save to UserDefaults
+        saveRecoveryScoreHistory()
+    }
+    
+    /// Gets the recovery score history for the last 28 days
+    func getRecoveryScoreHistory() -> [RecoveryScore] {
+        return recoveryScoreHistory
+    }
+    
+    /// Gets the average recovery score for a given day
+    func getAverageRecoveryScore(forDay date: Date) -> Int? {
+        let calendar = Calendar.current
+        let scoresForDay = recoveryScoreHistory.filter {
+            calendar.isDate($0.date, inSameDayAs: date)
+        }
+        
+        if scoresForDay.isEmpty {
+            return nil
+        }
+        
+        let sum = scoresForDay.reduce(0) { $0 + $1.overallScore }
+        return sum / scoresForDay.count
     }
     
     // MARK: - Initial Data Loading
@@ -82,6 +396,9 @@ class RecoveryMetrics: ObservableObject {
         defer { isLoading = false }
         
         await loadHealthKitData()
+        
+        // Save current score to history after loading
+        saveCurrentScoreToHistory()
     }
     
     @MainActor
@@ -529,8 +846,12 @@ class RecoveryMetrics: ObservableObject {
                 deltaFromAverage: 0,
                 isPositiveDelta: true
             ),
-            stressScore: 75
+            stressScore: 75,
+            timeOfDay: RecoveryScoreData.TimeOfDay.current()
         )
+        
+        // After setting currentRecoveryScore, save it to history
+        saveCurrentScoreToHistory()
     }
     
     /// Calculates training load score by comparing past week to 28-day average
@@ -941,7 +1262,8 @@ class RecoveryMetrics: ObservableObject {
                 deltaFromAverage: trainingLoadDelta,
                 isPositiveDelta: false // Excessive increase is not positive
             ),
-            stressScore: 35
+            stressScore: 35,
+            timeOfDay: RecoveryScoreData.TimeOfDay.current()
         )
         
         self.currentRecoveryScore = poorRecoveryScore
@@ -970,6 +1292,7 @@ struct RecoveryScore: Identifiable {
     let sleepScore: Int
     let trainingLoadScore: MetricScore
     let stressScore: Int
+    let timeOfDay: RecoveryScoreData.TimeOfDay
     
     static var sample: RecoveryScore {
         RecoveryScore(
@@ -979,7 +1302,8 @@ struct RecoveryScore: Identifiable {
             hrvScore: 76,
             sleepScore: 82,
             trainingLoadScore: MetricScore.sampleTrainingLoad,
-            stressScore: 75
+            stressScore: 75,
+            timeOfDay: RecoveryScoreData.TimeOfDay.current()
         )
     }
 }
@@ -1346,5 +1670,40 @@ extension Double {
     var isHeartRate: Bool {
         // Heart rate values are typically between 40-100
         return self >= 40 && self <= 100
+    }
+}
+
+// Structure for persisting recovery score history
+struct RecoveryScoreData: Codable {
+    let date: Date
+    let overallScore: Int
+    let hrvScore: Int
+    let sleepScore: Int
+    let stressScore: Int
+    let timeOfDay: TimeOfDay
+    
+    enum TimeOfDay: String, Codable {
+        case morning
+        case noon
+        case evening
+        
+        var displayName: String {
+            switch self {
+            case .morning: return "Morning"
+            case .noon: return "Noon"
+            case .evening: return "Evening"
+            }
+        }
+        
+        static func current() -> TimeOfDay {
+            let hour = Calendar.current.component(.hour, from: Date())
+            if hour < 12 {
+                return .morning
+            } else if hour < 17 {
+                return .noon
+            } else {
+                return .evening
+            }
+        }
     }
 }
