@@ -72,7 +72,7 @@ class ActivityManager: ObservableObject, Sendable {
     }
     
     /// Calculate total training load for the specified number of days
-    func calculateTrainingLoad(forDays days: Int = 14) -> Int {
+    func calculateTrainingLoad(forDays days: Int = 7) -> Int {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         var totalLoad = 0
