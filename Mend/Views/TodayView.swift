@@ -721,18 +721,8 @@ struct RecoveryInsightCard: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, MendSpacing.medium)
                     
-                    // Recovery timeline visualization
+                    // Training implications section
                     VStack(alignment: .leading, spacing: MendSpacing.small) {
-                        Text("Typical Recovery Timeline")
-                            .font(MendFont.subheadline.bold())
-                            .foregroundColor(textColor)
-                        
-                        RecoveryTimelineView(
-                            currentPercentage: 0, // Start at 0% recovered for insights
-                            daysRemaining: insight.recoveryDays
-                        )
-                        .padding(.bottom, MendSpacing.small)
-                        
                         Text("Implications for Training")
                             .font(MendFont.subheadline.bold())
                             .foregroundColor(textColor)
@@ -767,72 +757,6 @@ struct RecoveryInsightCard: View {
             return "For strength training, allow \(String(format: "%.1f", insight.recoveryDays)) days before targeting the same muscle groups again. Consider a split routine to train different areas while others recover."
         default:
             return "For this activity type, planning about \(String(format: "%.1f", insight.recoveryDays)) days between sessions is optimal for recovery and progression."
-        }
-    }
-}
-
-struct RecoveryTimelineView: View {
-    let currentPercentage: Int
-    let daysRemaining: Double
-    @Environment(\.colorScheme) var colorScheme
-    
-    private var textColor: Color {
-        colorScheme == .dark ? MendColors.darkText : MendColors.text
-    }
-    
-    private var secondaryTextColor: Color {
-        colorScheme == .dark ? MendColors.darkSecondaryText : MendColors.secondaryText
-    }
-    
-    private var cardBackgroundColor: Color {
-        colorScheme == .dark ? MendColors.darkCardBackground : MendColors.cardBackground
-    }
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: MendSpacing.medium) {
-            Text("Recovery Status")
-                .font(MendFont.headline)
-                .foregroundColor(secondaryTextColor)
-                .padding(.horizontal, MendSpacing.medium)
-            
-            HStack(spacing: MendSpacing.small) {
-                Image(systemName: "clock.arrow.circlepath")
-                    .foregroundColor(currentPercentage >= 100 ? 
-                                     MendColors.positive : 
-                                     currentPercentage > 50 ? MendColors.neutral : MendColors.negative)
-                    .font(.system(size: 18))
-                
-                if currentPercentage >= 100 {
-                    Text("You've fully recovered and are ready for training.")
-                        .font(MendFont.subheadline)
-                        .foregroundColor(textColor)
-                } else {
-                    Text("Based on your recent activities, you need approximately \(String(format: "%.1f", daysRemaining)) more days to fully recover.")
-                        .font(MendFont.subheadline)
-                        .foregroundColor(textColor)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .padding()
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(cardBackgroundColor)
-            .cornerRadius(MendCornerRadius.medium)
-            .padding(.horizontal, MendSpacing.medium)
-        }
-    }
-    
-    // Helper function to format remaining time in a user-friendly way
-    private func formatTimeRemaining(days: Double) -> String {
-        if days < 1/24 { // Less than 1 hour
-            return "< 1 hour remaining"
-        } else if days < 1 {
-            let hours = Int(days * 24)
-            return "\(hours) hours remaining"
-        } else if days < 2 {
-            let hours = Int((days - Double(Int(days))) * 24)
-            return "\(Int(days)) day \(hours) hours remaining"
-        } else {
-            return "\(Int(ceil(days))) days remaining"
         }
     }
 }
