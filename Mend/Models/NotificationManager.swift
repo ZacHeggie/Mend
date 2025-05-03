@@ -54,28 +54,37 @@ class NotificationManager: ObservableObject {
         // Request permission if we haven't already
         center.requestAuthorization(options: [.alert, .sound]) { granted, error in
             if granted {
-                // Create the notification content
-                let content = UNMutableNotificationContent()
-                content.title = title
-                
-                // Get the current recovery data
-                if let recoveryMetrics = RecoveryMetrics.shared.currentRecoveryScore {
-                    content.body = "Your recovery score is \(recoveryMetrics.overallScore). \(RecoveryMetrics.scoreDescription(for: recoveryMetrics))"
-                } else {
-                    content.body = "Check your latest recovery metrics"
+                // First, ensure data is refreshed before getting recovery score
+                Task {
+                    // Force refresh of health data
+                    await RecoveryMetrics.shared.refreshWithReset()
+                    
+                    // Now create notification content with updated data
+                    await MainActor.run {
+                        // Create the notification content
+                        let content = UNMutableNotificationContent()
+                        content.title = title
+                        
+                        // Get the current recovery data
+                        if let recoveryMetrics = RecoveryMetrics.shared.currentRecoveryScore {
+                            content.body = "Your recovery score is \(recoveryMetrics.overallScore). \(RecoveryMetrics.scoreDescription(for: recoveryMetrics))"
+                        } else {
+                            content.body = "Check your latest recovery metrics"
+                        }
+                        
+                        // Configure trigger for daily at the specified hour
+                        var dateComponents = DateComponents()
+                        dateComponents.hour = hour
+                        dateComponents.minute = 0
+                        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
+                        
+                        // Create the request
+                        let request = UNNotificationRequest(identifier: "mend_recovery_\(hour)", content: content, trigger: trigger)
+                        
+                        // Add the request
+                        center.add(request)
+                    }
                 }
-                
-                // Configure trigger for daily at the specified hour
-                var dateComponents = DateComponents()
-                dateComponents.hour = hour
-                dateComponents.minute = 0
-                let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
-                
-                // Create the request
-                let request = UNNotificationRequest(identifier: "mend_recovery_\(hour)", content: content, trigger: trigger)
-                
-                // Add the request
-                center.add(request)
             }
         }
     }
@@ -86,25 +95,34 @@ class NotificationManager: ObservableObject {
         // Request permission if we haven't already
         center.requestAuthorization(options: [.alert, .sound]) { granted, error in
             if granted {
-                // Create the notification content
-                let content = UNMutableNotificationContent()
-                content.title = "Test Recovery Notification"
-                
-                // Get the current recovery data
-                if let recoveryMetrics = RecoveryMetrics.shared.currentRecoveryScore {
-                    content.body = "Your recovery score is \(recoveryMetrics.overallScore). \(RecoveryMetrics.scoreDescription(for: recoveryMetrics))"
-                } else {
-                    content.body = "Test notification - check your latest recovery metrics"
+                // First, ensure data is refreshed before getting recovery score
+                Task {
+                    // Force refresh of health data
+                    await RecoveryMetrics.shared.refreshWithReset()
+                    
+                    // Now create notification content with updated data
+                    await MainActor.run {
+                        // Create the notification content
+                        let content = UNMutableNotificationContent()
+                        content.title = "Test Recovery Notification"
+                        
+                        // Get the current recovery data
+                        if let recoveryMetrics = RecoveryMetrics.shared.currentRecoveryScore {
+                            content.body = "Your recovery score is \(recoveryMetrics.overallScore). \(RecoveryMetrics.scoreDescription(for: recoveryMetrics))"
+                        } else {
+                            content.body = "Test notification - check your latest recovery metrics"
+                        }
+                        
+                        // Configure trigger for immediate delivery (5 seconds from now)
+                        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)
+                        
+                        // Create the request
+                        let request = UNNotificationRequest(identifier: "mend_recovery_test", content: content, trigger: trigger)
+                        
+                        // Add the request
+                        center.add(request)
+                    }
                 }
-                
-                // Configure trigger for immediate delivery (5 seconds from now)
-                let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)
-                
-                // Create the request
-                let request = UNNotificationRequest(identifier: "mend_recovery_test", content: content, trigger: trigger)
-                
-                // Add the request
-                center.add(request)
             }
         }
     }

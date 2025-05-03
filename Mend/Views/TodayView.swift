@@ -59,10 +59,28 @@ struct TodayView: View {
                         }
                     }
                     .padding(.vertical)
+                    .padding(.bottom, 100) // Add extra padding at the bottom to prevent content from being obscured by tab bar
                 }
                 .background(backgroundColor.ignoresSafeArea())
                 .navigationTitle("Today")
                 .navigationBarItems(trailing: notificationButton)
+                .toolbarColorScheme(colorScheme, for: .navigationBar)
+                .toolbarBackground(backgroundColor, for: .navigationBar)
+                .toolbarBackground(.visible, for: .navigationBar)
+                .onChange(of: colorScheme) { oldValue, newValue in
+                    // Force UI to update when color scheme changes
+                    let needsToRefreshUI = true
+                    if needsToRefreshUI {
+                        Task {
+                            // Short delay to let system complete theme change
+                            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+                            await MainActor.run {
+                                // This will trigger a UI refresh
+                                loadRecentActivities()
+                            }
+                        }
+                    }
+                }
                 .onAppear {
                     Task {
                         await refreshData()
@@ -170,10 +188,7 @@ struct TodayView: View {
     
     private func recoveryScoreView(score: RecoveryScore) -> some View {
         VStack(alignment: .leading, spacing: MendSpacing.medium) {
-            Text("Today's Recovery")
-                .font(MendFont.headline)
-                .foregroundColor(secondaryTextColor)
-                .padding(.horizontal, MendSpacing.medium)
+            mendSectionHeader(title: "Today's Recovery", colorScheme: colorScheme)
             
             VStack(spacing: 0) {
                 HStack(spacing: MendSpacing.large) {
@@ -236,22 +251,21 @@ struct TodayView: View {
     
     private var recentActivitiesView: some View {
         VStack(alignment: .leading, spacing: MendSpacing.medium) {
-            HStack {
-                Text("Today's Activities")
-                    .font(MendFont.headline)
-                    .foregroundColor(secondaryTextColor)
+            ZStack {
+                mendSectionHeader(title: "Today's Activities", colorScheme: colorScheme)
                 
-                Spacer()
-                
-                Button(action: {
-                    showingAddActivity = true
-                }) {
-                    Text("Add")
-                        .font(MendFont.subheadline.weight(.medium))
-                        .foregroundColor(MendColors.primary)
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        showingAddActivity = true
+                    }) {
+                        Text("Add")
+                            .font(MendFont.subheadline.weight(.medium))
+                            .foregroundColor(MendColors.primary)
+                    }
+                    .padding(.trailing, MendSpacing.medium)
                 }
             }
-            .padding(.horizontal, MendSpacing.medium)
             
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: MendSpacing.medium) {
@@ -267,10 +281,7 @@ struct TodayView: View {
     
     private func recommendationsView(score: RecoveryScore) -> some View {
         VStack(alignment: .leading, spacing: MendSpacing.medium) {
-            Text("Recommended Activities")
-                .font(MendFont.headline)
-                .foregroundColor(secondaryTextColor)
-                .padding(.horizontal, MendSpacing.medium)
+            mendSectionHeader(title: "Recommended Activities", colorScheme: colorScheme)
             
             // Show personalized recommendations if available, otherwise use basic recommendations
             let recommendationsToShow = !personalizedRecommendations.isEmpty ? 
@@ -285,10 +296,7 @@ struct TodayView: View {
     
     private var recoveryInsightsView: some View {
         VStack(alignment: .leading, spacing: MendSpacing.medium) {
-            Text("Recovery Insights")
-                .font(MendFont.headline)
-                .foregroundColor(secondaryTextColor)
-                .padding(.horizontal, MendSpacing.medium)
+            mendSectionHeader(title: "Recovery Insights", colorScheme: colorScheme)
             
             ForEach(recoveryInsights) { insight in
                 RecoveryInsightCard(insight: insight, colorScheme: colorScheme)
@@ -430,7 +438,10 @@ struct TodayView: View {
             Text("Recommended Activities")
                 .font(MendFont.headline)
                 .foregroundColor(secondaryTextColor)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 10)
                 .padding(.horizontal, MendSpacing.medium)
+                .background(colorScheme == .dark ? MendColors.darkBackground : MendColors.background)
             
             // Show personalized recommendations if available, otherwise use basic recommendations
             let recommendationsToShow = !personalizedRecommendations.isEmpty ? 
@@ -449,7 +460,10 @@ struct TodayView: View {
             Text("Recovery Insights")
                 .font(MendFont.headline)
                 .foregroundColor(secondaryTextColor)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 10)
                 .padding(.horizontal, MendSpacing.medium)
+                .background(colorScheme == .dark ? MendColors.darkBackground : MendColors.background)
             
             ForEach(recoveryInsights) { insight in
                 RecoveryInsightCard(insight: insight, colorScheme: colorScheme)
@@ -707,18 +721,8 @@ struct RecoveryInsightCard: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, MendSpacing.medium)
                     
-                    // Recovery timeline visualization
+                    // Training implications section
                     VStack(alignment: .leading, spacing: MendSpacing.small) {
-                        Text("Typical Recovery Timeline")
-                            .font(MendFont.subheadline.bold())
-                            .foregroundColor(textColor)
-                        
-                        RecoveryTimelineView(
-                            currentPercentage: 0, // Start at 0% recovered for insights
-                            daysRemaining: insight.recoveryDays
-                        )
-                        .padding(.bottom, MendSpacing.small)
-                        
                         Text("Implications for Training")
                             .font(MendFont.subheadline.bold())
                             .foregroundColor(textColor)
@@ -753,72 +757,6 @@ struct RecoveryInsightCard: View {
             return "For strength training, allow \(String(format: "%.1f", insight.recoveryDays)) days before targeting the same muscle groups again. Consider a split routine to train different areas while others recover."
         default:
             return "For this activity type, planning about \(String(format: "%.1f", insight.recoveryDays)) days between sessions is optimal for recovery and progression."
-        }
-    }
-}
-
-struct RecoveryTimelineView: View {
-    let currentPercentage: Int
-    let daysRemaining: Double
-    @Environment(\.colorScheme) var colorScheme
-    
-    private var textColor: Color {
-        colorScheme == .dark ? MendColors.darkText : MendColors.text
-    }
-    
-    private var secondaryTextColor: Color {
-        colorScheme == .dark ? MendColors.darkSecondaryText : MendColors.secondaryText
-    }
-    
-    private var cardBackgroundColor: Color {
-        colorScheme == .dark ? MendColors.darkCardBackground : MendColors.cardBackground
-    }
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: MendSpacing.medium) {
-            Text("Recovery Status")
-                .font(MendFont.headline)
-                .foregroundColor(secondaryTextColor)
-                .padding(.horizontal, MendSpacing.medium)
-            
-            HStack(spacing: MendSpacing.small) {
-                Image(systemName: "clock.arrow.circlepath")
-                    .foregroundColor(currentPercentage >= 100 ? 
-                                     MendColors.positive : 
-                                     currentPercentage > 50 ? MendColors.neutral : MendColors.negative)
-                    .font(.system(size: 18))
-                
-                if currentPercentage >= 100 {
-                    Text("You've fully recovered and are ready for training.")
-                        .font(MendFont.subheadline)
-                        .foregroundColor(textColor)
-                } else {
-                    Text("Based on your recent activities, you need approximately \(String(format: "%.1f", daysRemaining)) more days to fully recover.")
-                        .font(MendFont.subheadline)
-                        .foregroundColor(textColor)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .padding()
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(cardBackgroundColor)
-            .cornerRadius(MendCornerRadius.medium)
-            .padding(.horizontal, MendSpacing.medium)
-        }
-    }
-    
-    // Helper function to format remaining time in a user-friendly way
-    private func formatTimeRemaining(days: Double) -> String {
-        if days < 1/24 { // Less than 1 hour
-            return "< 1 hour remaining"
-        } else if days < 1 {
-            let hours = Int(days * 24)
-            return "\(hours) hours remaining"
-        } else if days < 2 {
-            let hours = Int((days - Double(Int(days))) * 24)
-            return "\(Int(days)) day \(hours) hours remaining"
-        } else {
-            return "\(Int(ceil(days))) days remaining"
         }
     }
 }

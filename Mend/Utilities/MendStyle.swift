@@ -119,6 +119,17 @@ extension View {
     func adaptiveSecondaryTextColor(colorScheme: ColorScheme) -> Color {
         colorScheme == .dark ? MendColors.darkSecondaryText : MendColors.secondaryText
     }
+    
+    // Standard section header styling to ensure consistency across the app
+    func mendSectionHeader(title: String, colorScheme: ColorScheme) -> some View {
+        Text(title)
+            .font(MendFont.headline)
+            .foregroundColor(colorScheme == .dark ? MendColors.darkSecondaryText : MendColors.secondaryText)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 10)
+            .padding(.horizontal, MendSpacing.medium)
+            .background(colorScheme == .dark ? MendColors.darkBackground : MendColors.background)
+    }
 }
 
 // MARK: - Animation Extensions

@@ -38,28 +38,27 @@ class RecoveryMetrics: ObservableObject {
     }
     
     private init() {
-        // Reset currentRecoveryScore to ensure we don't show stale data
-        currentRecoveryScore = nil
+        // Reset for initial state
         isLoading = true
         isInitialLoadComplete = false
         
-        // Load historical recovery scores
+        // Load recovery score history
         loadRecoveryScoreHistory()
         
-        // Setup initial data load
-        Task { 
-            do {
-                try await healthKit.requestAuthorization()
-                
-                // Perform initial data load without cool-down calculation
-                await performInitialDataLoad()
-                
-                // Mark initial load as complete
-                isInitialLoadComplete = true
-            } catch {
-                self.error = error
-                isLoading = false
+        // Call refresh methods upon initialization
+        Task {
+            // Load data from HealthKit or simulated sources
+            await loadHealthKitData()
+            
+            // After loading data, if history is empty, try to generate historical data
+            if recoveryScoreHistory.isEmpty {
+                // Real device installation will have an empty history but might have HealthKit data
+                await generateHistoricalRecoveryScores(forceGeneration: true)
             }
+            
+            // Mark as no longer loading
+            isLoading = false
+            isInitialLoadComplete = true
         }
     }
     
@@ -74,29 +73,29 @@ class RecoveryMetrics: ObservableObject {
                 RecoveryScore(
                     date: data.date,
                     overallScore: data.overallScore,
-                    heartRateScore: MetricScore.sampleHeartRate, // Use sample as placeholder
+                    heartRateScore: MetricScore.sampleHeartRate, // Placeholder
                     hrvScore: data.hrvScore,
                     sleepScore: data.sleepScore,
-                    trainingLoadScore: MetricScore.sampleTrainingLoad, // Use sample as placeholder
+                    trainingLoadScore: MetricScore.sampleTrainingLoad, // Placeholder
                     stressScore: data.stressScore,
                     timeOfDay: data.timeOfDay
                 )
-            }.sorted(by: { $0.date > $1.date }) // Sort by date (newest first)
-        }
-        
-        // If history is empty, try to generate historical data
-        if recoveryScoreHistory.isEmpty {
-            Task {
-                await generateHistoricalRecoveryScores()
             }
+            
+            // Sort history by date (newest first)
+            recoveryScoreHistory.sort { $0.date > $1.date }
+        } else {
+            // If no history found, recoveryScoreHistory will remain empty
+            // We'll try to generate historical data in init() after loadData()
+            recoveryScoreHistory = []
         }
     }
     
     /// Generates recovery scores for past 28 days when history buffer is empty
     @MainActor
-    private func generateHistoricalRecoveryScores() async {
-        // Only proceed if we have no existing history
-        guard recoveryScoreHistory.isEmpty else { return }
+    public func generateHistoricalRecoveryScores(forceGeneration: Bool = false) async {
+        // Only proceed if we have no existing history or if generation is forced
+        guard recoveryScoreHistory.isEmpty || forceGeneration else { return }
         
         // Show loading indicator while generating historical data
         isLoading = true
@@ -131,11 +130,15 @@ class RecoveryMetrics: ObservableObject {
         // Only continue if we have at least some data
         guard !heartRateByDate.isEmpty || !hrvByDate.isEmpty || !sleepByDate.isEmpty || !sleepQualityByDate.isEmpty else {
             isLoading = false
+            print("No historical HealthKit data found for generating recovery scores")
             return
         }
         
         // Generate scores for each of the last 28 days
         var generatedScores: [RecoveryScore] = []
+        
+        // Log the data availability to debug
+        print("Available data for generating recovery scores - Heart Rate: \(heartRateByDate.count) days, HRV: \(hrvByDate.count) days, Sleep: \(sleepByDate.count) days, Sleep Quality: \(sleepQualityByDate.count) days")
         
         for dayOffset in 0..<28 {
             // Calculate the date for this historical entry
@@ -153,7 +156,7 @@ class RecoveryMetrics: ObservableObject {
                 // Create the three time points for this day
                 let timesOfDay: [RecoveryScoreData.TimeOfDay] = [.morning, .noon, .evening]
                 
-                // For each time of day, create a slightly different score to simulate variation throughout the day
+                // For each time of day, create a score
                 for (_, timeOfDay) in timesOfDay.enumerated() {
                     // Create date components for each time of day
                     var dateComponents = calendar.dateComponents([.year, .month, .day], from: dayStart)
@@ -163,38 +166,27 @@ class RecoveryMetrics: ObservableObject {
                     case .noon:
                         dateComponents.hour = 13
                     case .evening:
-                        dateComponents.hour = 19
+                        dateComponents.hour = 20
                     }
                     let timePoint = calendar.date(from: dateComponents) ?? dayStart
                     
-                    // Calculate the overall score based on available metrics with slight variations
+                    // Get developer settings to determine if we should use random variations
+                    let useRandomVariation = DeveloperSettings.shared.useRandomVariation
+                    
+                    // Calculate the overall score based on available metrics
                     var weightedTotal = 0
                     var totalWeight = 0
                     
-                    // Variable to create natural daily variation
-                    // Morning scores tend to be better, afternoon dips, evenings recover
-                    let timeVariation: Int
-                    switch timeOfDay {
-                    case .morning: 
-                        timeVariation = Int.random(in: 0...5) // Slight boost
-                    case .noon: 
-                        timeVariation = Int.random(in: -8...0) // Usually a dip
-                    case .evening: 
-                        timeVariation = Int.random(in: -3...3) // Mixed recovery
-                    }
-                    
-                    // Also add some natural daily variation
-                    let dailyVariation = Int.random(in: -5...5)
-                    
                     // Add heart rate score (inverted since lower is better)
                     if let hr = heartRateValue, hr > 0 {
-                        // Heart rate is usually higher in the morning and evening, lower at rest
-                        let hrVariation: Double
-                        switch timeOfDay {
-                        case .morning: hrVariation = 2.0
-                        case .noon: hrVariation = -1.0
-                        case .evening: hrVariation = 3.0
-                        }
+                        // Heart rate variations by time of day (only if random variation is enabled)
+                        let hrVariation: Double = useRandomVariation ? {
+                            switch timeOfDay {
+                            case .morning: return 2.0
+                            case .noon: return -1.0
+                            case .evening: return 3.0
+                            }
+                        }() : 0.0
                         
                         let adjustedHr = hr + hrVariation
                         let invertedScore = max(40, 100 - Int(adjustedHr))
@@ -204,13 +196,14 @@ class RecoveryMetrics: ObservableObject {
                     
                     // Add HRV score
                     if let hrv = hrvValue, hrv > 0 {
-                        // HRV tends to be higher at night/morning, lower during day activities
-                        let hrvVariation: Double
-                        switch timeOfDay {
-                        case .morning: hrvVariation = 5.0
-                        case .noon: hrvVariation = -3.0
-                        case .evening: hrvVariation = 0.0
-                        }
+                        // HRV variations by time of day (only if random variation is enabled)
+                        let hrvVariation: Double = useRandomVariation ? {
+                            switch timeOfDay {
+                            case .morning: return 5.0
+                            case .noon: return -3.0
+                            case .evening: return 0.0
+                            }
+                        }() : 0.0
                         
                         let adjustedHrv = hrv + hrvVariation
                         // Normalize HRV to 0-100 scale using reasonable min/max values
@@ -238,8 +231,20 @@ class RecoveryMetrics: ObservableObject {
                     weightedTotal += trainingLoadScore * 2 // Training load weight
                     totalWeight += 2
                     
-                    // Calculate final score with variations
+                    // Calculate final score with variations only if random variation is enabled
                     let baseScore = totalWeight > 0 ? weightedTotal / totalWeight : 0
+                    
+                    // Apply random variations only if enabled in developer settings
+                    let timeVariation = useRandomVariation ? {
+                        switch timeOfDay {
+                        case .morning: return Int.random(in: 0...5) // Slight boost
+                        case .noon: return Int.random(in: -8...0) // Usually a dip
+                        case .evening: return Int.random(in: -3...3) // Mixed recovery
+                        }
+                    }() : 0
+                    
+                    let dailyVariation = useRandomVariation ? Int.random(in: -5...5) : 0
+                    
                     let overallScore = max(0, min(100, baseScore + timeVariation + dailyVariation))
                     
                     // Create a recovery score for this date and time of day
@@ -282,6 +287,9 @@ class RecoveryMetrics: ObservableObject {
             
             // Save to UserDefaults
             saveRecoveryScoreHistory()
+            print("Successfully generated and saved \(generatedScores.count) historical recovery scores")
+        } else {
+            print("No historical recovery scores were generated due to lack of data")
         }
         
         isLoading = false
@@ -1283,7 +1291,8 @@ class RecoveryMetrics: ObservableObject {
     }
 }
 
-struct RecoveryScore: Identifiable {
+// Add Codable conformance to RecoveryScore
+struct RecoveryScore: Identifiable, Codable {
     let id = UUID()
     let date: Date
     let overallScore: Int
@@ -1293,6 +1302,51 @@ struct RecoveryScore: Identifiable {
     let trainingLoadScore: MetricScore
     let stressScore: Int
     let timeOfDay: RecoveryScoreData.TimeOfDay
+    
+    // Required for Codable to work with UUID and MetricScore fields
+    enum CodingKeys: String, CodingKey {
+        case date, overallScore, hrvScore, sleepScore, stressScore, timeOfDay
+        // Exclude heartRateScore and trainingLoadScore from encoding/decoding
+        // as they'll be recreated when needed
+    }
+    
+    // Regular initializer
+    init(date: Date, overallScore: Int, heartRateScore: MetricScore, hrvScore: Int, sleepScore: Int, trainingLoadScore: MetricScore, stressScore: Int, timeOfDay: RecoveryScoreData.TimeOfDay) {
+        self.date = date
+        self.overallScore = overallScore
+        self.heartRateScore = heartRateScore
+        self.hrvScore = hrvScore
+        self.sleepScore = sleepScore
+        self.trainingLoadScore = trainingLoadScore
+        self.stressScore = stressScore
+        self.timeOfDay = timeOfDay
+    }
+    
+    // Custom initializer from decoder
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        date = try container.decode(Date.self, forKey: .date)
+        overallScore = try container.decode(Int.self, forKey: .overallScore)
+        hrvScore = try container.decode(Int.self, forKey: .hrvScore)
+        sleepScore = try container.decode(Int.self, forKey: .sleepScore)
+        stressScore = try container.decode(Int.self, forKey: .stressScore)
+        timeOfDay = try container.decode(RecoveryScoreData.TimeOfDay.self, forKey: .timeOfDay)
+        
+        // Set placeholder values for non-serialized properties
+        heartRateScore = MetricScore.sampleHeartRate
+        trainingLoadScore = MetricScore.sampleTrainingLoad
+    }
+    
+    // Custom encode method to exclude certain properties
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(date, forKey: .date)
+        try container.encode(overallScore, forKey: .overallScore)
+        try container.encode(hrvScore, forKey: .hrvScore)
+        try container.encode(sleepScore, forKey: .sleepScore)
+        try container.encode(stressScore, forKey: .stressScore)
+        try container.encode(timeOfDay, forKey: .timeOfDay)
+    }
     
     static var sample: RecoveryScore {
         RecoveryScore(

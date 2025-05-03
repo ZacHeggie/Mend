@@ -265,7 +265,7 @@ extension RecoveryHistoryChart {
                     switch timeOfDay {
                     case .morning: dateComponents.hour = 8
                     case .noon: dateComponents.hour = 13
-                    case .evening: dateComponents.hour = 19
+                    case .evening: dateComponents.hour = 20
                     }
                     
                     let timePoint = calendar.date(from: dateComponents) ?? date

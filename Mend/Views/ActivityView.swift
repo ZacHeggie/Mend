@@ -52,7 +52,19 @@ struct ActivityView: View {
             .padding(.bottom, 80)
         }
         .background(backgroundColor.ignoresSafeArea())
-        .navigationTitle("Activities")
+        .navigationTitle("Activities")                .toolbarColorScheme(colorScheme, for: .navigationBar)
+        .toolbarBackground(backgroundColor, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .onChange(of: colorScheme) { oldValue, newValue in
+            // Force UI to update when color scheme changes
+            let needsToRefreshUI = true
+            if needsToRefreshUI {
+                Task {
+                    // Short delay to let system complete theme change
+                    try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+                }
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: refreshActivities) {
@@ -187,10 +199,7 @@ struct ActivityView: View {
         ForEach(groupedActivities.keys.sorted(by: >), id: \.self) { date in
             if let activities = groupedActivities[date], !activities.isEmpty {
                 VStack(alignment: .leading, spacing: MendSpacing.medium) {
-                    Text(formatDate(date))
-                        .font(MendFont.headline)
-                        .foregroundColor(secondaryTextColor)
-                        .padding(.horizontal, MendSpacing.medium)
+                    mendSectionHeader(title: formatDate(date), colorScheme: colorScheme)
                     
                     ForEach(activities) { activity in
                         ActivityCard(activity: activity, colorScheme: colorScheme)
@@ -476,7 +485,10 @@ struct TrainingLoadCard: View {
     }
     
     private func updateTrainingLoad() {
+        // Always calculate based on the past 7 days
         trainingLoad = activityManager.calculateTrainingLoad(forDays: 7)
+        
+        // Get 14 days of volume data to show trends, but we'll use only the last 7 for the work:rest ratio
         volumes = activityManager.calculateDailyTrainingVolumes(forDays: 14)
     }
     
@@ -536,10 +548,13 @@ struct TrainingLoadCard: View {
         }
     }
     
-    // Calculate work:rest ratio based on activity days vs rest days
+    // Calculate work:rest ratio based on activity days vs rest days in the past 7 days only
     private var workRestRatio: (String, String) {
-        let activeDays = volumes.filter { $0.activityCount > 0 }.count
-        let restDays = volumes.count - activeDays
+        // Filter to only include the past 7 days
+        let past7DaysVolumes = volumes.suffix(7)
+        
+        let activeDays = past7DaysVolumes.filter { $0.activityCount > 0 }.count
+        let restDays = past7DaysVolumes.count - activeDays
         
         // Calculate greatest common divisor for simplification
         func gcd(_ a: Int, _ b: Int) -> Int {

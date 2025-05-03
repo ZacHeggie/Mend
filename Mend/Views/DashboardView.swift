@@ -78,11 +78,7 @@ struct DashboardView: View {
                         
                         // Metrics cards
                         VStack(spacing: MendSpacing.medium) {
-                            Text("Your Metrics")
-                                .font(MendFont.headline)
-                                .foregroundColor(textColor)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.horizontal, MendSpacing.medium)
+                            mendSectionHeader(title: "Your Metrics", colorScheme: colorScheme)
                             
                             // Training Load - use the same card as in ActivityView
                             TrainingLoadCard(activityManager: activityManager, collapsible: true)
@@ -108,6 +104,7 @@ struct DashboardView: View {
                         .padding(.horizontal, MendSpacing.medium)
                     }
                     .padding(.bottom, 50)
+                    .padding(.bottom, 50) // Add additional padding to ensure content isn't obscured by tab bar
                     .background(
                         // Use GeometryReader to detect when title is scrolled off screen
                         GeometryReader { proxy in
@@ -156,6 +153,17 @@ struct DashboardView: View {
         }
         .background(backgroundColor.ignoresSafeArea())
         .navigationTitle(navigationTitle)
+        .toolbarColorScheme(colorScheme, for: .navigationBar)
+        .toolbarBackground(backgroundColor, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .onChange(of: colorScheme) { oldValue, newValue in
+            // Force navigation title to update when color scheme changes
+            let tempShow = showScoreInTitle
+            showScoreInTitle = !tempShow
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                showScoreInTitle = tempShow
+            }
+        }
         .onAppear {
             Task {
                 await recoveryMetrics.refreshWithReset()
