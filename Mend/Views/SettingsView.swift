@@ -25,6 +25,9 @@ struct SettingsView: View {
     @Environment(\.colorScheme) var colorScheme
     @StateObject private var userViewModel = UserViewModel()
     @State private var showingTipJar = false
+    @State private var showTipJar = false
+    @State private var devModeClickCount = 0  // Track clicks to enable dev mode
+    @ObservedObject private var developerSettings = DeveloperSettings.shared
     
     private var backgroundColor: Color {
         colorScheme == .dark ? MendColors.darkBackground : MendColors.background
@@ -46,9 +49,14 @@ struct SettingsView: View {
     
     var body: some View {
         ScrollView {
-            VStack(spacing: 0) {
+            Spacer()
+            VStack(spacing: 10) {
                 // ACCOUNT section
-                sectionHeader(title: "ACCOUNT")
+                mendSectionHeader(title: "ACCOUNT", colorScheme: colorScheme)
+                    .onTapGesture(count: 5) {
+                        developerSettings.isDeveloperMode.toggle()
+                        devModeClickCount = 0
+                    }
                 
                 SectionCard {
                     Button(action: {
@@ -61,20 +69,23 @@ struct SettingsView: View {
                     }
                 }
                 
-                SectionCard {
-                    NavigationLink(destination: SimulatedDataSettings()) {
-                        HStack {
-                            menuRow(icon: "chart.line.uptrend.xyaxis", title: "Simulated Data Settings", showArrow: true)
-                            Spacer()
-                            Text(recoveryMetrics.useSimulatedData ? "On" : "Off")
-                                .foregroundColor(secondaryTextColor)
-                                .font(MendFont.body)
+                // Only show Simulated Data Settings if developer mode is enabled
+                if developerSettings.isDeveloperMode {
+                    SectionCard {
+                        NavigationLink(destination: SimulatedDataSettings()) {
+                            HStack {
+                                menuRow(icon: "chart.line.uptrend.xyaxis", title: "Simulated Data Settings", showArrow: true)
+                                Spacer()
+                                Text(recoveryMetrics.useSimulatedData ? "On" : "Off")
+                                    .foregroundColor(secondaryTextColor)
+                                    .font(MendFont.body)
+                            }
                         }
                     }
                 }
                 
                 // IMPROVE MEND section
-                sectionHeader(title: "IMPROVE MEND")
+                mendSectionHeader(title: "IMPROVE MEND", colorScheme: colorScheme)
                 
                 SectionCard {
                     NavigationLink(destination: ReportBugView()) {
@@ -96,7 +107,7 @@ struct SettingsView: View {
                 }
                 
                 // ABOUT section
-                sectionHeader(title: "ABOUT")
+                mendSectionHeader(title: "ABOUT", colorScheme: colorScheme)
                 
                 SectionCard {
                     NavigationLink(destination: HelpCenterView()) {
@@ -126,16 +137,18 @@ struct SettingsView: View {
         .background(backgroundColor.ignoresSafeArea())
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.large)
-    }
-    
-    private func sectionHeader(title: String) -> some View {
-        HStack {
-            Text(title)
-                .font(MendFont.caption)
-                .foregroundColor(secondaryTextColor)
-                .padding(.vertical, 10)
-                .padding(.leading, 10)
-            Spacer()
+        .toolbarColorScheme(colorScheme, for: .navigationBar)
+        .toolbarBackground(backgroundColor, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .onChange(of: colorScheme) { oldValue, newValue in
+            // Force UI to update when color scheme changes
+            let needsToRefreshUI = true
+            if needsToRefreshUI {
+                Task {
+                    // Short delay to let system complete theme change
+                    try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+                }
+            }
         }
     }
     
@@ -307,12 +320,13 @@ struct SectionCard<Content: View>: View {
 
 // MARK: - Simulated Data Settings
 struct SimulatedDataSettings: View {
-    @EnvironmentObject var recoveryMetrics: RecoveryMetrics
+    @EnvironmentObject private var recoveryMetrics: RecoveryMetrics
     @StateObject private var activityManager = ActivityManager.shared
     @Environment(\.colorScheme) var colorScheme
+    @ObservedObject private var developerSettings = DeveloperSettings.shared
     
     private var backgroundColor: Color {
-        colorScheme == .dark ? MendColors.darkBackground : MendColors.background
+        colorScheme == .dark ? MendColors.darkBackground : MendColors.cardBackground
     }
     
     private var cardBackgroundColor: Color {
@@ -389,6 +403,66 @@ struct SimulatedDataSettings: View {
                         .padding(.horizontal)
                     
                     VStack(spacing: MendSpacing.medium) {
+                        // Developer mode status
+                        HStack {
+                            Text("Developer Mode")
+                                .font(MendFont.body)
+                                .foregroundColor(textColor)
+                            
+                            Spacer()
+                            
+                            Text(developerSettings.isDeveloperMode ? "Enabled" : "Disabled")
+                                .font(MendFont.body)
+                                .foregroundColor(developerSettings.isDeveloperMode ? MendColors.positive : secondaryTextColor)
+                        }
+                        .padding(.horizontal, MendSpacing.medium)
+                        
+                        if developerSettings.isDeveloperMode {
+                            Divider()
+                                .background(colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.1))
+                                .padding(.horizontal, MendSpacing.small)
+                            
+                            // Toggle for random variations
+                            Toggle("Use Random Variations", isOn: Binding(
+                                get: { developerSettings.useRandomVariation },
+                                set: { developerSettings.useRandomVariation = $0 }
+                            ))
+                            .toggleStyle(SwitchToggleStyle(tint: MendColors.primary))
+                            .padding(.horizontal, MendSpacing.medium)
+                            
+                            Text("When enabled, adds natural daily variations to recovery scores. Disable for consistent scores based only on real data.")
+                                .font(MendFont.footnote)
+                                .foregroundColor(secondaryTextColor)
+                                .padding(.horizontal, MendSpacing.medium)
+                                .padding(.bottom, MendSpacing.small)
+                            
+                            // Button to regenerate history with current settings
+                            Button(action: {
+                                Task {
+                                    // Force regeneration of historical data
+                                    await recoveryMetrics.generateHistoricalRecoveryScores(forceGeneration: true)
+                                }
+                            }) {
+                                Text("Regenerate Historical Data")
+                                    .font(MendFont.body)
+                                    .foregroundColor(.white)
+                                    .padding()
+                                    .frame(maxWidth: .infinity)
+                                    .background(MendColors.primary)
+                                    .cornerRadius(MendCornerRadius.medium)
+                            }
+                        } else {
+                            // Update instruction text - developer mode is now controlled from Settings
+                            Text("Developer Mode can be enabled from the main Settings screen")
+                                .font(MendFont.footnote)
+                                .foregroundColor(secondaryTextColor)
+                                .padding(.horizontal, MendSpacing.medium)
+                        }
+                        
+                        Divider()
+                            .background(colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.1))
+                            .padding(.horizontal, MendSpacing.small)
+                        
                         // Toggle simulated data
                         Button(action: {
                             recoveryMetrics.toggleSimulatedData()

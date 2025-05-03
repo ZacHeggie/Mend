@@ -52,7 +52,19 @@ struct ActivityView: View {
             .padding(.bottom, 80)
         }
         .background(backgroundColor.ignoresSafeArea())
-        .navigationTitle("Activities")
+        .navigationTitle("Activities")                .toolbarColorScheme(colorScheme, for: .navigationBar)
+        .toolbarBackground(backgroundColor, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .onChange(of: colorScheme) { oldValue, newValue in
+            // Force UI to update when color scheme changes
+            let needsToRefreshUI = true
+            if needsToRefreshUI {
+                Task {
+                    // Short delay to let system complete theme change
+                    try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+                }
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: refreshActivities) {
@@ -187,10 +199,7 @@ struct ActivityView: View {
         ForEach(groupedActivities.keys.sorted(by: >), id: \.self) { date in
             if let activities = groupedActivities[date], !activities.isEmpty {
                 VStack(alignment: .leading, spacing: MendSpacing.medium) {
-                    Text(formatDate(date))
-                        .font(MendFont.headline)
-                        .foregroundColor(secondaryTextColor)
-                        .padding(.horizontal, MendSpacing.medium)
+                    mendSectionHeader(title: formatDate(date), colorScheme: colorScheme)
                     
                     ForEach(activities) { activity in
                         ActivityCard(activity: activity, colorScheme: colorScheme)

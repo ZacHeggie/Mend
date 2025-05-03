@@ -59,10 +59,28 @@ struct TodayView: View {
                         }
                     }
                     .padding(.vertical)
+                    .padding(.bottom, 100) // Add extra padding at the bottom to prevent content from being obscured by tab bar
                 }
                 .background(backgroundColor.ignoresSafeArea())
                 .navigationTitle("Today")
                 .navigationBarItems(trailing: notificationButton)
+                .toolbarColorScheme(colorScheme, for: .navigationBar)
+                .toolbarBackground(backgroundColor, for: .navigationBar)
+                .toolbarBackground(.visible, for: .navigationBar)
+                .onChange(of: colorScheme) { oldValue, newValue in
+                    // Force UI to update when color scheme changes
+                    let needsToRefreshUI = true
+                    if needsToRefreshUI {
+                        Task {
+                            // Short delay to let system complete theme change
+                            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+                            await MainActor.run {
+                                // This will trigger a UI refresh
+                                loadRecentActivities()
+                            }
+                        }
+                    }
+                }
                 .onAppear {
                     Task {
                         await refreshData()
@@ -170,10 +188,7 @@ struct TodayView: View {
     
     private func recoveryScoreView(score: RecoveryScore) -> some View {
         VStack(alignment: .leading, spacing: MendSpacing.medium) {
-            Text("Today's Recovery")
-                .font(MendFont.headline)
-                .foregroundColor(secondaryTextColor)
-                .padding(.horizontal, MendSpacing.medium)
+            mendSectionHeader(title: "Today's Recovery", colorScheme: colorScheme)
             
             VStack(spacing: 0) {
                 HStack(spacing: MendSpacing.large) {
@@ -236,22 +251,21 @@ struct TodayView: View {
     
     private var recentActivitiesView: some View {
         VStack(alignment: .leading, spacing: MendSpacing.medium) {
-            HStack {
-                Text("Today's Activities")
-                    .font(MendFont.headline)
-                    .foregroundColor(secondaryTextColor)
+            ZStack {
+                mendSectionHeader(title: "Today's Activities", colorScheme: colorScheme)
                 
-                Spacer()
-                
-                Button(action: {
-                    showingAddActivity = true
-                }) {
-                    Text("Add")
-                        .font(MendFont.subheadline.weight(.medium))
-                        .foregroundColor(MendColors.primary)
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        showingAddActivity = true
+                    }) {
+                        Text("Add")
+                            .font(MendFont.subheadline.weight(.medium))
+                            .foregroundColor(MendColors.primary)
+                    }
+                    .padding(.trailing, MendSpacing.medium)
                 }
             }
-            .padding(.horizontal, MendSpacing.medium)
             
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: MendSpacing.medium) {
@@ -267,10 +281,7 @@ struct TodayView: View {
     
     private func recommendationsView(score: RecoveryScore) -> some View {
         VStack(alignment: .leading, spacing: MendSpacing.medium) {
-            Text("Recommended Activities")
-                .font(MendFont.headline)
-                .foregroundColor(secondaryTextColor)
-                .padding(.horizontal, MendSpacing.medium)
+            mendSectionHeader(title: "Recommended Activities", colorScheme: colorScheme)
             
             // Show personalized recommendations if available, otherwise use basic recommendations
             let recommendationsToShow = !personalizedRecommendations.isEmpty ? 
@@ -285,10 +296,7 @@ struct TodayView: View {
     
     private var recoveryInsightsView: some View {
         VStack(alignment: .leading, spacing: MendSpacing.medium) {
-            Text("Recovery Insights")
-                .font(MendFont.headline)
-                .foregroundColor(secondaryTextColor)
-                .padding(.horizontal, MendSpacing.medium)
+            mendSectionHeader(title: "Recovery Insights", colorScheme: colorScheme)
             
             ForEach(recoveryInsights) { insight in
                 RecoveryInsightCard(insight: insight, colorScheme: colorScheme)
@@ -430,7 +438,10 @@ struct TodayView: View {
             Text("Recommended Activities")
                 .font(MendFont.headline)
                 .foregroundColor(secondaryTextColor)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 10)
                 .padding(.horizontal, MendSpacing.medium)
+                .background(colorScheme == .dark ? MendColors.darkBackground : MendColors.background)
             
             // Show personalized recommendations if available, otherwise use basic recommendations
             let recommendationsToShow = !personalizedRecommendations.isEmpty ? 
@@ -449,7 +460,10 @@ struct TodayView: View {
             Text("Recovery Insights")
                 .font(MendFont.headline)
                 .foregroundColor(secondaryTextColor)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 10)
                 .padding(.horizontal, MendSpacing.medium)
+                .background(colorScheme == .dark ? MendColors.darkBackground : MendColors.background)
             
             ForEach(recoveryInsights) { insight in
                 RecoveryInsightCard(insight: insight, colorScheme: colorScheme)
