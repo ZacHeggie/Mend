@@ -6,7 +6,8 @@ struct RecoveryHistoryChart: View {
     let colorScheme: ColorScheme
     
     @State private var selectedScore: RecoveryScore?
-    @State private var highlightLocation: CGPoint = .zero
+    // Add scroll position state to control initial position
+    @State private var scrollPosition: Date?
     
     private var textColor: Color {
         colorScheme == .dark ? MendColors.darkText : MendColors.text
@@ -16,62 +17,34 @@ struct RecoveryHistoryChart: View {
         colorScheme == .dark ? MendColors.darkSecondaryText : MendColors.secondaryText
     }
     
-    private var sortedHistory: [RecoveryScore] {
-        // Sort by date (oldest to newest) for chart display
-        filteredHistory.sorted { $0.date < $1.date }
+    private var cardBackground: Color {
+        colorScheme == .dark ? MendColors.darkCardBackground : MendColors.cardBackground
     }
     
-    private var dateFormatter: DateFormatter {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
-        return formatter
-    }
-    
-    private var shortDateFormatter: DateFormatter {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "d MMM"
-        return formatter
-    }
-    
-    private var timeFormatter: DateFormatter {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .none
-        formatter.timeStyle = .short
-        return formatter
-    }
-    
-    // Calculate weekly boundaries for gridlines
-    private var weeklyBoundaries: [Date] {
-        guard !sortedHistory.isEmpty else { return [] }
-        
+    private var recentHistory: [RecoveryScore] {
+        // Get last 28 days data (4 weeks)
         let calendar = Calendar.current
-        let startDate = sortedHistory.first?.date ?? Date()
-        let endDate = sortedHistory.last?.date ?? Date()
-        
-        // Find the first day of the week containing the start date
-        let weekStartComponents = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: startDate)
-        guard let firstWeekStart = calendar.date(from: weekStartComponents) else { return [] }
-        
-        var boundaries: [Date] = []
-        var currentWeekStart = firstWeekStart
-        
-        // Add each week start until we pass the end date
-        while currentWeekStart <= endDate {
-            boundaries.append(currentWeekStart)
-            if let nextWeek = calendar.date(byAdding: .weekOfYear, value: 1, to: currentWeekStart) {
-                currentWeekStart = nextWeek
-            } else {
-                break
-            }
+        let endDate = Date()
+        guard let startDate = calendar.date(byAdding: .day, value: -27, to: endDate) else {
+            return history
         }
         
-        return boundaries
+        return history.filter { score in
+            score.date >= startDate && score.date <= endDate
+        }.sorted { $0.date < $1.date }
+    }
+    
+    private var sortedHistory: [RecoveryScore] {
+        recentHistory.sorted { $0.date < $1.date }
+    }
+    
+    private var mostRecentDate: Date? {
+        sortedHistory.last?.date
     }
     
     var body: some View {
         VStack(alignment: .leading, spacing: MendSpacing.medium) {
-            Text("Recovery Trend (7 Days)")
+            Text("Recovery Trend (4 Weeks)")
                 .font(MendFont.headline)
                 .foregroundColor(textColor)
                 .padding(.horizontal, MendSpacing.small)
@@ -84,19 +57,20 @@ struct RecoveryHistoryChart: View {
                     .frame(maxWidth: .infinity)
             } else {
                 VStack(alignment: .leading, spacing: MendSpacing.small) {
-                    if let selectedScore = selectedScore {
+                    // Score details
+                    if let score = selectedScore {
                         HStack {
                             VStack(alignment: .leading) {
-                                Text("\(dateFormatter.string(from: selectedScore.date))")
+                                Text(formatDate(score.date))
                                     .font(MendFont.footnote)
                                     .foregroundColor(secondaryTextColor)
                                 
                                 HStack(spacing: MendSpacing.small) {
-                                    Text(selectedScore.timeOfDay.displayName)
+                                    Text(score.timeOfDay.displayName)
                                         .font(MendFont.footnote)
                                         .foregroundColor(secondaryTextColor)
                                     
-                                    Text("Score: \(selectedScore.overallScore)")
+                                    Text("Score: \(score.overallScore)")
                                         .font(MendFont.headline)
                                         .foregroundColor(textColor)
                                 }
@@ -112,100 +86,167 @@ struct RecoveryHistoryChart: View {
                             .padding(.horizontal, MendSpacing.small)
                     }
                     
-                    GeometryReader { geometry in
-                        Chart {
-                            // Weekly gridlines
-                            ForEach(weeklyBoundaries, id: \.self) { date in
-                                RuleMark(x: .value("Week", date))
-                                    .foregroundStyle(secondaryTextColor.opacity(0.3))
-                                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
-                            }
-                            
-                            // Connect points with a line for trend visualization
-                            // Group by date to create daily segments
-                            let calendar = Calendar.current
-                            let groupedByDay = Dictionary(grouping: sortedHistory) { score in
-                                calendar.startOfDay(for: score.date)
-                            }
-                            
-                            ForEach(groupedByDay.keys.sorted(), id: \.self) { day in
-                                if let dayScores = groupedByDay[day]?.sorted(by: { $0.date < $1.date }),
-                                   dayScores.count > 1 {
-                                    ForEach(0..<dayScores.count-1, id: \.self) { i in
-                                        LineMark(
-                                            x: .value("Date", dayScores[i].date),
-                                            y: .value("Score", dayScores[i].overallScore),
-                                            series: .value("Day", day)
-                                        )
-                                        .foregroundStyle(.gray.opacity(0.7))
-                                        .lineStyle(StrokeStyle(lineWidth: 1.5, dash: []))
-                                    }
-                                }
-                            }
-                            
-                            // Data points
-                            ForEach(sortedHistory) { score in
-                                PointMark(
-                                    x: .value("Date", score.date),
-                                    y: .value("Score", score.overallScore)
+                    // Chart view with scroll position set to the most recent date
+                    ScrollView(.horizontal, showsIndicators: true) {
+                        ScrollViewReader { scrollReader in
+                            ZStack(alignment: .trailing) {
+                                ChartView(
+                                    history: sortedHistory,
+                                    selectedScore: $selectedScore,
+                                    colorScheme: colorScheme
                                 )
-                                .foregroundStyle(recoveryScoreColor(score: score.overallScore))
-                                .symbolSize(score.id == selectedScore?.id ? 60 : 35) // Smaller data points
+                                .frame(width: 1600, height: 200)
+                                .id("chartView")
+                                
+                                // Place anchor at the very end to ensure we scroll to the rightmost point
+                                Color.clear.frame(width: 1, height: 1).id("chartEnd")
                             }
-                        }
-                        .chartXAxis {
-                            AxisMarks(preset: .aligned, values: .stride(by: .day, count: 7)) { value in
-                                if let date = value.as(Date.self) {
-                                    AxisValueLabel {
-                                        Text(shortDateFormatter.string(from: date))
-                                            .font(MendFont.caption)
-                                            .foregroundColor(secondaryTextColor)
+                            .onAppear {
+                                // Set scroll position to the end (most recent date) when first appearing
+                                DispatchQueue.main.async {
+                                    // Use a slight delay to ensure the view is fully laid out
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                        withAnimation {
+                                            // Scroll to the right end
+                                            scrollReader.scrollTo("chartEnd", anchor: .trailing)
+                                        }
                                     }
-                                    AxisGridLine()
                                 }
                             }
                         }
-                        .chartYAxis {
-                            AxisMarks(position: .leading, values: [0, 50, 100]) { value in
-                                AxisValueLabel {
-                                    Text("\(value.index * 50)")
-                                        .font(MendFont.caption)
-                                        .foregroundColor(secondaryTextColor)
-                                }
-                                AxisGridLine()
-                            }
-                        }
-                        .chartYScale(domain: 0...100)
-                        .chartOverlay { proxy in
-                            GeometryReader { geometry in
-                                Color.clear
-                                    .contentShape(Rectangle())
-                                    .gesture(
-                                        DragGesture(minimumDistance: 0)
-                                            .onChanged { value in
-                                                highlightLocation = value.location
-                                                updateSelectedPoint(at: value.location, in: geometry, proxy: proxy)
-                                            }
-                                            .onEnded { _ in
-                                                // Keep the selected point highlighted
-                                            }
-                                    )
-                            }
-                        }
-                        .frame(height: 200)
                     }
+                    .defaultScrollAnchor(.trailing)
+                    .frame(height: 200)
+                    
+                    // Instructions
+                    Text("Scroll horizontally to see more history")
+                        .font(MendFont.caption)
+                        .foregroundColor(secondaryTextColor)
+                        .frame(maxWidth: .infinity, alignment: .center)
                 }
-                .frame(height: 250)
+                .frame(height: 280)
                 .padding(MendSpacing.small)
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(colorScheme == .dark ? MendColors.darkCardBackground : MendColors.cardBackground)
+                        .fill(cardBackground)
                 )
             }
         }
     }
     
-    private func recoveryScoreColor(score: Int) -> Color {
+    // Helper methods
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter.string(from: date)
+    }
+}
+
+// Chart component with added weekly grid lines and padding for axis labels
+struct ChartView: View {
+    let history: [RecoveryScore]
+    @Binding var selectedScore: RecoveryScore?
+    let colorScheme: ColorScheme
+    
+    // Calculate week boundaries for grid lines
+    private var weekBoundaries: [Date] {
+        let calendar = Calendar.current
+        guard let firstDate = history.first?.date,
+              let lastDate = history.last?.date else {
+            return []
+        }
+        
+        // Get start of first week
+        guard let startOfFirstWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: firstDate)) else {
+            return []
+        }
+        
+        var boundaries: [Date] = []
+        var currentDate = startOfFirstWeek
+        
+        // Add week boundaries until we reach past the last date
+        while currentDate <= lastDate {
+            boundaries.append(currentDate)
+            if let nextWeek = calendar.date(byAdding: .weekOfYear, value: 1, to: currentDate) {
+                currentDate = nextWeek
+            } else {
+                break
+            }
+        }
+        
+        return boundaries
+    }
+    
+    var body: some View {
+        Chart {
+            // Add weekly grid lines
+            ForEach(weekBoundaries, id: \.timeIntervalSince1970) { date in
+                RuleMark(x: .value("Week", date))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: []))
+                    .foregroundStyle(Color.gray.opacity(0.5))
+            }
+            
+            // Line connecting the points
+            ForEach(history) { score in
+                LineMark(
+                    x: .value("Date", score.date),
+                    y: .value("Score", score.overallScore)
+                )
+                .foregroundStyle(scoreColor(score.overallScore))
+                .lineStyle(StrokeStyle(lineWidth: 2))
+                .interpolationMethod(.catmullRom)
+            }
+            
+            // Data points
+            ForEach(history) { score in
+                PointMark(
+                    x: .value("Date", score.date),
+                    y: .value("Score", score.overallScore)
+                )
+                .foregroundStyle(scoreColor(score.overallScore))
+                .symbolSize(score.id == selectedScore?.id ? 60 : 35)
+            }
+        }
+        .chartYScale(domain: 0...100)
+        .chartXAxis {
+            AxisMarks(values: .stride(by: .day, count: 1)) { value in
+                if let date = value.as(Date.self) {
+                    AxisValueLabel {
+                        Text(formatShortDate(date))
+                    }
+                    AxisGridLine()
+                }
+            }
+        }
+        .chartYAxis {
+            AxisMarks(values: [0, 25, 50, 75, 100]) { value in
+                AxisValueLabel {
+                    Text("\(value.index * 25)")
+                }
+                AxisGridLine()
+            }
+        }
+        // Add padding to prevent axis labels from being cut off
+        .padding(.top, 10)
+        .padding(.bottom, 5)
+        .chartOverlay { proxy in
+            GeometryReader { geometry in
+                Color.clear.contentShape(Rectangle())
+                    .onTapGesture { location in
+                        handleTap(at: location, in: geometry, proxy: proxy)
+                    }
+            }
+        }
+    }
+    
+    private func formatShortDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d MMM"
+        return formatter.string(from: date)
+    }
+    
+    private func scoreColor(_ score: Int) -> Color {
         if score >= 80 {
             return MendColors.positive
         } else if score >= 60 {
@@ -217,20 +258,16 @@ struct RecoveryHistoryChart: View {
         }
     }
     
-    private func updateSelectedPoint(at location: CGPoint, in geometry: GeometryProxy, proxy: ChartProxy) {
-        guard !sortedHistory.isEmpty else { return }
-        
-        // Handle optional plotFrame safely
+    private func handleTap(at location: CGPoint, in geometry: GeometryProxy, proxy: ChartProxy) {
         guard let plotFrame = proxy.plotFrame else { return }
+        
         let xPosition = location.x - geometry[plotFrame].origin.x
         
-        // Find the date at the x position
         if let date: Date = proxy.value(atX: xPosition) {
-            // Find the closest score to this date
             var closestScore: RecoveryScore?
             var minDistance: TimeInterval = .infinity
             
-            for score in sortedHistory {
+            for score in history {
                 let distance = abs(score.date.timeIntervalSince(date))
                 if distance < minDistance {
                     minDistance = distance
@@ -238,110 +275,49 @@ struct RecoveryHistoryChart: View {
                 }
             }
             
-            selectedScore = closestScore
-        }
-    }
-    
-    // Filter the history to only show the last 7 days of data
-    private var filteredHistory: [RecoveryScore] {
-        let calendar = Calendar.current
-        let endDate = Date()
-        guard let startDate = calendar.date(byAdding: .day, value: -7, to: endDate) else {
-            return history
-        }
-        
-        return history.filter { score in
-            score.date >= startDate && score.date <= endDate
+            // Only update if tap is close to a point (within 12 hours)
+            if minDistance < 43200 { // 12 hours in seconds
+                selectedScore = closestScore
+            }
         }
     }
 }
 
 #Preview {
-    RecoveryHistoryChart.PreviewContainer()
-}
-
-extension RecoveryHistoryChart {
-    struct PreviewContainer: View {
-        static let sampleScores: [RecoveryScore] = {
-            let calendar = Calendar.current
-            let today = Date()
-            var samples: [RecoveryScore] = []
-            
-            for dayOffset in 0..<7 {
-                let date = calendar.date(byAdding: .day, value: -dayOffset, to: today)!
-                let score = Int.random(in: 30...90) // Random score for visualization
-                
-                // Add multiple entries per day to simulate the 2-hour intervals throughout the day
-                let timesOfDay: [RecoveryScoreData.TimeOfDay] = [
-                    .earlyMorning, .dawn, .sunrise, .morning, .lateMorning, .noon,
-                    .earlyAfternoon, .midAfternoon, .lateAfternoon, .evening, .night, .lateNight
-                ]
-                
-                for timeOfDay in timesOfDay {
-                    var dateComponents = calendar.dateComponents([.year, .month, .day], from: date)
-                    
-                    // Set the hour based on the time of day
-                    switch timeOfDay {
-                    case .earlyMorning: dateComponents.hour = 1
-                    case .dawn: dateComponents.hour = 3
-                    case .sunrise: dateComponents.hour = 5
-                    case .morning: dateComponents.hour = 7
-                    case .lateMorning: dateComponents.hour = 9
-                    case .noon: dateComponents.hour = 11
-                    case .earlyAfternoon: dateComponents.hour = 13
-                    case .midAfternoon: dateComponents.hour = 15
-                    case .lateAfternoon: dateComponents.hour = 17
-                    case .evening: dateComponents.hour = 19
-                    case .night: dateComponents.hour = 21
-                    case .lateNight: dateComponents.hour = 23
-                    }
-                    
-                    let timePoint = calendar.date(from: dateComponents) ?? date
-                    
-                    // Create variations for different times of day to simulate natural patterns
-                    let timeVariation: Int
-                    switch timeOfDay {
-                    case .earlyMorning, .dawn, .sunrise:
-                        timeVariation = Int.random(in: -5...0) // Lower during sleep
-                    case .morning, .lateMorning:
-                        timeVariation = Int.random(in: 0...5) // Rising during morning
-                    case .noon, .earlyAfternoon:
-                        timeVariation = Int.random(in: -8...0) // Dip after lunch
-                    case .midAfternoon, .lateAfternoon:
-                        timeVariation = Int.random(in: -5...3) // Recovering
-                    case .evening:
-                        timeVariation = Int.random(in: -3...5) // Evening recovery
-                    case .night, .lateNight:
-                        timeVariation = Int.random(in: -2...3) // Settling for night
-                    }
-                    
-                    samples.append(
-                        RecoveryScore(
-                            date: timePoint,
-                            overallScore: max(0, min(100, score + timeVariation)),
-                            heartRateScore: MetricScore.sampleHeartRate,
-                            hrvScore: Int.random(in: 40...80),
-                            sleepScore: Int.random(in: 50...90),
-                            trainingLoadScore: MetricScore.sampleTrainingLoad,
-                            stressScore: Int.random(in: 40...90),
-                            timeOfDay: timeOfDay
-                        )
-                    )
-                }
-            }
-            
-            return samples
-        }()
-        
-        var body: some View {
-            VStack {
-                RecoveryHistoryChart(history: Self.sampleScores, colorScheme: .light)
-                    .padding()
-                
-                RecoveryHistoryChart(history: Self.sampleScores, colorScheme: .dark)
-                    .padding()
-                    .background(Color.black)
-            }
-        }
-    }
+    RecoveryHistoryChart(
+        history: [
+            RecoveryScore(
+                date: Date().addingTimeInterval(-86400 * 1), // 1 day ago
+                overallScore: 85,
+                heartRateScore: MetricScore.sampleHeartRate,
+                hrvScore: 75,
+                sleepScore: 80,
+                trainingLoadScore: MetricScore.sampleTrainingLoad,
+                stressScore: 85,
+                timeOfDay: .morning
+            ),
+            RecoveryScore(
+                date: Date().addingTimeInterval(-86400 * 2), // 2 days ago
+                overallScore: 65,
+                heartRateScore: MetricScore.sampleHeartRate,
+                hrvScore: 60,
+                sleepScore: 70,
+                trainingLoadScore: MetricScore.sampleTrainingLoad,
+                stressScore: 70,
+                timeOfDay: .morning
+            ),
+            RecoveryScore(
+                date: Date().addingTimeInterval(-86400 * 3), // 3 days ago
+                overallScore: 75,
+                heartRateScore: MetricScore.sampleHeartRate,
+                hrvScore: 65,
+                sleepScore: 75,
+                trainingLoadScore: MetricScore.sampleTrainingLoad,
+                stressScore: 80,
+                timeOfDay: .morning
+            ),
+        ],
+        colorScheme: .light
+    )
 } 
+

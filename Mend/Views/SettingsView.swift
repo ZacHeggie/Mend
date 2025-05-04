@@ -127,7 +127,7 @@ struct SettingsView: View {
                 #endif
                 
                 // Version at the bottom
-                Text("Mend for iOS - 1.0.7")
+                Text("Mend for iOS - 1.0.8")
                     .font(MendFont.footnote)
                     .foregroundColor(secondaryTextColor)
                     .padding(.top, 40)
@@ -313,10 +313,12 @@ struct TipJarView: View {
                                 Text("Thank You!")
                                     .font(.title)
                                     .bold()
+                                    .foregroundColor(textColor)
                                     .padding(.top)
                                 
                                 Text("Your support means a lot to us.")
                                     .multilineTextAlignment(.center)
+                                    .foregroundColor(textColor)
                                 
                                 Button(action: {
                                     showingThankYou = false
@@ -332,7 +334,7 @@ struct TipJarView: View {
                                 .padding(.top, 20)
                             }
                             .padding(30)
-                            .background(Color.white)
+                            .background(cardBackgroundColor)
                             .cornerRadius(15)
                             .shadow(radius: 10)
                             .padding(30)
