@@ -326,15 +326,18 @@ struct MetricChart: View {
                         )
                         .foregroundStyle(colorScheme == .dark ? Color.white.opacity(0.4) : Color.black.opacity(0.3))
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
-                        .annotation(position: .trailing) {
+                        .annotation(position: .trailing, alignment: .leading) {
                             Text("Avg")
                                 .font(MendFont.caption2)
                                 .foregroundColor(secondaryTextColor)
-                                .padding(.horizontal, 4)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
                                 .background(
                                     RoundedRectangle(cornerRadius: 2)
-                                        .fill(colorScheme == .dark ? Color.black.opacity(0.4) : Color.white.opacity(0.7))
+                                        .fill(colorScheme == .dark ? Color.black.opacity(0.6) : Color.white.opacity(0.8))
+                                        .stroke(colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.1), lineWidth: 0.5)
                                 )
+                                .offset(x: -8) // Move the label to the left to prevent cutting off
                         }
                     }
                     
@@ -385,6 +388,11 @@ struct MetricChart: View {
                     }
                 }
                 .chartYScale(domain: getYAxisRange())
+                .chartPlotStyle { plotArea in
+                    plotArea
+                        .frame(height: 180)
+                        .padding([.trailing], 16) // Add extra padding on the right for the "Avg" label
+                }
                 .chartOverlay { proxy in
                     GeometryReader { geometry in
                         Rectangle()
@@ -514,27 +522,66 @@ struct MetricChart: View {
     private func getYAxisRange() -> ClosedRange<Double> {
         guard !data.isEmpty else { return 0...1 }
         
+        // Filter to only include valid data points for range calculation
+        let validData = data.filter { isValidDataPoint($0) }
+        
         // Check for specific metrics to set appropriate ranges
         if title.contains("Heart Rate") {
             // Heart rate typically ranges from 40-100
-            return 40...100
+            let values = validData.map { $0.value }
+            let minValue = values.min() ?? 40
+            let maxValue = values.max() ?? 100
+            
+            // Calculate appropriate range with padding
+            let padding = max(5, (maxValue - minValue) * 0.15)
+            let lowerBound = max(30, minValue - padding)
+            let upperBound = maxValue + padding
+            
+            return lowerBound...upperBound
         } else if title.contains("HRV") || title.contains("Variability") {
             // HRV ranges depend on the individual but often between 20-100 ms
-            return 20...100
+            let values = validData.map { $0.value }
+            let minValue = values.min() ?? 20
+            let maxValue = values.max() ?? 100
+            
+            // Calculate appropriate range with padding
+            let padding = max(5, (maxValue - minValue) * 0.15)
+            let lowerBound = max(10, minValue - padding)
+            let upperBound = maxValue + padding
+            
+            return lowerBound...upperBound
         } else if title.contains("Sleep Duration") || title.lowercased().contains("sleep hours") {
             // Sleep hours typically 0-10
-            return 0...10
+            let values = validData.map { $0.value }
+            let minValue = values.min() ?? 3
+            let maxValue = values.max() ?? 9
+            
+            // Calculate appropriate range with padding
+            let padding = max(0.5, (maxValue - minValue) * 0.15)
+            let lowerBound = max(0, minValue - padding)
+            let upperBound = min(12, maxValue + padding)
+            
+            return lowerBound...upperBound
         } else if title.contains("Sleep Quality") {
             // Sleep quality score 0-100
-            return 0...100
-        } else if title.contains("Training") {
-            // Get dynamic range for training load based on actual data
-            let values = data.map { $0.value }
+            let values = validData.map { $0.value }
             let minValue = values.min() ?? 0
             let maxValue = values.max() ?? 100
             
             // Calculate appropriate range with padding
-            let padding = (maxValue - minValue) * 0.15
+            let padding = max(5, (maxValue - minValue) * 0.15)
+            let lowerBound = max(0, minValue - padding)
+            let upperBound = min(105, maxValue + padding) // Add extra padding for "Avg" label
+            
+            return lowerBound...upperBound
+        } else if title.contains("Training") {
+            // Get dynamic range for training load based on actual data
+            let values = validData.map { $0.value }
+            let minValue = values.min() ?? 0
+            let maxValue = values.max() ?? 100
+            
+            // Calculate appropriate range with padding
+            let padding = max(10, (maxValue - minValue) * 0.2) // More padding for training load
             let lowerBound = max(0, minValue - padding)
             let upperBound = maxValue + padding
             
@@ -546,10 +593,10 @@ struct MetricChart: View {
             }
         } else {
             // Default case for unknown metrics - get from data
-            let values = data.map { $0.value }
+            let values = validData.map { $0.value }
             let minValue = values.min() ?? 0
             let maxValue = values.max() ?? 1
-            let padding = (maxValue - minValue) * 0.1
+            let padding = max(0.1, (maxValue - minValue) * 0.15)
             let lowerBound = max(0, minValue - padding)
             let upperBound = maxValue + padding
             return lowerBound...upperBound

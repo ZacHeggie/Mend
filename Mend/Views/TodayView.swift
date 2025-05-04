@@ -234,7 +234,7 @@ struct TodayView: View {
                 .padding(.vertical, MendSpacing.small)
             } label: {
                 HStack {
-                    Text("View 28-Day History")
+                    Text("View 7-Day History")
                         .font(MendFont.subheadline)
                         .foregroundColor(MendColors.primary)
                     
