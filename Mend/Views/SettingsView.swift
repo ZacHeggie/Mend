@@ -1,5 +1,7 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import PassKit
+import UIKit
 
 // Add a minimal UserViewModel implementation
 class UserViewModel: ObservableObject {
@@ -179,6 +181,10 @@ struct SettingsView: View {
 struct TipJarView: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.presentationMode) var presentationMode
+    @State private var showingThankYou = false
+    @State private var processingPayment = false
+    @State private var errorMessage: String?
+    @State private var showingError = false
     
     private var backgroundColor: Color {
         colorScheme == .dark ? MendColors.darkBackground : MendColors.background
@@ -197,11 +203,16 @@ struct TipJarView: View {
     }
     
     let tipOptions = [
-        TipOption(name: "Small Tip", price: "$0.99", icon: "cup.and.saucer.fill"),
-        TipOption(name: "Medium Tip", price: "$2.99", icon: "mug.fill"),
-        TipOption(name: "Large Tip", price: "$4.99", icon: "wineglass.fill"),
-        TipOption(name: "Generous Tip", price: "$9.99", icon: "gift.fill")
+        TipOption(name: "Small Tip", price: "£0.99", amount: 0.99, icon: "cup.and.saucer.fill"),
+        TipOption(name: "Medium Tip", price: "£2.99", amount: 2.99, icon: "mug.fill"),
+        TipOption(name: "Large Tip", price: "£4.99", amount: 4.99, icon: "wineglass.fill"),
+        TipOption(name: "Generous Tip", price: "£9.99", amount: 9.99, icon: "gift.fill")
     ]
+    
+    // Check if Apple Pay is available
+    private var canUseApplePay: Bool {
+        return StripePaymentService.shared.canMakePayments()
+    }
     
     var body: some View {
         NavigationView {
@@ -230,37 +241,61 @@ struct TipJarView: View {
                     
                     // Tip options
                     VStack(spacing: 16) {
-                        ForEach(tipOptions, id: \.name) { option in
+                        ForEach(tipOptions.indices, id: \.self) { index in
                             Button(action: {
-                                // In a real app, this would trigger the in-app purchase
-                                print("Processing purchase: \(option.name)")
+                                // Process the tip using Stripe Apple Pay
+                                makeTip(optionIndex: index)
                             }) {
-                                HStack {
-                                    Image(systemName: option.icon)
-                                        .font(.system(size: 20))
-                                        .foregroundColor(MendColors.primary)
-                                        .frame(width: 40, height: 40)
-                                    
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(option.name)
-                                            .font(MendFont.headline)
-                                            .foregroundColor(textColor)
+                                VStack(spacing: 8) {
+                                    HStack {
+                                        Image(systemName: tipOptions[index].icon)
+                                            .font(.system(size: 20))
+                                            .foregroundColor(MendColors.primary)
+                                            .frame(width: 40, height: 40)
                                         
-                                        Text("One-time purchase")
-                                            .font(MendFont.caption)
-                                            .foregroundColor(secondaryTextColor)
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(tipOptions[index].name)
+                                                .font(MendFont.headline)
+                                                .foregroundColor(textColor)
+                                            
+                                            Text("One-time purchase")
+                                                .font(MendFont.caption)
+                                                .foregroundColor(secondaryTextColor)
+                                        }
+                                        
+                                        Spacer()
+                                        
+                                        Text(tipOptions[index].price)
+                                            .font(MendFont.headline)
+                                            .foregroundColor(MendColors.primary)
                                     }
                                     
-                                    Spacer()
-                                    
-                                    Text(option.price)
-                                        .font(MendFont.headline)
-                                        .foregroundColor(MendColors.primary)
+                                    if canUseApplePay {
+                                        // Apple Pay button - using Apple's recommended style
+                                        HStack {
+                                            Spacer()
+                                            Image(systemName: "applelogo")
+                                                .font(.system(size: 14))
+                                            Text("Pay")
+                                                .font(.system(size: 14, weight: .semibold))
+                                            Spacer()
+                                        }
+                                        .padding(.vertical, 8)
+                                        .foregroundColor(.white)
+                                        .background(Color.black)
+                                        .cornerRadius(6)
+                                        .padding(.horizontal, 40)
+                                    }
                                 }
                                 .padding()
                                 .background(cardBackgroundColor)
                                 .cornerRadius(12)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(MendColors.primary.opacity(0.3), lineWidth: 1)
+                                )
                             }
+                            .disabled(processingPayment || !canUseApplePay)
                         }
                     }
                     .padding(.horizontal)
@@ -272,8 +307,25 @@ struct TipJarView: View {
                         .foregroundColor(secondaryTextColor)
                         .padding(.horizontal, 20)
                         .padding(.top, 10)
+                        
+                    if !canUseApplePay {
+                        Text("Apple Pay is not available on this device. Please make sure you have set up Apple Pay in your wallet.")
+                            .font(MendFont.footnote)
+                            .multilineTextAlignment(.center)
+                            .foregroundColor(MendColors.negative)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 5)
+                    }
                 }
                 .padding(.bottom, 30)
+                .overlay {
+                    if processingPayment {
+                        ProgressView()
+                            .scaleEffect(1.5)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(Color.black.opacity(0.2))
+                    }
+                }
             }
             .background(backgroundColor.ignoresSafeArea())
             .navigationTitle("Tip Jar")
@@ -285,6 +337,52 @@ struct TipJarView: View {
                     }
                 }
             }
+            .alert("Thank You!", isPresented: $showingThankYou) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Your support is greatly appreciated and helps us continue to develop and improve Mend.")
+            }
+            .alert("Payment Failed", isPresented: $showingError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(errorMessage ?? "There was an error processing your payment. Please try again.")
+            }
+        }
+    }
+    
+    // Function to process a tip with Stripe Apple Pay
+    private func makeTip(optionIndex: Int) {
+        processingPayment = true
+        
+        // Get the current view controller to present the Apple Pay sheet
+        guard let viewController = UIApplication.shared.windows.first?.rootViewController else {
+            processingPayment = false
+            errorMessage = "Could not present Apple Pay"
+            showingError = true
+            return
+        }
+        
+        // Process the payment using Stripe
+        StripePaymentService.shared.processTip(at: optionIndex) { success, error in
+            if let error = error {
+                // Handle error
+                processingPayment = false
+                errorMessage = error.localizedDescription
+                showingError = true
+                return
+            }
+            
+            // Present the Apple Pay sheet
+            StripePaymentService.shared.presentApplePay(on: viewController)
+            
+            // The completion handler will be called when payment finishes
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                processingPayment = false
+                
+                if success {
+                    showingThankYou = true
+                }
+            }
         }
     }
 }
@@ -292,6 +390,7 @@ struct TipJarView: View {
 struct TipOption {
     let name: String
     let price: String
+    let amount: Double
     let icon: String
 }
 
