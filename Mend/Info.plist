@@ -32,5 +32,16 @@
 	</array>
 	<key>UILaunchScreen</key>
 	<dict/>
+	<key>PKPaymentNetworks</key>
+	<array>
+		<string>visa</string>
+		<string>masterCard</string>
+		<string>amex</string>
+	</array>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 </dict>
 </plist>

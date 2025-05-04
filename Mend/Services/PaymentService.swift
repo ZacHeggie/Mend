@@ -56,8 +56,8 @@ class PaymentService: NSObject {
         request.merchantCapabilities = .threeDSecure
         
         // Set the country and currency
-        request.countryCode = "US"
-        request.currencyCode = "USD"
+        request.countryCode = "UK"
+        request.currencyCode = "GBP"
         
         // Create a payment summary item for the total
         let tipItem = PKPaymentSummaryItem(label: "Support Mend", amount: amount)

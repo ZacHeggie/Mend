@@ -1,16 +1,19 @@
 import Foundation
+import PassKit
 import Stripe
 import StripeApplePay
-import PassKit
 
-class StripePaymentService: NSObject {
+class StripePaymentService: NSObject, PKPaymentAuthorizationControllerDelegate, STPApplePayContextDelegate {
     static let shared = StripePaymentService()
     
-    // Stripe publishable key - replace with your actual key
-    private let stripePublishableKey = "pk_test_yourPublishableKeyHere"
+    // Your merchant identifier
+    private let merchantIdentifier = "merchant.zacharyheggie"
     
-    // Your backend URL for creating payment intents
-    private let backendURL = URL(string: "https://your-backend-server.com/create-payment-intent")!
+    // Your Stripe publishable key
+    private let publishableKey = "pk_test_51RL0lnRxXxmdcCQQ9pMvbicL7kpTVDU37QEFrWyja1FiPcO1VkgrVyrmNO3VxYSnQd3tsv9Fn0CBHoVCKjLDd4F800tEZVrPnj"
+    
+    // Backend URL
+    private let backendURL = "https://mend-backend-render.onrender.com"
     
     // Available tip amounts in GBP
     let tipAmounts: [NSDecimalNumber] = [
@@ -20,141 +23,146 @@ class StripePaymentService: NSObject {
         NSDecimalNumber(string: "9.99")
     ]
     
-    // Setup Stripe when the service is initialized
-    override init() {
-        super.init()
-        StripeAPI.defaultPublishableKey = stripePublishableKey
+    // Callbacks
+    var onPaymentSuccess: (() -> Void)?
+    var onPaymentFailure: ((Error?) -> Void)?
+    
+    // Keep track of the selected tip index
+    private var selectedTipIndex: Int = 0
+    
+    // Initialize Stripe
+    func initialize() {
+        StripeAPI.defaultPublishableKey = publishableKey
     }
     
-    // Check if Apple Pay is available on this device
-    func canMakePayments() -> Bool {
-        return StripeAPI.deviceSupportsApplePay()
+    // Check if Apple Pay is available
+    func isApplePayAvailable() -> Bool {
+        return StripeAPI.deviceSupportsApplePay() && PKPaymentAuthorizationController.canMakePayments()
     }
     
-    // Process a tip payment with Stripe through Apple Pay
-    func processTip(at index: Int, completion: @escaping (Bool, Error?) -> Void) {
-        guard index >= 0 && index < tipAmounts.count else {
-            completion(false, NSError(domain: "com.mend.payment", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid tip amount index"]))
+    // Present Apple Pay with the selected amount
+    func presentApplePay(amount: NSDecimalNumber, completion: @escaping (Bool, Error?) -> Void) {
+        guard isApplePayAvailable() else {
+            completion(false, NSError(domain: "com.mend.applepay", code: 0, userInfo: [NSLocalizedDescriptionKey: "Apple Pay is not available on this device"]))
             return
         }
         
-        let amount = tipAmounts[index]
-        let paymentRequest = createPaymentRequest(with: amount)
+        // Find the index of the selected amount
+        if let index = tipAmounts.firstIndex(of: amount) {
+            selectedTipIndex = index
+        } else {
+            selectedTipIndex = 0 // Default to first amount if not found
+        }
         
-        // Create an Apple Pay context using the Stripe SDK
-        guard let applePayContext = STPApplePayContext(paymentRequest: paymentRequest, delegate: self) else {
-            let error = NSError(domain: "com.mend.payment", code: 400, userInfo: [NSLocalizedDescriptionKey: "Failed to create Apple Pay context"])
+        // Create a payment request
+        let paymentRequest = StripeAPI.paymentRequest(withMerchantIdentifier: merchantIdentifier, country: "GB", currency: "GBP")
+        
+        // Configure the payment request
+        paymentRequest.paymentSummaryItems = [
+            PKPaymentSummaryItem(label: "Mend Health Tip", amount: amount)
+        ]
+        
+        // Create an Apple Pay context
+        do {
+            let applePayContext = STPApplePayContext(paymentRequest: paymentRequest, delegate: self)
+            applePayContext?.presentApplePay(completion: {})
+        } catch let error {
             completion(false, error)
-            return
-        }
-        
-        // Store completion handler for later use
-        self.paymentCompletion = completion
-        
-        // Store the current context
-        self.currentApplePayContext = applePayContext
-    }
-    
-    // Present the Apple Pay sheet
-    func presentApplePay(on viewController: UIViewController) {
-        guard let applePayContext = currentApplePayContext else {
-            if let completion = self.paymentCompletion {
-                let error = NSError(domain: "com.mend.payment", code: 400, userInfo: [NSLocalizedDescriptionKey: "Apple Pay context not initialized"])
-                completion(false, error)
-            }
-            return
-        }
-        
-        applePayContext.presentApplePay(on: viewController)
-    }
-    
-    // Create the Apple Pay payment request for the specified amount
-    private func createPaymentRequest(with amount: NSDecimalNumber) -> PKPaymentRequest {
-        // Use Stripe's helper method to create a payment request
-        let paymentRequest = StripeAPI.paymentRequest(withMerchantIdentifier: "merchant.zacharyheggie", country: "GB", currency: "GBP")
-        
-        // Configure payment networks
-        paymentRequest.supportedNetworks = [.visa, .masterCard, .amex]
-        
-        // Set merchant capabilities
-        paymentRequest.merchantCapabilities = .capability3DS
-        
-        // Set payment summary items
-        let tipItem = PKPaymentSummaryItem(label: "Support Mend", amount: amount, type: .final)
-        let total = PKPaymentSummaryItem(label: "Mend Health", amount: amount, type: .final)
-        
-        paymentRequest.paymentSummaryItems = [tipItem, total]
-        
-        return paymentRequest
-    }
-    
-    // Create a payment intent on your server
-    private func createPaymentIntent(amount: NSDecimalNumber, currency: String, completion: @escaping (Result<String, Error>) -> Void) {
-        // In a real app, you would send a request to your backend to create a payment intent
-        // For this example, we'll simulate a successful response
-        
-        // Convert to pennies/cents (Stripe uses smallest currency unit)
-        let amountInPennies = Int(amount.doubleValue * 100)
-        
-        var request = URLRequest(url: backendURL)
-        request.httpMethod = "POST"
-        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        let bodyData = try? JSONSerialization.data(withJSONObject: [
-            "amount": amountInPennies,
-            "currency": currency
-        ])
-        request.httpBody = bodyData
-        
-        // For this implementation, we'll simulate a successful response
-        // In a real app, you would send this request to your server
-        
-        // Simulated client secret for testing
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            completion(.success("pi_simulated_client_secret"))
         }
     }
     
-    // Callback to store payment result
-    private var paymentCompletion: ((Bool, Error?) -> Void)?
+    // MARK: - PKPaymentAuthorizationControllerDelegate
     
-    // Current Apple Pay context
-    private var currentApplePayContext: STPApplePayContext?
-}
-
-// MARK: - STPApplePayContextDelegate
-extension StripePaymentService: STPApplePayContextDelegate {
-    // Payment was authorized by the user, confirm with Stripe
+    func paymentAuthorizationControllerDidFinish(_ controller: PKPaymentAuthorizationController) {
+        controller.dismiss(completion: nil)
+    }
+    
+    // Required by the protocol
+    func paymentAuthorizationController(_ controller: PKPaymentAuthorizationController, didAuthorizePayment payment: PKPayment, handler completion: @escaping (PKPaymentAuthorizationResult) -> Void) {
+        // This won't be called since we're using STPApplePayContext
+        completion(PKPaymentAuthorizationResult(status: .success, errors: nil))
+    }
+    
+    // MARK: - STPApplePayContextDelegate
+    
     func applePayContext(_ context: STPApplePayContext, didCreatePaymentMethod paymentMethod: STPPaymentMethod, paymentInformation: PKPayment, completion: @escaping STPIntentClientSecretCompletionBlock) {
-        // Create a payment intent on your server
-        let amount = context.paymentRequest.paymentSummaryItems.last?.amount ?? NSDecimalNumber(string: "0.00")
-        let currency = context.paymentRequest.currencyCode.lowercased()
+        // Convert the amount from NSDecimalNumber to cents (pence) for Stripe
+        let selectedAmount = tipAmounts[selectedTipIndex]
+        let amountInPence = Int(selectedAmount.doubleValue * 100)
         
-        createPaymentIntent(amount: amount, currency: currency) { result in
+        // Call our backend to create a payment intent and get a client secret
+        createPaymentIntent(amount: amountInPence, paymentMethodID: paymentMethod.stripeId) { result in
             switch result {
             case .success(let clientSecret):
+                // Pass the client secret back to the Apple Pay context
                 completion(clientSecret, nil)
             case .failure(let error):
+                // Pass any errors back to the Apple Pay context
                 completion(nil, error)
             }
         }
     }
     
-    // Payment was completed
     func applePayContext(_ context: STPApplePayContext, didCompleteWith status: STPPaymentStatus, error: Error?) {
         switch status {
         case .success:
-            paymentCompletion?(true, nil)
+            onPaymentSuccess?()
         case .error:
-            paymentCompletion?(false, error)
+            onPaymentFailure?(error)
         case .userCancellation:
-            paymentCompletion?(false, nil)
+            onPaymentFailure?(nil)
         @unknown default:
-            paymentCompletion?(false, error)
+            onPaymentFailure?(error)
+        }
+    }
+    
+    // Create a payment intent on your server
+    private func createPaymentIntent(amount: Int, paymentMethodID: String, completion: @escaping (Result<String, Error>) -> Void) {
+        guard let url = URL(string: "\(backendURL)/api/payments/create-payment-intent") else {
+            completion(.failure(NSError(domain: "com.mend.payment", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])))
+            return
         }
         
-        // Reset state
-        self.currentApplePayContext = nil
-        self.paymentCompletion = nil
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let body: [String: Any] = [
+            "amount": amount,
+            "currency": "gbp",
+            "payment_method_id": paymentMethodID,
+            "description": "Support Mend - Tip"
+        ]
+        
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        } catch {
+            completion(.failure(error))
+            return
+        }
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            
+            guard let data = data else {
+                completion(.failure(NSError(domain: "com.mend.payment", code: 400, userInfo: [NSLocalizedDescriptionKey: "No data received"])))
+                return
+            }
+            
+            do {
+                guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      let clientSecret = json["clientSecret"] as? String else {
+                    completion(.failure(NSError(domain: "com.mend.payment", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid response from server"])))
+                    return
+                }
+                
+                completion(.success(clientSecret))
+            } catch {
+                completion(.failure(error))
+            }
+        }.resume()
     }
 } 

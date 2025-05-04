@@ -185,6 +185,7 @@ struct TipJarView: View {
     @State private var processingPayment = false
     @State private var errorMessage: String?
     @State private var showingError = false
+    @State private var selectedTipIndex: Int = 0
     
     private var backgroundColor: Color {
         colorScheme == .dark ? MendColors.darkBackground : MendColors.background
@@ -198,192 +199,218 @@ struct TipJarView: View {
         colorScheme == .dark ? MendColors.darkText : MendColors.text
     }
     
-    private var secondaryTextColor: Color {
-        colorScheme == .dark ? MendColors.darkSecondaryText : MendColors.secondaryText
-    }
-    
-    let tipOptions = [
-        TipOption(name: "Small Tip", price: "£0.99", amount: 0.99, icon: "cup.and.saucer.fill"),
-        TipOption(name: "Medium Tip", price: "£2.99", amount: 2.99, icon: "mug.fill"),
-        TipOption(name: "Large Tip", price: "£4.99", amount: 4.99, icon: "wineglass.fill"),
-        TipOption(name: "Generous Tip", price: "£9.99", amount: 9.99, icon: "gift.fill")
-    ]
-    
-    // Check if Apple Pay is available
-    private var canUseApplePay: Bool {
-        return StripePaymentService.shared.canMakePayments()
-    }
+    private let tipService = StripePaymentService.shared
+    private let tipAmounts = ["£0.99", "£2.99", "£4.99", "£9.99"]
     
     var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Header
-                    VStack(spacing: 12) {
-                        Image(systemName: "heart.fill")
-                            .font(.system(size: 50))
-                            .foregroundColor(MendColors.primary)
-                            .padding()
-                        
-                        Text("Support Mend")
-                            .font(MendFont.title)
-                            .fontWeight(.bold)
-                            .foregroundColor(textColor)
-                        
-                        Text("Your support helps us continue to develop and improve Mend with new features and regular updates. Thank you for your generosity!")
-                            .font(MendFont.body)
-                            .multilineTextAlignment(.center)
-                            .foregroundColor(secondaryTextColor)
-                            .padding(.horizontal)
-                    }
-                    .padding(.top, 20)
-                    .padding(.bottom, 10)
-                    
-                    // Tip options
-                    VStack(spacing: 16) {
-                        ForEach(tipOptions.indices, id: \.self) { index in
-                            Button(action: {
-                                // Process the tip using Stripe Apple Pay
-                                makeTip(optionIndex: index)
-                            }) {
-                                VStack(spacing: 8) {
-                                    HStack {
-                                        Image(systemName: tipOptions[index].icon)
-                                            .font(.system(size: 20))
-                                            .foregroundColor(MendColors.primary)
-                                            .frame(width: 40, height: 40)
-                                        
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text(tipOptions[index].name)
-                                                .font(MendFont.headline)
-                                                .foregroundColor(textColor)
-                                            
-                                            Text("One-time purchase")
-                                                .font(MendFont.caption)
-                                                .foregroundColor(secondaryTextColor)
-                                        }
-                                        
-                                        Spacer()
-                                        
-                                        Text(tipOptions[index].price)
-                                            .font(MendFont.headline)
-                                            .foregroundColor(MendColors.primary)
-                                    }
-                                    
-                                    if canUseApplePay {
-                                        // Apple Pay button - using Apple's recommended style
-                                        HStack {
-                                            Spacer()
-                                            Image(systemName: "applelogo")
-                                                .font(.system(size: 14))
-                                            Text("Pay")
-                                                .font(.system(size: 14, weight: .semibold))
-                                            Spacer()
-                                        }
-                                        .padding(.vertical, 8)
-                                        .foregroundColor(.white)
-                                        .background(Color.black)
-                                        .cornerRadius(6)
-                                        .padding(.horizontal, 40)
-                                    }
+        ZStack {
+            backgroundColor.edgesIgnoringSafeArea(.all)
+            
+            VStack(spacing: 20) {
+                Text("Support Mend")
+                    .font(.largeTitle)
+                    .bold()
+                    .foregroundColor(textColor)
+                    .padding(.top, 40)
+                
+                Text("Your support helps us continue to build and improve Mend. Thank you for your generosity!")
+                    .font(.body)
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(textColor)
+                    .padding(.horizontal)
+                
+                // Tip amount selector
+                VStack(spacing: 12) {
+                    ForEach(0..<tipAmounts.count, id: \.self) { index in
+                        Button(action: {
+                            selectedTipIndex = index
+                        }) {
+                            HStack {
+                                Text(tipAmounts[index])
+                                    .font(.title3)
+                                    .bold()
+                                
+                                Spacer()
+                                
+                                if selectedTipIndex == index {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(.accentColor)
                                 }
-                                .padding()
-                                .background(cardBackgroundColor)
-                                .cornerRadius(12)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(MendColors.primary.opacity(0.3), lineWidth: 1)
-                                )
                             }
-                            .disabled(processingPayment || !canUseApplePay)
+                            .padding()
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(cardBackgroundColor)
+                            )
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+                }
+                .padding(.horizontal)
+                
+                // Apple Pay button
+                if StripePaymentService.shared.isApplePayAvailable() {
+                    Button(action: {
+                        processPayment()
+                    }) {
+                        HStack {
+                            Image(systemName: "applelogo")
+                            Text("Pay")
+                        }
+                        .frame(height: 45)
+                        .frame(maxWidth: .infinity)
+                        .background(Color.black)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                        .padding(.horizontal)
+                    }
+                    .disabled(processingPayment)
+                    .opacity(processingPayment ? 0.5 : 1.0)
+                } else {
+                    Text("Apple Pay is not available on this device")
+                        .foregroundColor(.secondary)
+                        .padding()
+                }
+                
+                Spacer()
+            }
+            .padding()
+            .alert(isPresented: $showingError) {
+                Alert(
+                    title: Text("Payment Error"),
+                    message: Text(errorMessage ?? "There was a problem processing your payment."),
+                    dismissButton: .default(Text("OK"))
+                )
+            }
+            .overlay(
+                Group {
+                    if processingPayment {
+                        ZStack {
+                            Color.black.opacity(0.3).edgesIgnoringSafeArea(.all)
+                            VStack {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .scaleEffect(1.5)
+                                
+                                Text("Processing payment...")
+                                    .foregroundColor(.white)
+                                    .padding(.top)
+                            }
+                            .padding(30)
+                            .background(Color.black.opacity(0.7))
+                            .cornerRadius(15)
                         }
                     }
-                    .padding(.horizontal)
                     
-                    // Note
-                    Text("All tips are one-time purchases and do not include any subscriptions or recurring charges.")
-                        .font(MendFont.footnote)
-                        .multilineTextAlignment(.center)
-                        .foregroundColor(secondaryTextColor)
-                        .padding(.horizontal, 20)
-                        .padding(.top, 10)
-                        
-                    if !canUseApplePay {
-                        Text("Apple Pay is not available on this device. Please make sure you have set up Apple Pay in your wallet.")
-                            .font(MendFont.footnote)
-                            .multilineTextAlignment(.center)
-                            .foregroundColor(MendColors.negative)
-                            .padding(.horizontal, 20)
-                            .padding(.top, 5)
+                    if showingThankYou {
+                        ZStack {
+                            Color.black.opacity(0.3).edgesIgnoringSafeArea(.all)
+                            VStack {
+                                Image(systemName: "heart.fill")
+                                    .font(.system(size: 60))
+                                    .foregroundColor(.pink)
+                                
+                                Text("Thank You!")
+                                    .font(.title)
+                                    .bold()
+                                    .padding(.top)
+                                
+                                Text("Your support means a lot to us.")
+                                    .multilineTextAlignment(.center)
+                                
+                                Button(action: {
+                                    showingThankYou = false
+                                    presentationMode.wrappedValue.dismiss()
+                                }) {
+                                    Text("Done")
+                                        .frame(maxWidth: .infinity)
+                                        .padding()
+                                        .background(Color.accentColor)
+                                        .foregroundColor(.white)
+                                        .cornerRadius(10)
+                                }
+                                .padding(.top, 20)
+                            }
+                            .padding(30)
+                            .background(Color.white)
+                            .cornerRadius(15)
+                            .shadow(radius: 10)
+                            .padding(30)
+                        }
+                        .transition(.opacity)
+                        .animation(.easeInOut(duration: 0.3))
                     }
                 }
-                .padding(.bottom, 30)
-                .overlay {
-                    if processingPayment {
-                        ProgressView()
-                            .scaleEffect(1.5)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(Color.black.opacity(0.2))
-                    }
-                }
-            }
-            .background(backgroundColor.ignoresSafeArea())
-            .navigationTitle("Tip Jar")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        presentationMode.wrappedValue.dismiss()
-                    }
-                }
-            }
-            .alert("Thank You!", isPresented: $showingThankYou) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text("Your support is greatly appreciated and helps us continue to develop and improve Mend.")
-            }
-            .alert("Payment Failed", isPresented: $showingError) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(errorMessage ?? "There was an error processing your payment. Please try again.")
-            }
+            )
         }
-    }
-    
-    // Function to process a tip with Stripe Apple Pay
-    private func makeTip(optionIndex: Int) {
-        processingPayment = true
-        
-        // Get the current view controller to present the Apple Pay sheet
-        guard let viewController = UIApplication.shared.windows.first?.rootViewController else {
-            processingPayment = false
-            errorMessage = "Could not present Apple Pay"
-            showingError = true
-            return
-        }
-        
-        // Process the payment using Stripe
-        StripePaymentService.shared.processTip(at: optionIndex) { success, error in
-            if let error = error {
-                // Handle error
-                processingPayment = false
-                errorMessage = error.localizedDescription
-                showingError = true
-                return
-            }
-            
-            // Present the Apple Pay sheet
-            StripePaymentService.shared.presentApplePay(on: viewController)
-            
-            // The completion handler will be called when payment finishes
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                processingPayment = false
-                
-                if success {
+        .onAppear {
+            // Set up payment callbacks
+            tipService.onPaymentSuccess = {
+                DispatchQueue.main.async {
+                    processingPayment = false
                     showingThankYou = true
                 }
             }
+            
+            tipService.onPaymentFailure = { error in
+                DispatchQueue.main.async {
+                    processingPayment = false
+                    errorMessage = error?.localizedDescription ?? "Payment was cancelled"
+                    showingError = true
+                }
+            }
         }
+    }
+    
+    private func processPayment() {
+        processingPayment = true
+        let amount = tipService.tipAmounts[selectedTipIndex]
+        
+        tipService.presentApplePay(amount: amount) { success, error in
+            // Since the payment is now handled via callbacks, we don't need to handle it here
+            if !success {
+                DispatchQueue.main.async {
+                    self.processingPayment = false
+                    self.errorMessage = error?.localizedDescription ?? "Payment could not be processed"
+                    self.showingError = true
+                }
+            }
+        }
+    }
+}
+
+// Apple Pay Button using UIKit representable
+struct ApplePayButton: UIViewRepresentable {
+    var onPaymentMethodCreation: () -> Void
+    
+    func makeUIView(context: Context) -> some UIView {
+        let button = PKPaymentButton(paymentButtonType: .plain, paymentButtonStyle: colorScheme(for: context))
+        button.addTarget(context.coordinator, action: #selector(Coordinator.buttonTapped), for: .touchUpInside)
+        return button
+    }
+    
+    func updateUIView(_ uiView: UIViewType, context: Context) {
+        // No updates needed
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(parent: self)
+    }
+    
+    class Coordinator: NSObject {
+        var parent: ApplePayButton
+        
+        init(parent: ApplePayButton) {
+            self.parent = parent
+        }
+        
+        @objc func buttonTapped() {
+            parent.onPaymentMethodCreation()
+        }
+    }
+    
+    private func colorScheme(for context: Context) -> PKPaymentButtonStyle {
+        return context.environment.colorScheme == .dark ? .white : .black
     }
 }
 

@@ -1,43 +1,59 @@
 // This is a sample server implementation for handling Stripe payment intents
 // In a production environment, this would be deployed on your server
 const express = require('express');
-const app = express();
-const stripe = require('stripe')('sk_test_yourStripeSecretKeyHere');
+const bodyParser = require('body-parser');
+const stripe = require('stripe')('sk_test_YOUR_SECRET_KEY'); // Add your test secret key here
 
-// Parse JSON request body
-app.use(express.json());
+const app = express();
+const port = process.env.PORT || 3000;
+
+app.use(bodyParser.json());
+
+// Enable CORS
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    next();
+});
+
+// Health check endpoint
+app.get('/', (req, res) => {
+    res.send('Mend Server is running');
+});
 
 // Endpoint to create a payment intent
 app.post('/create-payment-intent', async (req, res) => {
-  try {
-    // Extract payment information from request
-    const { amount, currency } = req.body;
-    
-    // Validate the request
-    if (!amount || !currency) {
-      return res.status(400).json({ error: 'Missing required parameters' });
+    try {
+        const { amount, currency, payment_method_id, description } = req.body;
+        
+        const paymentIntent = await stripe.paymentIntents.create({
+            amount,
+            currency: currency || 'gbp',
+            payment_method: payment_method_id,
+            confirm: true,
+            confirmation_method: 'manual',
+            description,
+        });
+        
+        res.json({
+            clientSecret: paymentIntent.client_secret,
+            status: paymentIntent.status,
+        });
+    } catch (error) {
+        console.error('Error creating payment intent:', error);
+        res.status(500).json({ error: error.message });
     }
-    
-    // Create a payment intent with Stripe
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: amount, // amount in smallest currency unit (pennies for GBP)
-      currency: currency.toLowerCase(),
-      // In production, you might want to store additional metadata
-      metadata: {
-        integration_check: 'apple_pay',
-        app_name: 'Mend',
-      },
-      payment_method_types: ['card'],
-    });
-    
-    // Return the client secret to the client
-    res.json({
-      clientSecret: paymentIntent.client_secret,
-    });
-  } catch (error) {
-    console.error('Error creating payment intent:', error);
-    res.status(500).json({ error: 'Failed to create payment intent' });
-  }
+});
+
+// Mock endpoint for testing
+app.post('/mock-payment-intent', (req, res) => {
+    // Simulate processing delay
+    setTimeout(() => {
+        res.json({
+            clientSecret: 'pi_mock_client_secret_for_testing',
+            status: 'succeeded',
+        });
+    }, 500);
 });
 
 // Webhook to handle Stripe events
@@ -75,10 +91,8 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
   res.json({ received: true });
 });
 
-// Start the server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(port, () => {
+    console.log(`Mend server listening at http://localhost:${port}`);
 });
 
 // Note: For production, you would need to:

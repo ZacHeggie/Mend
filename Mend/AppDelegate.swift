@@ -7,7 +7,7 @@
 
 import UIKit
 import HealthKit
-import StripeApplePay
+import PassKit
 import BackgroundTasks
 
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -16,22 +16,26 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Initialize the health store
-        HealthKitManager.shared.initializeHealthKit()
-        
-        // Initialize the stripe SDK
-        configureStripe()
+        requestHealthKitAuthorization()
         
         // Register for background refresh
         setupBackgroundRefresh()
         
+        // Initialize the payment service
+        StripePaymentService.shared.initialize()
+        
         return true
     }
     
-    // Configure Stripe with the publishable key
-    private func configureStripe() {
-        // Use your actual publishable key here
-        let publishableKey = "pk_test_yourPublishableKeyHere"
-        StripeAPI.defaultPublishableKey = publishableKey
+    // Request authorization for HealthKit
+    private func requestHealthKitAuthorization() {
+        Task {
+            do {
+                try await HealthKitManager.shared.requestAuthorization()
+            } catch {
+                print("Error requesting HealthKit authorization: \(error)")
+            }
+        }
     }
     
     // Setup background refresh for health data updates
@@ -64,7 +68,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         let refreshTask = Task {
             do {
                 // Perform the actual refresh operation
-                try await RecoveryMetrics.shared.refreshData()
+                await RecoveryMetrics.shared.refreshData()
                 
                 // Mark the task as completed
                 task.setTaskCompleted(success: true)
@@ -139,7 +143,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Refresh data in the background
         Task {
             do {
-                try await RecoveryMetrics.shared.refreshData()
+                await RecoveryMetrics.shared.refreshData()
                 completionHandler(.newData)
             } catch {
                 print("Error refreshing data in background: \(error.localizedDescription)")

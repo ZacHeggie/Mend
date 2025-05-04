@@ -10,15 +10,15 @@ let package = Package(
         .library(name: "Mend Health", targets: ["Mend Health"])
     ],
     dependencies: [
-        .package(url: "https://github.com/stripe/stripe-ios", from: "23.18.0")
+        .package(url: "https://github.com/stripe/stripe-ios-spm", from: "24.12.1")
     ],
     targets: [
         .target(
             name: "Mend Health",
             dependencies: [
-                .product(name: "Stripe", package: "stripe-ios"),
-                .product(name: "StripeApplePay", package: "stripe-ios"),
-                .product(name: "StripePaymentSheet", package: "stripe-ios")
+                .product(name: "Stripe", package: "stripe-ios-spm"),
+                .product(name: "StripeApplePay", package: "stripe-ios-spm"),
+                .product(name: "StripePaymentSheet", package: "stripe-ios-spm")
             ],
             path: "Mend"
         )

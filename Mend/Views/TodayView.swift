@@ -11,6 +11,7 @@ struct TodayView: View {
     @State private var showingAddActivity = false
     @State private var showingNotificationMenu = false
     @State private var selectedInsight: RecoveryInsight?
+    @State private var refreshing = false
     
     // Computed properties for dynamic colors
     private var backgroundColor: Color {
@@ -326,6 +327,7 @@ struct TodayView: View {
     // MARK: - Helper Functions
     
     private func refreshData() async {
+        refreshing = true
         // Start by setting loading state
         if !recoveryMetrics.isInitialLoadComplete {
             // Don't need to do anything here, as the initial load is already in progress
@@ -346,11 +348,12 @@ struct TodayView: View {
         
         // Refresh recovery insights
         loadRecoveryInsights()
+        refreshing = false
     }
     
     private func loadData() async {
         // Load recovery metrics
-        recoveryMetrics.refreshData()
+        await recoveryMetrics.refreshData()
         
         // Load personalized recommendations if we have a recovery score
         if let recoveryScore = recoveryMetrics.currentRecoveryScore {

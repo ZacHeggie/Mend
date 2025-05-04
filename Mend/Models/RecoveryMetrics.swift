@@ -961,10 +961,18 @@ class RecoveryMetrics: ObservableObject {
     
     /// Refreshes data from HealthKit or simulated data
     @MainActor
-    func refreshData() {
-        Task {
-            await loadMetrics()
+    func refreshData() async {
+        isLoading = true
+        
+        do {
+            // Load data from HealthKit
+            await loadHealthKitData()
+        } catch {
+            print("Error refreshing data: \(error)")
+            self.error = error
         }
+        
+        isLoading = false
     }
     
     /// Refreshes data with a complete reset
