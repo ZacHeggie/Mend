@@ -313,10 +313,12 @@ struct TipJarView: View {
                                 Text("Thank You!")
                                     .font(.title)
                                     .bold()
+                                    .foregroundColor(textColor)
                                     .padding(.top)
                                 
                                 Text("Your support means a lot to us.")
                                     .multilineTextAlignment(.center)
+                                    .foregroundColor(textColor)
                                 
                                 Button(action: {
                                     showingThankYou = false
@@ -332,7 +334,7 @@ struct TipJarView: View {
                                 .padding(.top, 20)
                             }
                             .padding(30)
-                            .background(Color.white)
+                            .background(cardBackgroundColor)
                             .cornerRadius(15)
                             .shadow(radius: 10)
                             .padding(30)
