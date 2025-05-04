@@ -6,27 +6,123 @@
 //
 
 import UIKit
+import HealthKit
+import PassKit
 import BackgroundTasks
 
 class AppDelegate: UIResponder, UIApplicationDelegate {
     
+    var window: UIWindow?
+    
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Register for background refresh tasks with a specific queue instead of nil
-        BGTaskScheduler.shared.register(forTaskWithIdentifier: "com.mend.dataRefresh", using: DispatchQueue.global()) { task in
-            self.handleAppRefresh(task: task as! BGAppRefreshTask)
-        }
+        // Initialize the health store
+        requestHealthKitAuthorization()
+        
+        // Register for background refresh
+        setupBackgroundRefresh()
+        
+        // Initialize the payment service
+        StripePaymentService.shared.initialize()
         
         return true
     }
     
+    // Request authorization for HealthKit
+    private func requestHealthKitAuthorization() {
+        Task {
+            do {
+                try await HealthKitManager.shared.requestAuthorization()
+            } catch {
+                print("Error requesting HealthKit authorization: \(error)")
+            }
+        }
+    }
+    
+    // Setup background refresh for health data updates
+    private func setupBackgroundRefresh() {
+        // Setup background processing
+        let taskIdentifier = "com.mend.dataRefresh"
+        
+        // Register for background refresh
+        if #available(iOS 13.0, *) {
+            // Register for background refresh tasks with a specific queue
+            BGTaskScheduler.shared.register(forTaskWithIdentifier: taskIdentifier, using: DispatchQueue.global()) { task in
+                self.handleBackgroundRefresh(task: task as! BGProcessingTask)
+            }
+            
+            // Schedule the initial background task
+            self.scheduleBackgroundRefresh()
+        } else {
+            // Fallback for older iOS versions
+            UIApplication.shared.setMinimumBackgroundFetchInterval(UIApplication.backgroundFetchIntervalMinimum)
+        }
+    }
+    
+    // Handle background refresh task
+    @available(iOS 13.0, *)
+    private func handleBackgroundRefresh(task: BGProcessingTask) {
+        // Schedule the next background refresh
+        scheduleBackgroundRefresh()
+        
+        // Create a task to refresh health data
+        let refreshTask = Task {
+            do {
+                // Perform the actual refresh operation
+                await RecoveryMetrics.shared.refreshData()
+                
+                // Mark the task as completed
+                task.setTaskCompleted(success: true)
+            } catch {
+                print("Error refreshing data in background: \(error)")
+                task.setTaskCompleted(success: false)
+            }
+        }
+        
+        // If the system needs to cancel the task, cancel our operation
+        task.expirationHandler = {
+            refreshTask.cancel()
+            task.setTaskCompleted(success: false)
+        }
+    }
+    
+    // Schedule background refresh
+    @available(iOS 13.0, *)
+    private func scheduleBackgroundRefresh() {
+        let request = BGProcessingTaskRequest(identifier: "com.mend.dataRefresh")
+        
+        // Set to true to require device to be charging
+        request.requiresExternalPower = false
+        
+        // Set to true to require Wi-Fi
+        request.requiresNetworkConnectivity = false
+        
+        // Set earliest begin date to 15 minutes from now
+        request.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60)
+        
+        do {
+            try BGTaskScheduler.shared.submit(request)
+            print("Background refresh scheduled successfully")
+        } catch {
+            print("Could not schedule background refresh: \(error)")
+        }
+    }
+    
+    // MARK: UISceneSession Lifecycle
+    
+    @available(iOS 13.0, *)
     func application(_ application: UIApplication, configurationForConnecting connectingSceneSession: UISceneSession, options: UIScene.ConnectionOptions) -> UISceneConfiguration {
+        // Called when a new scene session is being created.
+        // Use this method to select a configuration to create the new scene with.
         let sceneConfig = UISceneConfiguration(name: "Default Configuration", sessionRole: connectingSceneSession.role)
         sceneConfig.delegateClass = SceneDelegate.self
         return sceneConfig
     }
     
+    @available(iOS 13.0, *)
     func application(_ application: UIApplication, didDiscardSceneSessions sceneSessions: Set<UISceneSession>) {
-        // Called when the user discards a scene session
+        // Called when the user discards a scene session.
+        // If any sessions were discarded while the application was not running, this will be called shortly after application:didFinishLaunchingWithOptions.
+        // Use this method to release any resources that were specific to the discarded scenes, as they will not return.
     }
     
     // MARK: - State Preservation and Restoration
@@ -41,42 +137,18 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         return true
     }
     
-    // MARK: - Background Tasks
+    // MARK: - Background Fetch
     
-    func applicationDidEnterBackground(_ application: UIApplication) {
-        scheduleAppRefresh()
-    }
-    
-    func scheduleAppRefresh() {
-        let request = BGAppRefreshTaskRequest(identifier: "com.mend.dataRefresh")
-        // Request a refresh no earlier than 15 minutes from now
-        request.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60)
-        
-        do {
-            try BGTaskScheduler.shared.submit(request)
-        } catch let error {
-            print("Could not schedule app refresh: \(error)")
-        }
-    }
-    
-    func handleAppRefresh(task: BGAppRefreshTask) {
-        // Schedule a new refresh task
-        scheduleAppRefresh()
-        
-        // Set up a task expiration handler
-        let refreshTask = Task { 
-            await RecoveryMetrics.shared.refreshWithReset() 
-        }
-        
-        task.expirationHandler = {
-            refreshTask.cancel()
-        }
-        
-        // Inform the system when the refresh task is complete
+    func application(_ application: UIApplication, performFetchWithCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        // Refresh data in the background
         Task {
-            // Complete the background task after the refresh is done
-            let _ = await refreshTask.result
-            task.setTaskCompleted(success: true)
+            do {
+                await RecoveryMetrics.shared.refreshData()
+                completionHandler(.newData)
+            } catch {
+                print("Error refreshing data in background: \(error.localizedDescription)")
+                completionHandler(.failed)
+            }
         }
     }
 } 

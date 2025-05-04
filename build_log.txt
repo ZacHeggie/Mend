@@ -1,0 +1,568 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project "Mend Health.xcodeproj" -scheme "Mend Health" -destination "platform=iOS Simulator,name=iPhone 16 Pro" clean build
+
+ComputePackagePrebuildTargetDependencyGraph
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+** CLEAN SUCCEEDED **
+
+ComputePackagePrebuildTargetDependencyGraph
+
+Prepare packages
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (1 target)
+    Target 'Mend Health' in project 'Mend Health' (no dependencies)
+
+GatherProvisioningInputs
+
+CreateBuildDescription
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.4.sdk -x c -c /dev/null
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/actool --print-asset-tag-combinations --output-format xml1 /Users/zacheggie/Documents/Development/Mend/Mend/Assets.xcassets
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/actool --version --output-format xml1
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc --version
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld -version_details
+
+Build description signature: c785a22924e5ba1057d8ac39fdeafa60
+Build description path: /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/XCBuildData/c785a22924e5ba1057d8ac39fdeafa60.xcbuilddata
+CreateBuildDirectory /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products
+    cd /Users/zacheggie/Documents/Development/Mend/Mend\ Health.xcodeproj
+    builtin-create-build-directory /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products
+
+CreateBuildDirectory /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex
+    cd /Users/zacheggie/Documents/Development/Mend/Mend\ Health.xcodeproj
+    builtin-create-build-directory /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex
+
+ClangStatCache /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.4.sdk /Users/zacheggie/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator18.4-22E235-71825a6d136aa4733edcbe86ece5525b.sdkstatcache
+    cd /Users/zacheggie/Documents/Development/Mend/Mend\ Health.xcodeproj
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.4.sdk -o /Users/zacheggie/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator18.4-22E235-71825a6d136aa4733edcbe86ece5525b.sdkstatcache
+
+CreateBuildDirectory /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator
+    cd /Users/zacheggie/Documents/Development/Mend/Mend\ Health.xcodeproj
+    builtin-create-build-directory /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator
+
+CreateBuildDirectory /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator
+    cd /Users/zacheggie/Documents/Development/Mend/Mend\ Health.xcodeproj
+    builtin-create-build-directory /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator
+
+WriteAuxiliaryFile /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health-90eee71c60f1807dc791559142c090ab-VFS-iphonesimulator/all-product-headers.yaml
+    cd /Users/zacheggie/Documents/Development/Mend/Mend\ Health.xcodeproj
+    write-file /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health-90eee71c60f1807dc791559142c090ab-VFS-iphonesimulator/all-product-headers.yaml
+
+WriteAuxiliaryFile /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health-own-target-headers.hmap (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    write-file /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health-own-target-headers.hmap
+
+WriteAuxiliaryFile /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health.hmap (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    write-file /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health.hmap
+
+WriteAuxiliaryFile /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health-project-headers.hmap (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    write-file /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health-project-headers.hmap
+
+WriteAuxiliaryFile /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health-generated-files.hmap (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    write-file /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health-generated-files.hmap
+
+WriteAuxiliaryFile /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend\ Health.LinkFileList (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    write-file /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend\ Health.LinkFileList
+
+WriteAuxiliaryFile /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend\ Health_const_extract_protocols.json (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    write-file /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend\ Health_const_extract_protocols.json
+
+WriteAuxiliaryFile /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend\ Health.SwiftConstValuesFileList (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    write-file /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend\ Health.SwiftConstValuesFileList
+
+WriteAuxiliaryFile /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend\ Health.SwiftFileList (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    write-file /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend\ Health.SwiftFileList
+
+WriteAuxiliaryFile /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend\ Health-OutputFileMap.json (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    write-file /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend\ Health-OutputFileMap.json
+
+WriteAuxiliaryFile /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health.DependencyStaticMetadataFileList (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    write-file /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health.DependencyStaticMetadataFileList
+
+WriteAuxiliaryFile /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health.DependencyMetadataFileList (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    write-file /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health.DependencyMetadataFileList
+
+WriteAuxiliaryFile /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health-all-target-headers.hmap (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    write-file /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health-all-target-headers.hmap
+
+WriteAuxiliaryFile /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health-all-non-framework-target-headers.hmap (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    write-file /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health-all-non-framework-target-headers.hmap
+
+WriteAuxiliaryFile /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health-DebugDylibPath-normal-arm64.txt (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    write-file /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health-DebugDylibPath-normal-arm64.txt
+
+WriteAuxiliaryFile /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health-DebugDylibInstallName-normal-arm64.txt (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    write-file /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health-DebugDylibInstallName-normal-arm64.txt
+
+MkDir /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    /bin/mkdir -p /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app
+
+WriteAuxiliaryFile /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/DerivedSources/Entitlements-Simulated.plist (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    write-file /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/DerivedSources/Entitlements-Simulated.plist
+
+ProcessProductPackaging /Users/zacheggie/Documents/Development/Mend/Mend/Mend.entitlements /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health.app.xcent (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+    Entitlements:
+    
+    {
+}
+    
+    builtin-productPackagingUtility /Users/zacheggie/Documents/Development/Mend/Mend/Mend.entitlements -entitlements -format xml -o /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health.app.xcent
+
+ProcessProductPackaging /Users/zacheggie/Documents/Development/Mend/Mend/Mend.entitlements /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health.app-Simulated.xcent (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+    Entitlements:
+    
+    {
+    "application-identifier" = "WCFQ97K5X7.zchdev.Mend";
+    "com.apple.developer.healthkit" = 1;
+    "com.apple.developer.healthkit.access" =     (
+        "health-records"
+    );
+    "com.apple.developer.healthkit.background-delivery" = 1;
+    "com.apple.developer.in-app-payments" =     (
+        "merchant.zacharyheggie"
+    );
+}
+    
+    builtin-productPackagingUtility /Users/zacheggie/Documents/Development/Mend/Mend/Mend.entitlements -entitlements -format xml -o /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health.app-Simulated.xcent
+
+ProcessProductPackagingDER /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health.app.xcent /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health.app.xcent.der (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    /usr/bin/derq query -f xml -i /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health.app.xcent -o /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health.app.xcent.der --raw
+
+ProcessProductPackagingDER /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health.app-Simulated.xcent /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health.app-Simulated.xcent.der (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    /usr/bin/derq query -f xml -i /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health.app-Simulated.xcent -o /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health.app-Simulated.xcent.der --raw
+
+MkDir /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/assetcatalog_output/thinned (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    /bin/mkdir -p /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/assetcatalog_output/thinned
+
+Ld /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app/__preview.dylib normal (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios18.4-simulator -dynamiclib -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.4.sdk -O0 -L/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator -F/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator -install_name @rpath/Mend\ Health.debug.dylib -dead_strip -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -debug_variant -Xlinker -dependency_info -Xlinker /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend\ Health_dependency_info.dat -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __entitlements -Xlinker /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health.app-Simulated.xcent -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __ents_der -Xlinker /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health.app-Simulated.xcent.der -Xlinker -no_adhoc_codesign -o /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app/__preview.dylib
+
+MkDir /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/assetcatalog_output/unthinned (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    /bin/mkdir -p /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/assetcatalog_output/unthinned
+
+GenerateAssetSymbols /Users/zacheggie/Documents/Development/Mend/Mend/Assets.xcassets (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    /Applications/Xcode.app/Contents/Developer/usr/bin/actool /Users/zacheggie/Documents/Development/Mend/Mend/Assets.xcassets --compile /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app --output-format human-readable-text --notices --warnings --export-dependency-info /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/assetcatalog_dependencies --output-partial-info-plist /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/assetcatalog_generated_info.plist --app-icon AppIcon --accent-color AccentColor --compress-pngs --enable-on-demand-resources YES --development-region en --target-device iphone --target-device ipad --minimum-deployment-target 18.4 --platform iphonesimulator --bundle-identifier zchdev.Mend --generate-swift-asset-symbols /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/DerivedSources/GeneratedAssetSymbols.swift --generate-objc-asset-symbols /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/DerivedSources/GeneratedAssetSymbols.h --generate-asset-symbol-index /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/DerivedSources/GeneratedAssetSymbols-Index.plist
+/* com.apple.actool.compilation-results */
+/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend Health.build/Debug-iphonesimulator/Mend Health.build/DerivedSources/GeneratedAssetSymbols-Index.plist
+/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend Health.build/Debug-iphonesimulator/Mend Health.build/DerivedSources/GeneratedAssetSymbols.h
+/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend Health.build/Debug-iphonesimulator/Mend Health.build/DerivedSources/GeneratedAssetSymbols.swift
+
+
+CompileAssetCatalogVariant thinned /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app /Users/zacheggie/Documents/Development/Mend/Mend/Assets.xcassets (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    /Applications/Xcode.app/Contents/Developer/usr/bin/actool /Users/zacheggie/Documents/Development/Mend/Mend/Assets.xcassets --compile /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/assetcatalog_output/thinned --output-format human-readable-text --notices --warnings --export-dependency-info /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/assetcatalog_dependencies_thinned --output-partial-info-plist /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/assetcatalog_generated_info.plist_thinned --app-icon AppIcon --accent-color AccentColor --compress-pngs --enable-on-demand-resources YES --filter-for-thinning-device-configuration iPhone17,1 --filter-for-device-os-version 18.4 --development-region en --target-device iphone --target-device ipad --minimum-deployment-target 18.4 --platform iphonesimulator
+/* com.apple.actool.compilation-results */
+/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend Health.build/Debug-iphonesimulator/Mend Health.build/assetcatalog_generated_info.plist_thinned
+/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend Health.build/Debug-iphonesimulator/Mend Health.build/assetcatalog_output/thinned/AppIcon60x60@2x.png
+/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend Health.build/Debug-iphonesimulator/Mend Health.build/assetcatalog_output/thinned/AppIcon76x76@2x~ipad.png
+/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend Health.build/Debug-iphonesimulator/Mend Health.build/assetcatalog_output/thinned/Assets.car
+
+
+SwiftDriver Mend\ Health normal arm64 com.apple.xcode.tools.swift.compiler (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name Mend_Health -Onone -enforce-exclusivity\=checked @/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend\ Health.SwiftFileList -DDEBUG -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.4.sdk -target arm64-apple-ios18.4-simulator -g -module-cache-path /Users/zacheggie/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -profile-coverage-mapping -profile-generate -enable-testing -index-store-path /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Index.noindex/DataStore -swift-version 5 -I /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator -F /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/zacheggie/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator18.4-22E235-71825a6d136aa4733edcbe86ece5525b.sdkstatcache -output-file-map /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend\ Health-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend_Health.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/zacheggie/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend\ Health_const_extract_protocols.json -Xcc -iquote -Xcc /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health-generated-files.hmap -Xcc -I/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health-own-target-headers.hmap -Xcc -I/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health-all-target-headers.hmap -Xcc -iquote -Xcc /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health-project-headers.hmap -Xcc -I/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/DerivedSources-normal/arm64 -Xcc -I/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/DerivedSources/arm64 -Xcc -I/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend_Health-Swift.h -working-directory /Users/zacheggie/Documents/Development/Mend -experimental-emit-module-separately -disable-cmo
+
+SwiftCompile normal arm64 Compiling\ SharedTypes.swift,\ PostActivityCooldown.swift,\ HelpSectionView.swift,\ ActivityManager.swift /Users/zacheggie/Documents/Development/Mend/Mend/Models/SharedTypes.swift /Users/zacheggie/Documents/Development/Mend/Mend/Models/PostActivityCooldown.swift /Users/zacheggie/Documents/Development/Mend/Mend/Views/HelpSectionView.swift /Users/zacheggie/Documents/Development/Mend/Mend/Models/ActivityManager.swift (in target 'Mend Health' from project 'Mend Health')
+
+SwiftCompile normal arm64 /Users/zacheggie/Documents/Development/Mend/Mend/Models/SharedTypes.swift (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+
+SwiftCompile normal arm64 /Users/zacheggie/Documents/Development/Mend/Mend/Models/PostActivityCooldown.swift (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+/Users/zacheggie/Documents/Development/Mend/Mend/Models/PostActivityCooldown.swift:176:26: warning: no 'async' operations occur within 'await' expression
+        let activities = await activityManager.getRecentActivities(days: 30)
+                         ^
+
+SwiftCompile normal arm64 /Users/zacheggie/Documents/Development/Mend/Mend/Views/HelpSectionView.swift (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+
+SwiftCompile normal arm64 /Users/zacheggie/Documents/Development/Mend/Mend/Models/ActivityManager.swift (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+
+SwiftCompile normal arm64 Compiling\ MendApp.swift,\ ActivityRecommendations.swift,\ RequestModels.swift /Users/zacheggie/Documents/Development/Mend/Mend/MendApp.swift /Users/zacheggie/Documents/Development/Mend/Mend/Models/ActivityRecommendations.swift /Users/zacheggie/Documents/Development/Mend/Mend/Models/RequestModels.swift (in target 'Mend Health' from project 'Mend Health')
+
+SwiftCompile normal arm64 /Users/zacheggie/Documents/Development/Mend/Mend/MendApp.swift (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+
+SwiftCompile normal arm64 /Users/zacheggie/Documents/Development/Mend/Mend/Models/ActivityRecommendations.swift (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+
+SwiftCompile normal arm64 /Users/zacheggie/Documents/Development/Mend/Mend/Models/RequestModels.swift (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+
+SwiftCompile normal arm64 Compiling\ MailView.swift,\ Activity.swift,\ ReportBugView.swift,\ NotificationManager.swift /Users/zacheggie/Documents/Development/Mend/Mend/Components/MailView.swift /Users/zacheggie/Documents/Development/Mend/Mend/Models/Activity.swift /Users/zacheggie/Documents/Development/Mend/Mend/Views/ReportBugView.swift /Users/zacheggie/Documents/Development/Mend/Mend/Models/NotificationManager.swift (in target 'Mend Health' from project 'Mend Health')
+
+SwiftCompile normal arm64 /Users/zacheggie/Documents/Development/Mend/Mend/Components/MailView.swift (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+
+SwiftCompile normal arm64 /Users/zacheggie/Documents/Development/Mend/Mend/Models/Activity.swift (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+
+SwiftCompile normal arm64 /Users/zacheggie/Documents/Development/Mend/Mend/Views/ReportBugView.swift (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+
+SwiftCompile normal arm64 /Users/zacheggie/Documents/Development/Mend/Mend/Models/NotificationManager.swift (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+
+SwiftCompile normal arm64 Compiling\ MendStyle.swift,\ HelpCenterView.swift,\ CooldownStatusView.swift /Users/zacheggie/Documents/Development/Mend/Mend/Utilities/MendStyle.swift /Users/zacheggie/Documents/Development/Mend/Mend/Views/HelpCenterView.swift /Users/zacheggie/Documents/Development/Mend/Mend/Views/Components/CooldownStatusView.swift (in target 'Mend Health' from project 'Mend Health')
+
+SwiftCompile normal arm64 /Users/zacheggie/Documents/Development/Mend/Mend/Utilities/MendStyle.swift (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+
+SwiftCompile normal arm64 /Users/zacheggie/Documents/Development/Mend/Mend/Views/HelpCenterView.swift (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+
+SwiftCompile normal arm64 /Users/zacheggie/Documents/Development/Mend/Mend/Views/Components/CooldownStatusView.swift (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+
+SwiftCompile normal arm64 Compiling\ HealthDataImporter.swift,\ DeveloperSettings.swift,\ ScoreRing.swift /Users/zacheggie/Documents/Development/Mend/Mend/Models/HealthDataImporter.swift /Users/zacheggie/Documents/Development/Mend/Mend/Utilities/DeveloperSettings.swift /Users/zacheggie/Documents/Development/Mend/Mend/Components/ScoreRing.swift (in target 'Mend Health' from project 'Mend Health')
+
+SwiftCompile normal arm64 /Users/zacheggie/Documents/Development/Mend/Mend/Models/HealthDataImporter.swift (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+
+SwiftCompile normal arm64 /Users/zacheggie/Documents/Development/Mend/Mend/Utilities/DeveloperSettings.swift (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+
+SwiftCompile normal arm64 /Users/zacheggie/Documents/Development/Mend/Mend/Components/ScoreRing.swift (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+
+SwiftCompile normal arm64 Compiling\ HealthKitManager.swift,\ RecoveryMetrics.swift,\ FeatureRequestView.swift,\ AboutView.swift /Users/zacheggie/Documents/Development/Mend/Mend/Utilities/HealthKitManager.swift /Users/zacheggie/Documents/Development/Mend/Mend/Models/RecoveryMetrics.swift /Users/zacheggie/Documents/Development/Mend/Mend/Views/FeatureRequestView.swift /Users/zacheggie/Documents/Development/Mend/Mend/Views/AboutView.swift (in target 'Mend Health' from project 'Mend Health')
+
+SwiftCompile normal arm64 /Users/zacheggie/Documents/Development/Mend/Mend/Utilities/HealthKitManager.swift (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+
+SwiftCompile normal arm64 /Users/zacheggie/Documents/Development/Mend/Mend/Models/RecoveryMetrics.swift (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+
+SwiftCompile normal arm64 /Users/zacheggie/Documents/Development/Mend/Mend/Views/FeatureRequestView.swift (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+
+SwiftCompile normal arm64 /Users/zacheggie/Documents/Development/Mend/Mend/Views/AboutView.swift (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+
+SwiftEmitModule normal arm64 Emitting\ module\ for\ Mend_Health (in target 'Mend Health' from project 'Mend Health')
+
+EmitSwiftModule normal arm64 (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+
+SwiftCompile normal arm64 Compiling\ RequestService.swift,\ DashboardView.swift,\ GeneratedAssetSymbols.swift /Users/zacheggie/Documents/Development/Mend/Mend/Models/RequestService.swift /Users/zacheggie/Documents/Development/Mend/Mend/Views/DashboardView.swift /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/DerivedSources/GeneratedAssetSymbols.swift (in target 'Mend Health' from project 'Mend Health')
+
+SwiftCompile normal arm64 /Users/zacheggie/Documents/Development/Mend/Mend/Models/RequestService.swift (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+/Users/zacheggie/Documents/Development/Mend/Mend/Models/RequestService.swift:85:23: warning: value 'jsonString' was defined but never used; consider replacing with boolean test
+            guard let jsonString = String(data: requestData, encoding: .utf8) else {
+                  ~~~~^~~~~~~~~~~~~
+                                                                              != nil
+/Users/zacheggie/Documents/Development/Mend/Mend/Models/RequestService.swift:74:13: warning: capture of 'self' with non-sendable type 'RequestService' in a '@Sendable' closure
+            self.isSubmitting = true
+            ^
+/Users/zacheggie/Documents/Development/Mend/Mend/Models/RequestService.swift:37:7: note: class 'RequestService' does not conform to the 'Sendable' protocol
+class RequestService: ObservableObject {
+      ^
+/Users/zacheggie/Documents/Development/Mend/Mend/Models/RequestService.swift:129:21: warning: capture of 'self' with non-sendable type 'RequestService' in a '@Sendable' closure
+                    self.isSubmitting = false
+                    ^
+/Users/zacheggie/Documents/Development/Mend/Mend/Models/RequestService.swift:37:7: note: class 'RequestService' does not conform to the 'Sendable' protocol
+class RequestService: ObservableObject {
+      ^
+/Users/zacheggie/Documents/Development/Mend/Mend/Models/RequestService.swift:138:21: warning: capture of 'self' with non-sendable type 'RequestService' in a '@Sendable' closure
+                    self.isSubmitting = false
+                    ^
+/Users/zacheggie/Documents/Development/Mend/Mend/Models/RequestService.swift:37:7: note: class 'RequestService' does not conform to the 'Sendable' protocol
+class RequestService: ObservableObject {
+      ^
+/Users/zacheggie/Documents/Development/Mend/Mend/Models/RequestService.swift:162:17: warning: capture of 'self' with non-sendable type 'RequestService' in a '@Sendable' closure
+                self.isSubmitting = false
+                ^
+/Users/zacheggie/Documents/Development/Mend/Mend/Models/RequestService.swift:37:7: note: class 'RequestService' does not conform to the 'Sendable' protocol
+class RequestService: ObservableObject {
+      ^
+/Users/zacheggie/Documents/Development/Mend/Mend/Models/RequestService.swift:170:17: warning: capture of 'self' with non-sendable type 'RequestService' in a '@Sendable' closure
+                self.isSubmitting = false
+                ^
+/Users/zacheggie/Documents/Development/Mend/Mend/Models/RequestService.swift:37:7: note: class 'RequestService' does not conform to the 'Sendable' protocol
+class RequestService: ObservableObject {
+      ^
+/Users/zacheggie/Documents/Development/Mend/Mend/Models/RequestService.swift:206:23: warning: value 'jsonString' was defined but never used; consider replacing with boolean test
+            guard let jsonString = String(data: reportData, encoding: .utf8) else {
+                  ~~~~^~~~~~~~~~~~~
+                                                                             != nil
+/Users/zacheggie/Documents/Development/Mend/Mend/Models/RequestService.swift:182:13: warning: capture of 'self' with non-sendable type 'RequestService' in a '@Sendable' closure
+            self.isSubmitting = true
+            ^
+/Users/zacheggie/Documents/Development/Mend/Mend/Models/RequestService.swift:37:7: note: class 'RequestService' does not conform to the 'Sendable' protocol
+class RequestService: ObservableObject {
+      ^
+/Users/zacheggie/Documents/Development/Mend/Mend/Models/RequestService.swift:254:21: warning: capture of 'self' with non-sendable type 'RequestService' in a '@Sendable' closure
+                    self.isSubmitting = false
+                    ^
+/Users/zacheggie/Documents/Development/Mend/Mend/Models/RequestService.swift:37:7: note: class 'RequestService' does not conform to the 'Sendable' protocol
+class RequestService: ObservableObject {
+      ^
+/Users/zacheggie/Documents/Development/Mend/Mend/Models/RequestService.swift:263:21: warning: capture of 'self' with non-sendable type 'RequestService' in a '@Sendable' closure
+                    self.isSubmitting = false
+                    ^
+/Users/zacheggie/Documents/Development/Mend/Mend/Models/RequestService.swift:37:7: note: class 'RequestService' does not conform to the 'Sendable' protocol
+class RequestService: ObservableObject {
+      ^
+/Users/zacheggie/Documents/Development/Mend/Mend/Models/RequestService.swift:287:17: warning: capture of 'self' with non-sendable type 'RequestService' in a '@Sendable' closure
+                self.isSubmitting = false
+                ^
+/Users/zacheggie/Documents/Development/Mend/Mend/Models/RequestService.swift:37:7: note: class 'RequestService' does not conform to the 'Sendable' protocol
+class RequestService: ObservableObject {
+      ^
+/Users/zacheggie/Documents/Development/Mend/Mend/Models/RequestService.swift:295:17: warning: capture of 'self' with non-sendable type 'RequestService' in a '@Sendable' closure
+                self.isSubmitting = false
+                ^
+/Users/zacheggie/Documents/Development/Mend/Mend/Models/RequestService.swift:37:7: note: class 'RequestService' does not conform to the 'Sendable' protocol
+class RequestService: ObservableObject {
+      ^
+
+SwiftCompile normal arm64 /Users/zacheggie/Documents/Development/Mend/Mend/Views/DashboardView.swift (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+
+SwiftCompile normal arm64 /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/DerivedSources/GeneratedAssetSymbols.swift (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+
+SwiftCompile normal arm64 Compiling\ TodayView.swift,\ MetricCard.swift,\ AppDelegate.swift /Users/zacheggie/Documents/Development/Mend/Mend/Views/TodayView.swift /Users/zacheggie/Documents/Development/Mend/Mend/Components/MetricCard.swift /Users/zacheggie/Documents/Development/Mend/Mend/AppDelegate.swift (in target 'Mend Health' from project 'Mend Health')
+
+SwiftCompile normal arm64 /Users/zacheggie/Documents/Development/Mend/Mend/Views/TodayView.swift (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+
+SwiftCompile normal arm64 /Users/zacheggie/Documents/Development/Mend/Mend/Components/MetricCard.swift (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+
+SwiftCompile normal arm64 /Users/zacheggie/Documents/Development/Mend/Mend/AppDelegate.swift (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+
+SwiftCompile normal arm64 Compiling\ PaymentService.swift,\ SettingsView.swift,\ ActivityView.swift /Users/zacheggie/Documents/Development/Mend/Mend/Services/PaymentService.swift /Users/zacheggie/Documents/Development/Mend/Mend/Views/SettingsView.swift /Users/zacheggie/Documents/Development/Mend/Mend/Views/ActivityView.swift (in target 'Mend Health' from project 'Mend Health')
+SwiftCompile normal arm64 /Users/zacheggie/Documents/Development/Mend/Mend/Services/PaymentService.swift (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+/Users/zacheggie/Documents/Development/Mend/Mend/Services/PaymentService.swift:56:41: warning: 'capability3DS' was deprecated in iOS 17: renamed to 'threeDSecure'
+        request.merchantCapabilities = .capability3DS
+                                        ^
+/Users/zacheggie/Documents/Development/Mend/Mend/Services/PaymentService.swift:56:41: note: use 'threeDSecure' instead
+        request.merchantCapabilities = .capability3DS
+                                        ^~~~~~~~~~~~~
+                                        threeDSecure
+
+SwiftCompile normal arm64 /Users/zacheggie/Documents/Development/Mend/Mend/Views/SettingsView.swift (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+
+SwiftCompile normal arm64 /Users/zacheggie/Documents/Development/Mend/Mend/Views/ActivityView.swift (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+
+SwiftDriverJobDiscovery normal arm64 Compiling MendApp.swift, ActivityRecommendations.swift, RequestModels.swift (in target 'Mend Health' from project 'Mend Health')
+
+SwiftCompile normal arm64 Compiling\ ContentView.swift,\ RecoveryHistoryChart.swift,\ SceneDelegate.swift /Users/zacheggie/Documents/Development/Mend/Mend/ContentView.swift /Users/zacheggie/Documents/Development/Mend/Mend/Components/RecoveryHistoryChart.swift /Users/zacheggie/Documents/Development/Mend/Mend/SceneDelegate.swift (in target 'Mend Health' from project 'Mend Health')
+
+SwiftCompile normal arm64 /Users/zacheggie/Documents/Development/Mend/Mend/ContentView.swift (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+
+SwiftCompile normal arm64 /Users/zacheggie/Documents/Development/Mend/Mend/Components/RecoveryHistoryChart.swift (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+
+SwiftCompile normal arm64 /Users/zacheggie/Documents/Development/Mend/Mend/SceneDelegate.swift (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+
+SwiftDriverJobDiscovery normal arm64 Compiling HealthDataImporter.swift, DeveloperSettings.swift, ScoreRing.swift (in target 'Mend Health' from project 'Mend Health')
+
+SwiftDriverJobDiscovery normal arm64 Emitting module for Mend_Health (in target 'Mend Health' from project 'Mend Health')
+
+SwiftDriver\ Compilation\ Requirements Mend\ Health normal arm64 com.apple.xcode.tools.swift.compiler (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    builtin-Swift-Compilation-Requirements -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name Mend_Health -Onone -enforce-exclusivity\=checked @/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend\ Health.SwiftFileList -DDEBUG -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.4.sdk -target arm64-apple-ios18.4-simulator -g -module-cache-path /Users/zacheggie/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -profile-coverage-mapping -profile-generate -enable-testing -index-store-path /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Index.noindex/DataStore -swift-version 5 -I /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator -F /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/zacheggie/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator18.4-22E235-71825a6d136aa4733edcbe86ece5525b.sdkstatcache -output-file-map /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend\ Health-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend_Health.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/zacheggie/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend\ Health_const_extract_protocols.json -Xcc -iquote -Xcc /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health-generated-files.hmap -Xcc -I/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health-own-target-headers.hmap -Xcc -I/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health-all-target-headers.hmap -Xcc -iquote -Xcc /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health-project-headers.hmap -Xcc -I/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/DerivedSources-normal/arm64 -Xcc -I/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/DerivedSources/arm64 -Xcc -I/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend_Health-Swift.h -working-directory /Users/zacheggie/Documents/Development/Mend -experimental-emit-module-separately -disable-cmo
+
+SwiftMergeGeneratedHeaders /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/DerivedSources/Mend_Health-Swift.h /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend_Health-Swift.h (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    builtin-swiftHeaderTool -arch arm64 /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend_Health-Swift.h -o /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/DerivedSources/Mend_Health-Swift.h
+
+Copy /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend_Health.swiftmodule/arm64-apple-ios-simulator.swiftmodule /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend_Health.swiftmodule (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend_Health.swiftmodule /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend_Health.swiftmodule/arm64-apple-ios-simulator.swiftmodule
+
+Copy /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend_Health.swiftmodule/arm64-apple-ios-simulator.swiftdoc /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend_Health.swiftdoc (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend_Health.swiftdoc /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend_Health.swiftmodule/arm64-apple-ios-simulator.swiftdoc
+
+Copy /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend_Health.swiftmodule/arm64-apple-ios-simulator.abi.json /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend_Health.abi.json (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend_Health.abi.json /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend_Health.swiftmodule/arm64-apple-ios-simulator.abi.json
+
+Copy /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend_Health.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend_Health.swiftsourceinfo (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend_Health.swiftsourceinfo /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend_Health.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo
+
+SwiftDriverJobDiscovery normal arm64 Compiling SharedTypes.swift, PostActivityCooldown.swift, HelpSectionView.swift, ActivityManager.swift (in target 'Mend Health' from project 'Mend Health')
+
+SwiftDriverJobDiscovery normal arm64 Compiling MendStyle.swift, HelpCenterView.swift, CooldownStatusView.swift (in target 'Mend Health' from project 'Mend Health')
+
+SwiftDriverJobDiscovery normal arm64 Compiling RequestService.swift, DashboardView.swift, GeneratedAssetSymbols.swift (in target 'Mend Health' from project 'Mend Health')
+
+SwiftDriverJobDiscovery normal arm64 Compiling MailView.swift, Activity.swift, ReportBugView.swift, NotificationManager.swift (in target 'Mend Health' from project 'Mend Health')
+
+SwiftDriverJobDiscovery normal arm64 Compiling TodayView.swift, MetricCard.swift, AppDelegate.swift (in target 'Mend Health' from project 'Mend Health')
+
+SwiftDriverJobDiscovery normal arm64 Compiling ContentView.swift, RecoveryHistoryChart.swift, SceneDelegate.swift (in target 'Mend Health' from project 'Mend Health')
+
+SwiftDriverJobDiscovery normal arm64 Compiling HealthKitManager.swift, RecoveryMetrics.swift, FeatureRequestView.swift, AboutView.swift (in target 'Mend Health' from project 'Mend Health')
+
+LinkAssetCatalog /Users/zacheggie/Documents/Development/Mend/Mend/Assets.xcassets (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    builtin-linkAssetCatalog --thinned /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/assetcatalog_output/thinned --thinned-dependencies /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/assetcatalog_dependencies_thinned --thinned-info-plist-content /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/assetcatalog_generated_info.plist_thinned --unthinned /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/assetcatalog_output/unthinned --unthinned-dependencies /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/assetcatalog_dependencies_unthinned --unthinned-info-plist-content /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/assetcatalog_generated_info.plist_unthinned --output /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app --plist-output /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/assetcatalog_generated_info.plist
+note: Emplaced /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend Health.app/AppIcon60x60@2x.png (in target 'Mend Health' from project 'Mend Health')
+note: Emplaced /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend Health.app/Assets.car (in target 'Mend Health' from project 'Mend Health')
+note: Emplaced /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend Health.app/AppIcon76x76@2x~ipad.png (in target 'Mend Health' from project 'Mend Health')
+
+ProcessInfoPlistFile /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app/Info.plist /Users/zacheggie/Documents/Development/Mend/Mend/Info.plist (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    builtin-infoPlistUtility /Users/zacheggie/Documents/Development/Mend/Mend/Info.plist -producttype com.apple.product-type.application -genpkginfo /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app/PkgInfo -expandbuildsettings -format binary -platform iphonesimulator -additionalcontentfile /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/assetcatalog_generated_info.plist -o /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app/Info.plist
+
+SwiftDriverJobDiscovery normal arm64 Compiling PaymentService.swift, SettingsView.swift, ActivityView.swift (in target 'Mend Health' from project 'Mend Health')
+
+SwiftDriver\ Compilation Mend\ Health normal arm64 com.apple.xcode.tools.swift.compiler (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    builtin-Swift-Compilation -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name Mend_Health -Onone -enforce-exclusivity\=checked @/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend\ Health.SwiftFileList -DDEBUG -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.4.sdk -target arm64-apple-ios18.4-simulator -g -module-cache-path /Users/zacheggie/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -profile-coverage-mapping -profile-generate -enable-testing -index-store-path /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Index.noindex/DataStore -swift-version 5 -I /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator -F /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/zacheggie/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator18.4-22E235-71825a6d136aa4733edcbe86ece5525b.sdkstatcache -output-file-map /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend\ Health-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend_Health.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/zacheggie/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend\ Health_const_extract_protocols.json -Xcc -iquote -Xcc /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health-generated-files.hmap -Xcc -I/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health-own-target-headers.hmap -Xcc -I/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health-all-target-headers.hmap -Xcc -iquote -Xcc /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health-project-headers.hmap -Xcc -I/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/DerivedSources-normal/arm64 -Xcc -I/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/DerivedSources/arm64 -Xcc -I/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend_Health-Swift.h -working-directory /Users/zacheggie/Documents/Development/Mend -experimental-emit-module-separately -disable-cmo
+
+Ld /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app/Mend\ Health.debug.dylib normal (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios18.4-simulator -dynamiclib -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.4.sdk -O0 -L/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -L/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator -F/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -F/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator -filelist /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend\ Health.LinkFileList -install_name @rpath/Mend\ Health.debug.dylib -Xlinker -rpath -Xlinker @executable_path/Frameworks -dead_strip -Xlinker -object_path_lto -Xlinker /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend\ Health_lto.o -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -debug_variant -Xlinker -dependency_info -Xlinker /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend\ Health_dependency_info.dat -fobjc-link-runtime -fprofile-instr-generate -L/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphonesimulator -L/usr/lib/swift -Xlinker -add_ast_path -Xlinker /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend_Health.swiftmodule -Xlinker -alias -Xlinker _main -Xlinker ___debug_main_executable_dylib_entry_point -Xlinker -no_adhoc_codesign -o /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app/Mend\ Health.debug.dylib
+
+ConstructStubExecutorLinkFileList /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health-ExecutorLinkFileList-normal-arm64.txt (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    construct-stub-executor-link-file-list /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app/Mend\ Health.debug.dylib /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib/libPreviewsJITStubExecutor_no_swift_entry_point.a /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib/libPreviewsJITStubExecutor.a --output /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health-ExecutorLinkFileList-normal-arm64.txt
+note: Using stub executor library with Swift entry point. (in target 'Mend Health' from project 'Mend Health')
+
+Ld /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app/Mend\ Health normal (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios18.4-simulator -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.4.sdk -O0 -L/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator -F/Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator -Xlinker -rpath -Xlinker @executable_path -Xlinker -rpath -Xlinker @executable_path/Frameworks -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -debug_variant -e ___debug_blank_executor_main -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __debug_dylib -Xlinker /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health-DebugDylibPath-normal-arm64.txt -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __debug_instlnm -Xlinker /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health-DebugDylibInstallName-normal-arm64.txt -Xlinker -filelist -Xlinker /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health-ExecutorLinkFileList-normal-arm64.txt -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __entitlements -Xlinker /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health.app-Simulated.xcent -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __ents_der -Xlinker /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health.app-Simulated.xcent.der /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app/Mend\ Health.debug.dylib -Xlinker -no_adhoc_codesign -o /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app/Mend\ Health
+
+CopySwiftLibs /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    builtin-swiftStdLibTool --copy --verbose --sign - --scan-executable /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app/Mend\ Health.debug.dylib --scan-folder /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app/Frameworks --scan-folder /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app/PlugIns --scan-folder /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app/SystemExtensions --scan-folder /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app/Extensions --platform iphonesimulator --toolchain /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --destination /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app/Frameworks --strip-bitcode --strip-bitcode-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/bitcode_strip --emit-dependency-info /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/SwiftStdLibToolInputDependencies.dep --filter-for-swift-os
+
+ExtractAppIntentsMetadata (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor --toolchain-dir /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --module-name Mend_Health --sdk-root /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.4.sdk --xcode-version 16E140 --platform-family iOS --deployment-target 18.4 --bundle-identifier zchdev.Mend --output /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app --target-triple arm64-apple-ios18.4-simulator --binary-file /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app/Mend\ Health --dependency-file /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend\ Health_dependency_info.dat --stringsdata-file /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata --source-file-list /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend\ Health.SwiftFileList --metadata-file-list /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health.DependencyMetadataFileList --static-metadata-file-list /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health.DependencyStaticMetadataFileList --swift-const-vals-list /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Objects-normal/arm64/Mend\ Health.SwiftConstValuesFileList --compile-time-extraction --deployment-aware-processing --validate-assistant-intents --no-app-shortcuts-localization
+2025-05-04 12:06:43.293 appintentsmetadataprocessor[52517:84186585] Starting appintentsmetadataprocessor export
+2025-05-04 12:06:43.295 appintentsmetadataprocessor[52517:84186585] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
+
+AppIntentsSSUTraining (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsnltrainingprocessor --infoplist-path /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app/Info.plist --temp-dir-path /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/ssu --bundle-id zchdev.Mend --product-path /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app --extracted-metadata-path /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app/Metadata.appintents --metadata-file-list /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health.DependencyMetadataFileList --archive-ssu-assets
+2025-05-04 12:06:43.312 appintentsnltrainingprocessor[52518:84186587] Parsing options for appintentsnltrainingprocessor
+2025-05-04 12:06:43.312 appintentsnltrainingprocessor[52518:84186587] No AppShortcuts found - Skipping.
+
+CodeSign /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app/Mend\ Health.debug.dylib (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+    Signing Identity:     "Sign to Run Locally"
+    
+    /usr/bin/codesign --force --sign - --timestamp\=none --generate-entitlement-der /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app/Mend\ Health.debug.dylib
+
+CodeSign /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app/__preview.dylib (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+    Signing Identity:     "Sign to Run Locally"
+    
+    /usr/bin/codesign --force --sign - --timestamp\=none --generate-entitlement-der /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app/__preview.dylib
+
+CodeSign /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    
+    Signing Identity:     "Sign to Run Locally"
+    
+    /usr/bin/codesign --force --sign - --entitlements /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Intermediates.noindex/Mend\ Health.build/Debug-iphonesimulator/Mend\ Health.build/Mend\ Health.app.xcent --timestamp\=none --generate-entitlement-der /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app
+
+RegisterExecutionPolicyException /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    builtin-RegisterExecutionPolicyException /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app
+
+Validate /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    builtin-validationUtility /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app -infoplist-subpath Info.plist
+
+Touch /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app (in target 'Mend Health' from project 'Mend Health')
+    cd /Users/zacheggie/Documents/Development/Mend
+    /usr/bin/touch -c /Users/zacheggie/Library/Developer/Xcode/DerivedData/Mend_Health-djidhlmviazeojgkmazrzykdpjlx/Build/Products/Debug-iphonesimulator/Mend\ Health.app
+
+** BUILD SUCCEEDED **
+

@@ -153,21 +153,33 @@ class RecoveryMetrics: ObservableObject {
             
             // Only create scores if we have at least some valid data for this day
             if heartRateValue != nil || hrvValue != nil || sleepValue != nil || sleepQualityValue != nil {
-                // Create the three time points for this day
-                let timesOfDay: [RecoveryScoreData.TimeOfDay] = [.morning, .noon, .evening]
+                // Create a time point for each 2-hour interval of the day
+                let timesOfDay: [RecoveryScoreData.TimeOfDay] = [
+                    .earlyMorning, .dawn, .sunrise, .morning, .lateMorning, .noon,
+                    .earlyAfternoon, .midAfternoon, .lateAfternoon, .evening, .night, .lateNight
+                ]
                 
-                // For each time of day, create a score
-                for (_, timeOfDay) in timesOfDay.enumerated() {
+                // For each time interval, create a score
+                for timeOfDay in timesOfDay {
                     // Create date components for each time of day
                     var dateComponents = calendar.dateComponents([.year, .month, .day], from: dayStart)
+                    
+                    // Set the hour based on the time of day
                     switch timeOfDay {
-                    case .morning:
-                        dateComponents.hour = 8
-                    case .noon:
-                        dateComponents.hour = 13
-                    case .evening:
-                        dateComponents.hour = 20
+                    case .earlyMorning: dateComponents.hour = 1
+                    case .dawn: dateComponents.hour = 3
+                    case .sunrise: dateComponents.hour = 5
+                    case .morning: dateComponents.hour = 7
+                    case .lateMorning: dateComponents.hour = 9
+                    case .noon: dateComponents.hour = 11
+                    case .earlyAfternoon: dateComponents.hour = 13
+                    case .midAfternoon: dateComponents.hour = 15
+                    case .lateAfternoon: dateComponents.hour = 17
+                    case .evening: dateComponents.hour = 19
+                    case .night: dateComponents.hour = 21
+                    case .lateNight: dateComponents.hour = 23
                     }
+                    
                     let timePoint = calendar.date(from: dateComponents) ?? dayStart
                     
                     // Get developer settings to determine if we should use random variations
@@ -182,9 +194,18 @@ class RecoveryMetrics: ObservableObject {
                         // Heart rate variations by time of day (only if random variation is enabled)
                         let hrVariation: Double = useRandomVariation ? {
                             switch timeOfDay {
-                            case .morning: return 2.0
-                            case .noon: return -1.0
-                            case .evening: return 3.0
+                            case .earlyMorning, .dawn, .sunrise:
+                                return Double.random(in: -3...1)  // Lower in early hours
+                            case .morning, .lateMorning:
+                                return Double.random(in: 0...4)   // Rising in morning
+                            case .noon, .earlyAfternoon:
+                                return Double.random(in: 2...6)   // Higher during midday
+                            case .midAfternoon, .lateAfternoon:
+                                return Double.random(in: 1...5)   // Staying higher
+                            case .evening:
+                                return Double.random(in: -1...3)  // Starting to drop
+                            case .night, .lateNight:
+                                return Double.random(in: -4...0)  // Lowest at night
                             }
                         }() : 0.0
                         
@@ -199,9 +220,18 @@ class RecoveryMetrics: ObservableObject {
                         // HRV variations by time of day (only if random variation is enabled)
                         let hrvVariation: Double = useRandomVariation ? {
                             switch timeOfDay {
-                            case .morning: return 5.0
-                            case .noon: return -3.0
-                            case .evening: return 0.0
+                            case .earlyMorning, .dawn, .sunrise:
+                                return Double.random(in: 3...8)  // Higher during sleep
+                            case .morning, .lateMorning:
+                                return Double.random(in: 0...5)  // Decreasing in morning
+                            case .noon, .earlyAfternoon:
+                                return Double.random(in: -5...0) // Lower during activity
+                            case .midAfternoon, .lateAfternoon:
+                                return Double.random(in: -3...2) // Mixed in afternoon
+                            case .evening:
+                                return Double.random(in: -2...3) // Starting to recover
+                            case .night, .lateNight:
+                                return Double.random(in: 0...6)  // Rising for nighttime recovery
                             }
                         }() : 0.0
                         
@@ -237,15 +267,32 @@ class RecoveryMetrics: ObservableObject {
                     // Apply random variations only if enabled in developer settings
                     let timeVariation = useRandomVariation ? {
                         switch timeOfDay {
-                        case .morning: return Int.random(in: 0...5) // Slight boost
-                        case .noon: return Int.random(in: -8...0) // Usually a dip
-                        case .evening: return Int.random(in: -3...3) // Mixed recovery
+                        case .earlyMorning, .dawn, .sunrise:
+                            return Double(Int.random(in: -2...3))  // Slight variation during sleep
+                        case .morning:
+                            return Double(Int.random(in: 0...5))   // Slight boost on waking
+                        case .lateMorning:
+                            return Double(Int.random(in: 2...7))   // Peak in late morning
+                        case .noon:
+                            return Double(Int.random(in: -3...2))  // Slight dip at noon
+                        case .earlyAfternoon:
+                            return Double(Int.random(in: -5 ... -1)) // Post-lunch dip
+                        case .midAfternoon:
+                            return Double(Int.random(in: -4...1))  // Still recovering
+                        case .lateAfternoon:
+                            return Double(Int.random(in: -2...3))  // Starting to recover
+                        case .evening:
+                            return Double(Int.random(in: 0...4))   // Evening recovery
+                        case .night:
+                            return Double(Int.random(in: 1...5))   // Ready for rest
+                        case .lateNight:
+                            return Double(Int.random(in: -1...4))  // Late but preparing for sleep
                         }
                     }() : 0
                     
                     let dailyVariation = useRandomVariation ? Int.random(in: -5...5) : 0
                     
-                    let overallScore = max(0, min(100, baseScore + timeVariation + dailyVariation))
+                    let overallScore = max(0, min(100, baseScore + Int(timeVariation) + dailyVariation))
                     
                     // Create a recovery score for this date and time of day
                     let historicalScore = RecoveryScore(
@@ -961,10 +1008,13 @@ class RecoveryMetrics: ObservableObject {
     
     /// Refreshes data from HealthKit or simulated data
     @MainActor
-    func refreshData() {
-        Task {
-            await loadMetrics()
-        }
+    func refreshData() async {
+        isLoading = true
+        
+        // Load data from HealthKit
+        await loadHealthKitData()
+        
+        isLoading = false
     }
     
     /// Refreshes data with a complete reset
@@ -1737,26 +1787,51 @@ struct RecoveryScoreData: Codable {
     let timeOfDay: TimeOfDay
     
     enum TimeOfDay: String, Codable {
-        case morning
-        case noon
-        case evening
+        case earlyMorning     // 12am-2am
+        case dawn             // 2am-4am
+        case sunrise          // 4am-6am
+        case morning          // 6am-8am
+        case lateMorning      // 8am-10am
+        case noon             // 10am-12pm
+        case earlyAfternoon   // 12pm-2pm
+        case midAfternoon     // 2pm-4pm
+        case lateAfternoon    // 4pm-6pm
+        case evening          // 6pm-8pm
+        case night            // 8pm-10pm
+        case lateNight        // 10pm-12am
         
         var displayName: String {
             switch self {
-            case .morning: return "Morning"
-            case .noon: return "Noon"
-            case .evening: return "Evening"
+            case .earlyMorning: return "12-2 AM"
+            case .dawn: return "2-4 AM"
+            case .sunrise: return "4-6 AM"
+            case .morning: return "6-8 AM"
+            case .lateMorning: return "8-10 AM"
+            case .noon: return "10-12 PM"
+            case .earlyAfternoon: return "12-2 PM"
+            case .midAfternoon: return "2-4 PM"
+            case .lateAfternoon: return "4-6 PM"
+            case .evening: return "6-8 PM"
+            case .night: return "8-10 PM"
+            case .lateNight: return "10-12 AM"
             }
         }
         
         static func current() -> TimeOfDay {
             let hour = Calendar.current.component(.hour, from: Date())
-            if hour < 12 {
-                return .morning
-            } else if hour < 17 {
-                return .noon
-            } else {
-                return .evening
+            switch hour {
+            case 0..<2: return .earlyMorning
+            case 2..<4: return .dawn
+            case 4..<6: return .sunrise
+            case 6..<8: return .morning
+            case 8..<10: return .lateMorning
+            case 10..<12: return .noon
+            case 12..<14: return .earlyAfternoon
+            case 14..<16: return .midAfternoon
+            case 16..<18: return .lateAfternoon
+            case 18..<20: return .evening
+            case 20..<22: return .night
+            default: return .lateNight
             }
         }
     }

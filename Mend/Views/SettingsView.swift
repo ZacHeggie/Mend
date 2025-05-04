@@ -1,5 +1,7 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import PassKit
+import UIKit
 
 // Add a minimal UserViewModel implementation
 class UserViewModel: ObservableObject {
@@ -125,7 +127,7 @@ struct SettingsView: View {
                 #endif
                 
                 // Version at the bottom
-                Text("Mend for iOS - 1.0.6")
+                Text("Mend for iOS - 1.0.7")
                     .font(MendFont.footnote)
                     .foregroundColor(secondaryTextColor)
                     .padding(.top, 40)
@@ -179,6 +181,11 @@ struct SettingsView: View {
 struct TipJarView: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.presentationMode) var presentationMode
+    @State private var showingThankYou = false
+    @State private var processingPayment = false
+    @State private var errorMessage: String?
+    @State private var showingError = false
+    @State private var selectedTipIndex: Int = 0
     
     private var backgroundColor: Color {
         colorScheme == .dark ? MendColors.darkBackground : MendColors.background
@@ -192,106 +199,225 @@ struct TipJarView: View {
         colorScheme == .dark ? MendColors.darkText : MendColors.text
     }
     
-    private var secondaryTextColor: Color {
-        colorScheme == .dark ? MendColors.darkSecondaryText : MendColors.secondaryText
-    }
-    
-    let tipOptions = [
-        TipOption(name: "Small Tip", price: "$0.99", icon: "cup.and.saucer.fill"),
-        TipOption(name: "Medium Tip", price: "$2.99", icon: "mug.fill"),
-        TipOption(name: "Large Tip", price: "$4.99", icon: "wineglass.fill"),
-        TipOption(name: "Generous Tip", price: "$9.99", icon: "gift.fill")
-    ]
+    private let tipService = StripePaymentService.shared
+    private let tipAmounts = ["£0.99", "£2.99", "£4.99", "£9.99"]
     
     var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Header
-                    VStack(spacing: 12) {
-                        Image(systemName: "heart.fill")
-                            .font(.system(size: 50))
-                            .foregroundColor(MendColors.primary)
-                            .padding()
-                        
-                        Text("Support Mend")
-                            .font(MendFont.title)
-                            .fontWeight(.bold)
-                            .foregroundColor(textColor)
-                        
-                        Text("Your support helps us continue to develop and improve Mend with new features and regular updates. Thank you for your generosity!")
-                            .font(MendFont.body)
-                            .multilineTextAlignment(.center)
-                            .foregroundColor(secondaryTextColor)
-                            .padding(.horizontal)
-                    }
-                    .padding(.top, 20)
-                    .padding(.bottom, 10)
-                    
-                    // Tip options
-                    VStack(spacing: 16) {
-                        ForEach(tipOptions, id: \.name) { option in
-                            Button(action: {
-                                // In a real app, this would trigger the in-app purchase
-                                print("Processing purchase: \(option.name)")
-                            }) {
-                                HStack {
-                                    Image(systemName: option.icon)
-                                        .font(.system(size: 20))
-                                        .foregroundColor(MendColors.primary)
-                                        .frame(width: 40, height: 40)
-                                    
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(option.name)
-                                            .font(MendFont.headline)
-                                            .foregroundColor(textColor)
-                                        
-                                        Text("One-time purchase")
-                                            .font(MendFont.caption)
-                                            .foregroundColor(secondaryTextColor)
-                                    }
-                                    
-                                    Spacer()
-                                    
-                                    Text(option.price)
-                                        .font(MendFont.headline)
-                                        .foregroundColor(MendColors.primary)
+        ZStack {
+            backgroundColor.edgesIgnoringSafeArea(.all)
+            
+            VStack(spacing: 20) {
+                Text("Support Mend")
+                    .font(.largeTitle)
+                    .bold()
+                    .foregroundColor(textColor)
+                    .padding(.top, 40)
+                
+                Text("Your support helps us continue to build and improve Mend. Thank you for your generosity!")
+                    .font(.body)
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(textColor)
+                    .padding(.horizontal)
+                
+                // Tip amount selector
+                VStack(spacing: 12) {
+                    ForEach(0..<tipAmounts.count, id: \.self) { index in
+                        Button(action: {
+                            selectedTipIndex = index
+                        }) {
+                            HStack {
+                                Text(tipAmounts[index])
+                                    .font(.title3)
+                                    .bold()
+                                
+                                Spacer()
+                                
+                                if selectedTipIndex == index {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(.accentColor)
                                 }
-                                .padding()
-                                .background(cardBackgroundColor)
-                                .cornerRadius(12)
                             }
+                            .padding()
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(cardBackgroundColor)
+                            )
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+                }
+                .padding(.horizontal)
+                
+                // Apple Pay button
+                if StripePaymentService.shared.isApplePayAvailable() {
+                    Button(action: {
+                        processPayment()
+                    }) {
+                        HStack {
+                            Image(systemName: "applelogo")
+                            Text("Pay")
+                        }
+                        .frame(height: 45)
+                        .frame(maxWidth: .infinity)
+                        .background(Color.black)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                        .padding(.horizontal)
+                    }
+                    .disabled(processingPayment)
+                    .opacity(processingPayment ? 0.5 : 1.0)
+                } else {
+                    Text("Apple Pay is not available on this device")
+                        .foregroundColor(.secondary)
+                        .padding()
+                }
+                
+                Spacer()
+            }
+            .padding()
+            .alert(isPresented: $showingError) {
+                Alert(
+                    title: Text("Payment Error"),
+                    message: Text(errorMessage ?? "There was a problem processing your payment."),
+                    dismissButton: .default(Text("OK"))
+                )
+            }
+            .overlay(
+                Group {
+                    if processingPayment {
+                        ZStack {
+                            Color.black.opacity(0.3).edgesIgnoringSafeArea(.all)
+                            VStack {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .scaleEffect(1.5)
+                                
+                                Text("Processing payment...")
+                                    .foregroundColor(.white)
+                                    .padding(.top)
+                            }
+                            .padding(30)
+                            .background(Color.black.opacity(0.7))
+                            .cornerRadius(15)
                         }
                     }
-                    .padding(.horizontal)
                     
-                    // Note
-                    Text("All tips are one-time purchases and do not include any subscriptions or recurring charges.")
-                        .font(MendFont.footnote)
-                        .multilineTextAlignment(.center)
-                        .foregroundColor(secondaryTextColor)
-                        .padding(.horizontal, 20)
-                        .padding(.top, 10)
-                }
-                .padding(.bottom, 30)
-            }
-            .background(backgroundColor.ignoresSafeArea())
-            .navigationTitle("Tip Jar")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        presentationMode.wrappedValue.dismiss()
+                    if showingThankYou {
+                        ZStack {
+                            Color.black.opacity(0.3).edgesIgnoringSafeArea(.all)
+                            VStack {
+                                Image(systemName: "heart.fill")
+                                    .font(.system(size: 60))
+                                    .foregroundColor(.pink)
+                                
+                                Text("Thank You!")
+                                    .font(.title)
+                                    .bold()
+                                    .padding(.top)
+                                
+                                Text("Your support means a lot to us.")
+                                    .multilineTextAlignment(.center)
+                                
+                                Button(action: {
+                                    showingThankYou = false
+                                    presentationMode.wrappedValue.dismiss()
+                                }) {
+                                    Text("Done")
+                                        .frame(maxWidth: .infinity)
+                                        .padding()
+                                        .background(Color.accentColor)
+                                        .foregroundColor(.white)
+                                        .cornerRadius(10)
+                                }
+                                .padding(.top, 20)
+                            }
+                            .padding(30)
+                            .background(Color.white)
+                            .cornerRadius(15)
+                            .shadow(radius: 10)
+                            .padding(30)
+                        }
+                        .transition(.opacity)
+                        .animation(.easeInOut(duration: 0.3))
                     }
+                }
+            )
+        }
+        .onAppear {
+            // Set up payment callbacks
+            tipService.onPaymentSuccess = {
+                DispatchQueue.main.async {
+                    processingPayment = false
+                    showingThankYou = true
+                }
+            }
+            
+            tipService.onPaymentFailure = { error in
+                DispatchQueue.main.async {
+                    processingPayment = false
+                    errorMessage = error?.localizedDescription ?? "Payment was cancelled"
+                    showingError = true
+                }
+            }
+        }
+    }
+    
+    private func processPayment() {
+        processingPayment = true
+        let amount = tipService.tipAmounts[selectedTipIndex]
+        
+        tipService.presentApplePay(amount: amount) { success, error in
+            // Since the payment is now handled via callbacks, we don't need to handle it here
+            if !success {
+                DispatchQueue.main.async {
+                    self.processingPayment = false
+                    self.errorMessage = error?.localizedDescription ?? "Payment could not be processed"
+                    self.showingError = true
                 }
             }
         }
     }
 }
 
+// Apple Pay Button using UIKit representable
+struct ApplePayButton: UIViewRepresentable {
+    var onPaymentMethodCreation: () -> Void
+    
+    func makeUIView(context: Context) -> some UIView {
+        let button = PKPaymentButton(paymentButtonType: .plain, paymentButtonStyle: colorScheme(for: context))
+        button.addTarget(context.coordinator, action: #selector(Coordinator.buttonTapped), for: .touchUpInside)
+        return button
+    }
+    
+    func updateUIView(_ uiView: UIViewType, context: Context) {
+        // No updates needed
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(parent: self)
+    }
+    
+    class Coordinator: NSObject {
+        var parent: ApplePayButton
+        
+        init(parent: ApplePayButton) {
+            self.parent = parent
+        }
+        
+        @objc func buttonTapped() {
+            parent.onPaymentMethodCreation()
+        }
+    }
+    
+    private func colorScheme(for context: Context) -> PKPaymentButtonStyle {
+        return context.environment.colorScheme == .dark ? .white : .black
+    }
+}
+
 struct TipOption {
     let name: String
     let price: String
+    let amount: Double
     let icon: String
 }
 

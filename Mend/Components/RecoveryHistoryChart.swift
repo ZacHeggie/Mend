@@ -18,7 +18,7 @@ struct RecoveryHistoryChart: View {
     
     private var sortedHistory: [RecoveryScore] {
         // Sort by date (oldest to newest) for chart display
-        history.sorted { $0.date < $1.date }
+        filteredHistory.sorted { $0.date < $1.date }
     }
     
     private var dateFormatter: DateFormatter {
@@ -71,7 +71,7 @@ struct RecoveryHistoryChart: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: MendSpacing.medium) {
-            Text("Recovery Trend (28 Days)")
+            Text("Recovery Trend (7 Days)")
                 .font(MendFont.headline)
                 .foregroundColor(textColor)
                 .padding(.horizontal, MendSpacing.small)
@@ -241,6 +241,19 @@ struct RecoveryHistoryChart: View {
             selectedScore = closestScore
         }
     }
+    
+    // Filter the history to only show the last 7 days of data
+    private var filteredHistory: [RecoveryScore] {
+        let calendar = Calendar.current
+        let endDate = Date()
+        guard let startDate = calendar.date(byAdding: .day, value: -7, to: endDate) else {
+            return history
+        }
+        
+        return history.filter { score in
+            score.date >= startDate && score.date <= endDate
+        }
+    }
 }
 
 #Preview {
@@ -254,22 +267,53 @@ extension RecoveryHistoryChart {
             let today = Date()
             var samples: [RecoveryScore] = []
             
-            for dayOffset in 0..<28 {
+            for dayOffset in 0..<7 {
                 let date = calendar.date(byAdding: .day, value: -dayOffset, to: today)!
                 let score = Int.random(in: 30...90) // Random score for visualization
                 
-                // Add multiple entries per day to simulate morning/noon/evening
-                let timesOfDay: [RecoveryScoreData.TimeOfDay] = [.morning, .noon, .evening]
+                // Add multiple entries per day to simulate the 2-hour intervals throughout the day
+                let timesOfDay: [RecoveryScoreData.TimeOfDay] = [
+                    .earlyMorning, .dawn, .sunrise, .morning, .lateMorning, .noon,
+                    .earlyAfternoon, .midAfternoon, .lateAfternoon, .evening, .night, .lateNight
+                ]
+                
                 for timeOfDay in timesOfDay {
                     var dateComponents = calendar.dateComponents([.year, .month, .day], from: date)
+                    
+                    // Set the hour based on the time of day
                     switch timeOfDay {
-                    case .morning: dateComponents.hour = 8
-                    case .noon: dateComponents.hour = 13
-                    case .evening: dateComponents.hour = 20
+                    case .earlyMorning: dateComponents.hour = 1
+                    case .dawn: dateComponents.hour = 3
+                    case .sunrise: dateComponents.hour = 5
+                    case .morning: dateComponents.hour = 7
+                    case .lateMorning: dateComponents.hour = 9
+                    case .noon: dateComponents.hour = 11
+                    case .earlyAfternoon: dateComponents.hour = 13
+                    case .midAfternoon: dateComponents.hour = 15
+                    case .lateAfternoon: dateComponents.hour = 17
+                    case .evening: dateComponents.hour = 19
+                    case .night: dateComponents.hour = 21
+                    case .lateNight: dateComponents.hour = 23
                     }
                     
                     let timePoint = calendar.date(from: dateComponents) ?? date
-                    let timeVariation = Int.random(in: -5...5)
+                    
+                    // Create variations for different times of day to simulate natural patterns
+                    let timeVariation: Int
+                    switch timeOfDay {
+                    case .earlyMorning, .dawn, .sunrise:
+                        timeVariation = Int.random(in: -5...0) // Lower during sleep
+                    case .morning, .lateMorning:
+                        timeVariation = Int.random(in: 0...5) // Rising during morning
+                    case .noon, .earlyAfternoon:
+                        timeVariation = Int.random(in: -8...0) // Dip after lunch
+                    case .midAfternoon, .lateAfternoon:
+                        timeVariation = Int.random(in: -5...3) // Recovering
+                    case .evening:
+                        timeVariation = Int.random(in: -3...5) // Evening recovery
+                    case .night, .lateNight:
+                        timeVariation = Int.random(in: -2...3) // Settling for night
+                    }
                     
                     samples.append(
                         RecoveryScore(
