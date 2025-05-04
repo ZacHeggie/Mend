@@ -38,7 +38,6 @@
 		1B3251C82DC801C4006EC943 /* Exceptions for "Mend" folder in "Mend Health" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Assets.xcassets,
 				Info.plist,
 			);
 			target = 1B0F6E742DACFAD90012E6F6 /* Mend Health */;
