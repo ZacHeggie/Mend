@@ -470,6 +470,7 @@ struct TodayView: View {
             
             ForEach(recoveryInsights) { insight in
                 RecoveryInsightCard(insight: insight, colorScheme: colorScheme)
+                    .padding(.horizontal, MendSpacing.medium)
             }
         }
     }
