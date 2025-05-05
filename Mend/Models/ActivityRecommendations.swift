@@ -15,6 +15,124 @@ struct ActivityRecommendation: Identifiable {
     }
 }
 
+// Static helper for testing/development
+extension ActivityRecommendation {
+    /// Generate a comprehensive set of activity recommendations for testing all card types
+    static func getAllRecommendationTypes() -> [ActivityRecommendation] {
+        var recommendations: [ActivityRecommendation] = []
+        
+        // Low intensity recommendations
+        recommendations.append(contentsOf: [
+            ActivityRecommendation(
+                id: UUID(),
+                title: "Light Walk",
+                intensity: .low,
+                duration: 20,
+                description: "A gentle stroll to promote recovery without further stress.",
+                icon: "figure.walk"
+            ),
+            ActivityRecommendation(
+                id: UUID(),
+                title: "Gentle Yoga",
+                intensity: .low,
+                duration: 15,
+                description: "Easy yoga poses to improve circulation and relaxation.",
+                icon: "figure.yoga"
+            ),
+            ActivityRecommendation(
+                id: UUID(),
+                title: "Recovery Ride",
+                intensity: .low,
+                duration: 25,
+                description: "Very easy cycling to promote blood flow and recovery.",
+                icon: "figure.outdoor.cycle"
+            ),
+            ActivityRecommendation(
+                id: UUID(),
+                title: "Easy Recovery Run",
+                intensity: .low,
+                duration: 20,
+                description: "A very light jog to maintain fitness without taxing recovery.",
+                icon: "figure.run"
+            )
+        ])
+        
+        // Moderate intensity recommendations
+        recommendations.append(contentsOf: [
+            ActivityRecommendation(
+                id: UUID(),
+                title: "Moderate Run",
+                intensity: .moderate,
+                duration: 35,
+                description: "A controlled pace run at conversational level.",
+                icon: "figure.run"
+            ),
+            ActivityRecommendation(
+                id: UUID(),
+                title: "Moderate Ride",
+                intensity: .moderate,
+                duration: 45,
+                description: "A ride with mixed intensity for fitness maintenance.",
+                icon: "figure.outdoor.cycle"
+            ),
+            ActivityRecommendation(
+                id: UUID(),
+                title: "Personalized Run",
+                intensity: .moderate,
+                duration: 40,
+                description: "A moderate running session tailored to your current recovery.",
+                icon: "figure.run"
+            ),
+            ActivityRecommendation(
+                id: UUID(),
+                title: "Personalized Swim",
+                intensity: .moderate,
+                duration: 30,
+                description: "A swimming workout customized for your recovery status.",
+                icon: "figure.pool.swim"
+            )
+        ])
+        
+        // High intensity recommendations
+        recommendations.append(contentsOf: [
+            ActivityRecommendation(
+                id: UUID(),
+                title: "Interval Session",
+                intensity: .high,
+                duration: 45,
+                description: "High-intensity intervals to challenge your fitness.",
+                icon: "figure.run"
+            ),
+            ActivityRecommendation(
+                id: UUID(),
+                title: "Long Run",
+                intensity: .high,
+                duration: 60,
+                description: "Extended running session to build endurance.",
+                icon: "figure.run"
+            ),
+            ActivityRecommendation(
+                id: UUID(),
+                title: "Challenging Ride",
+                intensity: .high,
+                duration: 75,
+                description: "A challenging ride with hills and higher intensities.",
+                icon: "figure.outdoor.cycle"
+            ),
+            ActivityRecommendation(
+                id: UUID(),
+                title: "Personalized Speed Run",
+                intensity: .high,
+                duration: 50,
+                description: "A running session with speed work tailored to your recovery level.",
+                icon: "figure.run"
+            )
+        ])
+        
+        return recommendations
+    }
+}
+
 //enum ActivityIntensity: String {
 //    case low = "Low"
 //    case moderate = "Moderate"
@@ -30,18 +148,31 @@ struct ActivityRecommendation: Identifiable {
 //}
 
 extension RecoveryScore {
-    // Synchronous property that returns basic recommendations based on score
+    // Base recommendations property based on score
     var recommendedActivities: [ActivityRecommendation] {
+        // Check if we should show all recommendation types for testing
+        if DeveloperSettings.shared.showAllActivityRecommendations {
+            return ActivityRecommendation.getAllRecommendationTypes()
+        }
+        
+        var recommendations: [ActivityRecommendation] = []
+        
+        // Always include an easy walk option no matter the recovery state
+        recommendations.append(
+            ActivityRecommendation(
+                id: UUID(),
+                title: "Light Walk",
+                intensity: .low,
+                duration: 20,
+                description: "A gentle stroll to promote recovery without further stress.",
+                icon: "figure.walk"
+            )
+        )
+        
+        // Add recovery-specific recommendations
         if overallScore < 40 {
-            return [
-                ActivityRecommendation(
-                    id: UUID(),
-                    title: "Light Walk",
-                    intensity: .low,
-                    duration: 20,
-                    description: "A gentle stroll to promote recovery without further stress.",
-                    icon: "figure.walk"
-                ),
+            // For very low recovery, only add additional low-intensity options
+            recommendations.append(
                 ActivityRecommendation(
                     id: UUID(),
                     title: "Gentle Yoga",
@@ -50,36 +181,52 @@ extension RecoveryScore {
                     description: "Easy yoga poses to improve circulation and relaxation.",
                     icon: "figure.yoga"
                 )
-            ]
-        } else if overallScore < 60 {
-            return [
-                ActivityRecommendation(
-                    id: UUID(),
-                    title: "Moderate Walk",
-                    intensity: .low,
-                    duration: 30,
-                    description: "A brisk walk to get your body moving without strain.",
-                    icon: "figure.walk"
-                ),
+            )
+            recommendations.append(
                 ActivityRecommendation(
                     id: UUID(),
                     title: "Recovery Ride",
                     intensity: .low,
                     duration: 25,
+                    description: "Very easy cycling to promote blood flow and recovery.",
+                    icon: "figure.outdoor.cycle"
+                )
+            )
+        } else if overallScore < 60 {
+            // For low recovery (40-60), add low to moderate options
+            recommendations.append(
+                ActivityRecommendation(
+                    id: UUID(),
+                    title: "Recovery Ride",
+                    intensity: .low,
+                    duration: 30,
                     description: "Easy cycling to promote blood flow and recovery.",
                     icon: "figure.outdoor.cycle"
                 )
-            ]
-        } else if overallScore < 80 {
-            return [
+            )
+            recommendations.append(
                 ActivityRecommendation(
                     id: UUID(),
                     title: "Easy Run",
-                    intensity: .moderate,
-                    duration: 30,
-                    description: "A relaxed run at conversation pace.",
+                    intensity: .low,
+                    duration: 20,
+                    description: "A very light jog to maintain fitness without taxing recovery.",
                     icon: "figure.run"
-                ),
+                )
+            )
+        } else if overallScore < 80 {
+            // For moderate recovery (60-80), add moderate options
+            recommendations.append(
+                ActivityRecommendation(
+                    id: UUID(),
+                    title: "Moderate Run",
+                    intensity: .moderate,
+                    duration: 35,
+                    description: "A controlled pace run at conversation level.",
+                    icon: "figure.run"
+                )
+            )
+            recommendations.append(
                 ActivityRecommendation(
                     id: UUID(),
                     title: "Moderate Ride",
@@ -88,9 +235,10 @@ extension RecoveryScore {
                     description: "A ride with mixed intensity for fitness maintenance.",
                     icon: "figure.outdoor.cycle"
                 )
-            ]
+            )
         } else {
-            return [
+            // For high recovery (80+), add higher intensity options
+            recommendations.append(
                 ActivityRecommendation(
                     id: UUID(),
                     title: "Interval Session",
@@ -98,7 +246,9 @@ extension RecoveryScore {
                     duration: 45,
                     description: "High-intensity intervals to challenge your fitness.",
                     icon: "figure.run"
-                ),
+                )
+            )
+            recommendations.append(
                 ActivityRecommendation(
                     id: UUID(),
                     title: "Long Run",
@@ -107,15 +257,72 @@ extension RecoveryScore {
                     description: "Extended running session to build endurance.",
                     icon: "figure.run"
                 )
-            ]
+            )
+            recommendations.append(
+                ActivityRecommendation(
+                    id: UUID(),
+                    title: "Challenging Ride",
+                    intensity: .high,
+                    duration: 75,
+                    description: "A challenging ride with hills and higher intensities.",
+                    icon: "figure.outdoor.cycle"
+                )
+            )
         }
+        
+        return recommendations
     }
     
     // Gets personalized activity recommendations based on user history and recovery score
     func getPersonalizedRecommendations() async -> [ActivityRecommendation] {
+        // Check if we should show all recommendation types for testing
+        if DeveloperSettings.shared.showAllActivityRecommendations {
+            return ActivityRecommendation.getAllRecommendationTypes()
+        }
+        
         // Since ActivityManager is marked with @MainActor, we need to properly access it asynchronously
         @MainActor func getRecentUserActivities() async -> [Activity] {
             return ActivityManager.shared.getRecentActivities(days: 14)
+        }
+        
+        @MainActor func getTodayActivities() async -> [Activity] {
+            let calendar = Calendar.current
+            let startOfToday = calendar.startOfDay(for: Date())
+            return ActivityManager.shared.activities.filter { calendar.isDate($0.date, inSameDayAs: startOfToday) }
+        }
+        
+        // Check if user has done intense activity today
+        let todayActivities = await getTodayActivities()
+        let hasIntenseActivityToday = todayActivities.contains { $0.intensity == .high }
+        
+        // If user has already done an intense activity today, only recommend easy/recovery activities
+        if hasIntenseActivityToday {
+            return [
+                ActivityRecommendation(
+                    id: UUID(),
+                    title: "Recovery Walk",
+                    intensity: .low,
+                    duration: 25,
+                    description: "A gentle walk to help your body recover from today's intense activity.",
+                    icon: "figure.walk"
+                ),
+                ActivityRecommendation(
+                    id: UUID(),
+                    title: "Light Stretching",
+                    intensity: .low,
+                    duration: 15,
+                    description: "Gentle stretching to improve flexibility and aid recovery.",
+                    icon: "figure.yoga"
+                ),
+                ActivityRecommendation(
+                    id: UUID(),
+                    title: "Easy Recovery Ride",
+                    intensity: .low,
+                    duration: 20,
+                    description: "Very easy spinning to increase blood flow without adding stress.",
+                    icon: "figure.outdoor.cycle"
+                )
+            ]
         }
         
         // First get static recommendations based on recovery score
@@ -130,35 +337,93 @@ extension RecoveryScore {
                 .mapValues { $0.count }
                 .sorted { $0.value > $1.value }
             
+            // Calculate average duration for scaling recommendations
+            let avgDuration = recentActivities.compactMap { $0.duration / 60 }.reduce(0, +) / Double(recentActivities.count)
+            let durationScalingFactor = max(0.8, min(1.5, avgDuration / 45)) // Using 45 min as base duration
+            
             if let mostFrequentType = activityCounts.first?.key {
-                // Add a recommendation based on the user's most frequent activity
+                // Add recommendations based on the user's most frequent activity
                 switch mostFrequentType {
                 case .run:
-                    if overallScore > 70 {
+                    // Scale recommendation duration based on user's average activity duration
+                    let baseDuration = overallScore > 80 ? 50 : (overallScore > 60 ? 35 : 25)
+                    let scaledDuration = Int(Double(baseDuration) * durationScalingFactor)
+                    
+                    if overallScore > 80 {
+                        recommendations.append(
+                            ActivityRecommendation(
+                                id: UUID(),
+                                title: "Personalized Speed Run",
+                                intensity: .high,
+                                duration: scaledDuration,
+                                description: "A running session with speed work tailored to your recovery level.",
+                                icon: "figure.run"
+                            )
+                        )
+                    } else if overallScore > 60 {
                         recommendations.append(
                             ActivityRecommendation(
                                 id: UUID(),
                                 title: "Personalized Run",
-                                intensity: overallScore > 80 ? .high : .moderate,
-                                duration: overallScore > 80 ? 50 : 35,
-                                description: "A running session tailored to your recovery level and preferences.",
+                                intensity: .moderate,
+                                duration: scaledDuration,
+                                description: "A moderate running session tailored to your current recovery.",
+                                icon: "figure.run"
+                            )
+                        )
+                    } else {
+                        recommendations.append(
+                            ActivityRecommendation(
+                                id: UUID(),
+                                title: "Easy Recovery Run",
+                                intensity: .low,
+                                duration: scaledDuration,
+                                description: "A very easy run to maintain fitness while prioritizing recovery.",
                                 icon: "figure.run"
                             )
                         )
                     }
+                    
                 case .ride:
-                    if overallScore > 65 {
+                    // Scale recommendation duration based on user's average activity duration
+                    let baseDuration = overallScore > 80 ? 60 : (overallScore > 60 ? 45 : 30)
+                    let scaledDuration = Int(Double(baseDuration) * durationScalingFactor)
+                    
+                    if overallScore > 80 {
+                        recommendations.append(
+                            ActivityRecommendation(
+                                id: UUID(),
+                                title: "Personalized Power Ride",
+                                intensity: .high,
+                                duration: scaledDuration,
+                                description: "A challenging ride with intervals tailored to your high recovery level.",
+                                icon: "figure.outdoor.cycle"
+                            )
+                        )
+                    } else if overallScore > 60 {
                         recommendations.append(
                             ActivityRecommendation(
                                 id: UUID(),
                                 title: "Personalized Ride",
-                                intensity: overallScore > 80 ? .high : .moderate,
-                                duration: overallScore > 80 ? 60 : 40,
-                                description: "A cycling session based on your recent history and current recovery.",
+                                intensity: .moderate,
+                                duration: scaledDuration,
+                                description: "A cycling session with mixed terrain based on your current recovery.",
+                                icon: "figure.outdoor.cycle"
+                            )
+                        )
+                    } else {
+                        recommendations.append(
+                            ActivityRecommendation(
+                                id: UUID(),
+                                title: "Easy Spin Ride",
+                                intensity: .low,
+                                duration: scaledDuration,
+                                description: "A gentle ride focusing on high cadence and low power to aid recovery.",
                                 icon: "figure.outdoor.cycle"
                             )
                         )
                     }
+                    
                 case .swim:
                     if overallScore > 60 {
                         recommendations.append(
@@ -172,9 +437,10 @@ extension RecoveryScore {
                             )
                         )
                     }
+                    
                 default:
                     // Add a generic recommendation for other activity types
-                    if overallScore > 70 {
+                    if overallScore > 60 {
                         recommendations.append(
                             ActivityRecommendation(
                                 id: UUID(),
@@ -190,9 +456,23 @@ extension RecoveryScore {
             }
         }
         
-        // Limit to at most 3 recommendations
-        if recommendations.count > 3 {
-            recommendations = Array(recommendations.prefix(3))
+        // Ensure we always have an easy walk option
+        if !recommendations.contains(where: { $0.title.contains("Walk") && $0.intensity == .low }) {
+            recommendations.append(
+                ActivityRecommendation(
+                    id: UUID(),
+                    title: "Light Walk",
+                    intensity: .low,
+                    duration: 20,
+                    description: "A gentle stroll to promote recovery without further stress.",
+                    icon: "figure.walk"
+                )
+            )
+        }
+        
+        // Limit to at most 4 recommendations
+        if recommendations.count > 4 {
+            recommendations = Array(recommendations.prefix(4))
         }
         
         return recommendations

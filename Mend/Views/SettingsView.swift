@@ -493,6 +493,22 @@ struct SimulatedDataSettings: View {
                                 }
                             }
                         
+                        Divider()
+                            .background(colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.1))
+                            .padding(.horizontal, MendSpacing.small)
+                        
+                        // Add toggle for showing all activity recommendations
+                        Toggle("Show All Activity Recommendations", isOn: $developerSettings.showAllActivityRecommendations)
+                            .toggleStyle(SwitchToggleStyle(tint: MendColors.primary))
+                            .padding(.horizontal, MendSpacing.medium)
+                            .padding(.vertical, MendSpacing.medium)
+                            .onChange(of: developerSettings.showAllActivityRecommendations) { oldValue, newValue in
+                                Task {
+                                    // Force refresh to update recommendations
+                                    await recoveryMetrics.refreshWithReset()
+                                }
+                            }
+                        
                         // Info about the simulated data
                         VStack(alignment: .leading, spacing: MendSpacing.small) {
                             Text("Simulated Data Information:")
@@ -505,6 +521,11 @@ struct SimulatedDataSettings: View {
                                 .foregroundColor(secondaryTextColor)
                                 
                             Text("• Low Recovery: Simulates a stressed or fatigued state with elevated heart rate, lower HRV, and reduced sleep quality")
+                                .font(MendFont.footnote)
+                                .foregroundColor(secondaryTextColor)
+                                .multilineTextAlignment(.leading)
+                            
+                            Text("• Show All Recommendations: Displays all possible activity recommendation cards for testing")
                                 .font(MendFont.footnote)
                                 .foregroundColor(secondaryTextColor)
                                 .multilineTextAlignment(.leading)

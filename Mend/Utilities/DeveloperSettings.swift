@@ -9,6 +9,7 @@ class DeveloperSettings: ObservableObject {
     // Keys for UserDefaults
     private let kUseRandomVariation = "useRandomVariation"
     private let kIsDeveloperMode = "isDeveloperMode"
+    private let kShowAllActivityRecommendations = "showAllActivityRecommendations"
     
     /// Flag to determine if random variations should be used for recovery scores
     @Published var useRandomVariation: Bool {
@@ -21,6 +22,13 @@ class DeveloperSettings: ObservableObject {
     @Published var isDeveloperMode: Bool {
         didSet {
             UserDefaults.standard.set(isDeveloperMode, forKey: kIsDeveloperMode)
+        }
+    }
+    
+    /// Flag to determine if all activity recommendation cards should be shown for testing
+    @Published var showAllActivityRecommendations: Bool {
+        didSet {
+            UserDefaults.standard.set(showAllActivityRecommendations, forKey: kShowAllActivityRecommendations)
         }
     }
     
@@ -39,16 +47,16 @@ class DeveloperSettings: ObservableObject {
             UserDefaults.standard.bool(forKey: kIsDeveloperMode) : defaultDevMode
         
         self.isDeveloperMode = savedDevMode
+        
+        // Initialize show all activity recommendations setting
+        let savedShowAllRecommendations = UserDefaults.standard.bool(forKey: kShowAllActivityRecommendations)
+        self.showAllActivityRecommendations = savedShowAllRecommendations
     }
     
     /// Reset all developer settings to default values
     func resetToDefaults() {
         useRandomVariation = false
-        
-        #if DEBUG
         isDeveloperMode = false
-        #else
-        isDeveloperMode = false
-        #endif
+        showAllActivityRecommendations = false
     }
 } 
