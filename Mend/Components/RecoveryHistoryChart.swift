@@ -42,6 +42,36 @@ struct RecoveryHistoryChart: View {
         sortedHistory.last?.date
     }
     
+    // Calculate the appropriate chart width based on data points
+    private var chartWidth: CGFloat {
+        // Set the minimum width per day point
+        let minWidthPerDay: CGFloat = 100
+        // Set the visible width for the display
+        let visibleWidth: CGFloat = UIScreen.main.bounds.width - 40 // Subtract padding
+        
+        // Calculate the desired width based on the number of days with data
+        let dataPointCount = CGFloat(sortedHistory.count)
+        // Ensure we have at least 1 day of data width
+        let dataPoints = max(1, dataPointCount)
+        
+        // Calculate width based on minimum width per day and data points
+        var calculatedWidth = dataPoints * minWidthPerDay
+        
+        // If we have very few data points, make sure the chart isn't too narrow
+        if dataPoints <= 7 {
+            // For 7 or fewer days, we want the chart to fill the visible area
+            calculatedWidth = max(calculatedWidth, visibleWidth)
+        } else {
+            // For more than 7 days, ensure we maintain the minimum width per day
+            // which means the chart will scroll horizontally
+            calculatedWidth = dataPoints * minWidthPerDay
+        }
+        
+        // Cap the chart at 28 days maximum (from our filteredHistory)
+        let maxWidth = 28 * minWidthPerDay
+        return min(calculatedWidth, maxWidth)
+    }
+    
     var body: some View {
         VStack(alignment: .leading, spacing: MendSpacing.medium) {
             Text("Recovery Trend (4 Weeks)")
@@ -95,7 +125,7 @@ struct RecoveryHistoryChart: View {
                                     selectedScore: $selectedScore,
                                     colorScheme: colorScheme
                                 )
-                                .frame(width: 1600, height: 200)
+                                .frame(width: chartWidth, height: 200)
                                 .id("chartView")
                                 
                                 // Place anchor at the very end to ensure we scroll to the rightmost point
@@ -118,11 +148,13 @@ struct RecoveryHistoryChart: View {
                     .defaultScrollAnchor(.trailing)
                     .frame(height: 200)
                     
-                    // Instructions
-                    Text("Scroll horizontally to see more history")
-                        .font(MendFont.caption)
-                        .foregroundColor(secondaryTextColor)
-                        .frame(maxWidth: .infinity, alignment: .center)
+                    // Instructions - Only show if we have enough data that requires scrolling
+                    if sortedHistory.count > 7 {
+                        Text("Scroll horizontally to see more history")
+                            .font(MendFont.caption)
+                            .foregroundColor(secondaryTextColor)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                    }
                 }
                 .frame(height: 280)
                 .padding(MendSpacing.small)

@@ -250,22 +250,14 @@ struct TipJarView: View {
                 
                 // Apple Pay button
                 if StripePaymentService.shared.isApplePayAvailable() {
-                    Button(action: {
+                    ApplePayButton {
                         processPayment()
-                    }) {
-                        HStack {
-                            Image(systemName: "applelogo")
-                            Text("Pay")
-                        }
-                        .frame(height: 45)
-                        .frame(maxWidth: .infinity)
-                        .background(Color.black)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                        .padding(.horizontal)
                     }
-                    .disabled(processingPayment)
+                    .frame(height: 45)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal)
                     .opacity(processingPayment ? 0.5 : 1.0)
+                    .disabled(processingPayment)
                 } else {
                     Text("Apple Pay is not available on this device")
                         .foregroundColor(.secondary)
@@ -386,13 +378,14 @@ struct ApplePayButton: UIViewRepresentable {
     var onPaymentMethodCreation: () -> Void
     
     func makeUIView(context: Context) -> some UIView {
-        let button = PKPaymentButton(paymentButtonType: .plain, paymentButtonStyle: colorScheme(for: context))
+        let button = PKPaymentButton(paymentButtonType: .buy, paymentButtonStyle: colorScheme(for: context))
         button.addTarget(context.coordinator, action: #selector(Coordinator.buttonTapped), for: .touchUpInside)
         return button
     }
     
     func updateUIView(_ uiView: UIViewType, context: Context) {
-        // No updates needed
+        // No updates needed - button style is set when created
+        // If we need to recreate with different style, SwiftUI will call makeUIView again
     }
     
     func makeCoordinator() -> Coordinator {
