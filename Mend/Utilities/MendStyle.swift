@@ -127,7 +127,6 @@ extension View {
             .foregroundColor(colorScheme == .dark ? MendColors.darkSecondaryText : MendColors.secondaryText)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.vertical, 10)
-            .padding(.horizontal, MendSpacing.medium)
             .background(colorScheme == .dark ? MendColors.darkBackground : MendColors.background)
     }
 }

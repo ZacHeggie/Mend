@@ -48,11 +48,11 @@ struct ActivityView: View {
                 // Activities by day
                 activityContent
             }
-            .padding(.vertical, MendSpacing.medium)
             .padding(.bottom, 80)
         }
         .background(backgroundColor.ignoresSafeArea())
-        .navigationTitle("Activities")                .toolbarColorScheme(colorScheme, for: .navigationBar)
+        .navigationTitle("Activities")
+        .toolbarColorScheme(colorScheme, for: .navigationBar)
         .toolbarBackground(backgroundColor, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .onChange(of: colorScheme) { oldValue, newValue in
@@ -193,13 +193,18 @@ struct ActivityView: View {
             .padding()
         }
         .padding(.top, MendSpacing.extraLarge)
+        .padding(.horizontal, MendSpacing.medium)
     }
     
     private var activitiesByDayView: some View {
         ForEach(groupedActivities.keys.sorted(by: >), id: \.self) { date in
             if let activities = groupedActivities[date], !activities.isEmpty {
                 VStack(alignment: .leading, spacing: MendSpacing.medium) {
-                    mendSectionHeader(title: formatDate(date), colorScheme: colorScheme)
+                    HStack {
+                        mendSectionHeader(title: formatDate(date), colorScheme: colorScheme)
+                        Spacer()
+                    }
+                    .padding(.horizontal, MendSpacing.medium)
                     
                     ForEach(activities) { activity in
                         ActivityCard(activity: activity, colorScheme: colorScheme)
@@ -209,6 +214,7 @@ struct ActivityView: View {
                 .padding(.bottom, MendSpacing.medium)
             }
         }
+        .padding(.horizontal, MendSpacing.tiny) // Add a small amount of padding to ensure safe area is respected
     }
     
     private var floatingActionButton: some View {
@@ -382,17 +388,20 @@ struct TrainingLoadCard: View {
                     .padding(.horizontal, 4)
                 }
             }
+            .padding(.horizontal, MendSpacing.medium)
             
             // Expanded content - only show when expanded or not collapsible
             if isExpanded || !collapsible {
                 Divider()
                     .padding(.vertical, 4)
+                    .padding(.horizontal, MendSpacing.medium)
                 
                 // Weekly volume chart with labels
                 Text("Daily Training Volume")
                     .font(.system(size: 13, weight: .medium))
                     .foregroundColor(secondaryTextColor)
                     .padding(.bottom, 4)
+                    .padding(.horizontal, MendSpacing.medium)
                 
                 // Enhanced bar chart
                 HStack(alignment: .bottom, spacing: 8) {
@@ -438,18 +447,20 @@ struct TrainingLoadCard: View {
                                 Text(formatDayOfWeek(volume.date))
                                     .font(.system(size: 10, weight: .medium))
                                     .foregroundColor(isToday(volume.date) ? textColor : secondaryTextColor)
+                                    .frame(minWidth: 18)
                                 
                                 // Day of month
                                 Text(formatDayOfMonth(volume.date))
                                     .font(.system(size: 9))
                                     .foregroundColor(secondaryTextColor)
+                                    .frame(minWidth: 18)
                             }
                             .padding(.top, 4)
                         }
                     }
                 }
                 .frame(height: 100)
-                .padding(.horizontal, 4)
+                .padding(.horizontal, MendSpacing.medium)
             }
             
             // Add expand/collapse button if collapsible
@@ -473,9 +484,10 @@ struct TrainingLoadCard: View {
                     .background(MendColors.secondary.opacity(colorScheme == .dark ? 0.2 : 0.1))
                     .cornerRadius(MendCornerRadius.small)
                 }
+                .padding(.horizontal, MendSpacing.medium)
             }
         }
-        .padding()
+        .padding(.vertical, MendSpacing.medium)
         .background(cardBackgroundColor)
         .cornerRadius(MendCornerRadius.medium)
         .shadow(color: colorScheme == .dark ? Color.black.opacity(0.3) : Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
