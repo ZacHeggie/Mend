@@ -9,8 +9,9 @@ import UIKit
 import HealthKit
 import PassKit
 import BackgroundTasks
+import UserNotifications
 
-class AppDelegate: UIResponder, UIApplicationDelegate {
+class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     
     var window: UIWindow?
     
@@ -23,6 +24,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         
         // Initialize the payment service
         StripePaymentService.shared.initialize()
+        
+        // Set this class as the UNUserNotificationCenter delegate
+        UNUserNotificationCenter.current().delegate = self
         
         return true
     }
@@ -105,6 +109,80 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         } catch {
             print("Could not schedule background refresh: \(error)")
         }
+    }
+    
+    // MARK: - UNUserNotificationCenterDelegate
+    
+    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        
+        // If this is a refresh notification, refresh data but don't show it to the user
+        if notification.request.identifier.starts(with: "mend_refresh_before_") {
+            // Refresh the recovery data before the actual notification appears
+            Task {
+                await RecoveryMetrics.shared.refreshWithReset()
+                
+                // After data is refreshed, update the corresponding notification with fresh data
+                await updatePendingNotificationWithCurrentData(center: center, refreshIdentifier: notification.request.identifier)
+                
+                // Don't show the silent refresh notification
+                completionHandler([])
+            }
+        } else {
+            // For normal notifications, show alert and sound
+            completionHandler([.banner, .sound, .badge])
+        }
+    }
+    
+    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+        // Handle notification tap
+        
+        // If this is a refresh notification, just complete the handler
+        if response.notification.request.identifier.starts(with: "mend_refresh_before_") {
+            completionHandler()
+            return
+        }
+        
+        // For other notifications, process any needed actions here
+        // (e.g., navigate to specific views if needed)
+        
+        completionHandler()
+    }
+    
+    // Helper method to update the pending notification with fresh data
+    private func updatePendingNotificationWithCurrentData(center: UNUserNotificationCenter, refreshIdentifier: String) async {
+        // Extract hour from identifier (format is "mend_refresh_before_XX")
+        let hour = refreshIdentifier.replacingOccurrences(of: "mend_refresh_before_", with: "")
+        
+        // Get the corresponding notification identifier
+        let notificationIdentifier = "mend_recovery_\(hour)"
+        
+        // Get pending notification requests
+        let pendingRequests = await center.pendingNotificationRequests()
+        
+        // Find the notification request to update
+        guard let pendingNotification = pendingRequests.first(where: { $0.identifier == notificationIdentifier }) else {
+            return
+        }
+        
+        // Create a new notification with updated content
+        let content = pendingNotification.content.mutableCopy() as! UNMutableNotificationContent
+        
+        // Update content with current recovery score
+        if let recoveryMetrics = RecoveryMetrics.shared.currentRecoveryScore {
+            content.title = pendingNotification.content.title
+            content.body = "Your recovery score is \(recoveryMetrics.overallScore). \(RecoveryMetrics.scoreDescription(for: recoveryMetrics))"
+        }
+        
+        // Create a new request with the updated content but same trigger
+        let updatedRequest = UNNotificationRequest(
+            identifier: notificationIdentifier,
+            content: content,
+            trigger: pendingNotification.trigger
+        )
+        
+        // Remove the old notification and add the updated one
+        await center.removePendingNotificationRequests(withIdentifiers: [notificationIdentifier])
+        try? await center.add(updatedRequest)
     }
     
     // MARK: UISceneSession Lifecycle

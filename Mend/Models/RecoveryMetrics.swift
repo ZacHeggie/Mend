@@ -1014,6 +1014,9 @@ class RecoveryMetrics: ObservableObject {
         // Load data from HealthKit
         await loadHealthKitData()
         
+        // After loading data, ensure the recovery score is updated
+        updateRecoveryScore()
+        
         isLoading = false
     }
     
@@ -1024,6 +1027,9 @@ class RecoveryMetrics: ObservableObject {
         
         // Load metrics data from HealthKit or simulated data
         await loadHealthKitData()
+        
+        // Update the recovery score with the latest data before saving
+        updateRecoveryScore()
         
         // Set default values for UI properties
         isInCooldown = false

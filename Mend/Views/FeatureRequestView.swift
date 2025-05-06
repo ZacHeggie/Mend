@@ -4,6 +4,7 @@ import MessageUI
 struct FeatureRequestView: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.presentationMode) var presentationMode
+    @State private var themeVersion = 0
     
     @ObservedObject private var requestService = RequestService.shared
     
@@ -61,11 +62,17 @@ struct FeatureRequestView: View {
             VStack(alignment: .leading, spacing: MendSpacing.large) {
                 // Intro content and form fields
                 introSection
+                    .id("intro-section-\(themeVersion)")
                 featureTitleSection
+                    .id("title-section-\(themeVersion)")
                 categorySection
+                    .id("category-section-\(themeVersion)")
                 prioritySection
+                    .id("priority-section-\(themeVersion)")
                 descriptionSection
+                    .id("description-section-\(themeVersion)")
                 contactEmailSection
+                    .id("contact-section-\(themeVersion)")
                 
                 // Submit button
                 Button(action: {
@@ -91,9 +98,11 @@ struct FeatureRequestView: View {
                 }
                 .disabled(!isFormValid || requestService.isSubmitting)
                 .padding(.top, MendSpacing.medium)
+                .id("submit-button-\(themeVersion)")
                 
                 // Popular requests section
                 popularRequestsSection
+                    .id("popular-requests-\(themeVersion)")
             }
             .padding()
             .padding(.bottom, 50)
@@ -148,6 +157,10 @@ struct FeatureRequestView: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text("Mail functionality is not available on this device. Please make sure the Mail app is configured or contact mendsupport@icloud.com directly.")
+        }
+        .onChange(of: colorScheme) { _, _ in
+            // Update themeVersion to force UI refresh on theme change
+            themeVersion += 1
         }
     }
     
