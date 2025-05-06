@@ -31,6 +31,9 @@ struct SettingsView: View {
     @State private var devModeClickCount = 0  // Track clicks to enable dev mode
     @ObservedObject private var developerSettings = DeveloperSettings.shared
     
+    // Add state to track theme changes and force UI updates
+    @State private var themeVersion = 0
+    
     private var backgroundColor: Color {
         colorScheme == .dark ? MendColors.darkBackground : MendColors.background
     }
@@ -55,6 +58,7 @@ struct SettingsView: View {
             VStack(spacing: 10) {
                 // ACCOUNT section
                 mendSectionHeader(title: "ACCOUNT", colorScheme: colorScheme)
+                    .id("account-header-\(themeVersion)") // Force view update when theme changes
                     .onTapGesture(count: 5) {
                         developerSettings.isDeveloperMode.toggle()
                         devModeClickCount = 0
@@ -88,6 +92,7 @@ struct SettingsView: View {
                 
                 // IMPROVE MEND section
                 mendSectionHeader(title: "IMPROVE MEND", colorScheme: colorScheme)
+                    .id("improve-header-\(themeVersion)") // Force view update when theme changes
                 
                 SectionCard {
                     NavigationLink(destination: ReportBugView()) {
@@ -110,6 +115,7 @@ struct SettingsView: View {
                 
                 // ABOUT section
                 mendSectionHeader(title: "ABOUT", colorScheme: colorScheme)
+                    .id("about-header-\(themeVersion)") // Force view update when theme changes
                 
                 SectionCard {
                     NavigationLink(destination: HelpCenterView()) {
@@ -143,12 +149,15 @@ struct SettingsView: View {
         .toolbarBackground(backgroundColor, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .onChange(of: colorScheme) { oldValue, newValue in
-            // Force UI to update when color scheme changes
-            let needsToRefreshUI = true
-            if needsToRefreshUI {
-                Task {
-                    // Short delay to let system complete theme change
-                    try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+            // Increment theme version to force views to update
+            themeVersion += 1
+            
+            // Add a small delay to ensure the UI updates properly
+            Task {
+                try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+                await MainActor.run {
+                    // Force another update after a delay
+                    themeVersion += 1
                 }
             }
         }
@@ -186,6 +195,9 @@ struct TipJarView: View {
     @State private var errorMessage: String?
     @State private var showingError = false
     @State private var selectedTipIndex: Int = 0
+    
+    // Add state to track theme changes and force UI updates
+    @State private var themeVersion = 0
     
     private var backgroundColor: Color {
         colorScheme == .dark ? MendColors.darkBackground : MendColors.background
@@ -244,15 +256,17 @@ struct TipJarView: View {
                             )
                         }
                         .buttonStyle(PlainButtonStyle())
+                        .id("tip-option-\(index)-\(themeVersion)") // Force update when theme changes
                     }
                 }
                 .padding(.horizontal)
                 
-                // Apple Pay button
+                // Apple Pay button - Note the id forces recreation when theme changes
                 if StripePaymentService.shared.isApplePayAvailable() {
                     ApplePayButton {
                         processPayment()
                     }
+                    .id("apple-pay-button-\(colorScheme == .dark ? "dark" : "light")")
                     .frame(height: 45)
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal)
@@ -307,10 +321,12 @@ struct TipJarView: View {
                                     .bold()
                                     .foregroundColor(textColor)
                                     .padding(.top)
+                                    .id("thank-you-text-\(themeVersion)")
                                 
                                 Text("Your support means a lot to us.")
                                     .multilineTextAlignment(.center)
                                     .foregroundColor(textColor)
+                                    .id("support-text-\(themeVersion)")
                                 
                                 Button(action: {
                                     showingThankYou = false
@@ -330,12 +346,17 @@ struct TipJarView: View {
                             .cornerRadius(15)
                             .shadow(radius: 10)
                             .padding(30)
+                            .id("thank-you-overlay-\(themeVersion)")
                         }
                         .transition(.opacity)
-                        .animation(.easeInOut(duration: 0.3))
+                        .animation(.easeInOut(duration: 0.3), value: showingThankYou)
                     }
                 }
             )
+        }
+        .onChange(of: colorScheme) { _, _ in
+            // Update themeVersion to force UI refresh on theme change
+            themeVersion += 1
         }
         .onAppear {
             // Set up payment callbacks
@@ -376,16 +397,24 @@ struct TipJarView: View {
 // Apple Pay Button using UIKit representable
 struct ApplePayButton: UIViewRepresentable {
     var onPaymentMethodCreation: () -> Void
+    @Environment(\.colorScheme) var colorScheme
     
-    func makeUIView(context: Context) -> some UIView {
-        let button = PKPaymentButton(paymentButtonType: .buy, paymentButtonStyle: colorScheme(for: context))
+    // Add an ID to force recreation when colorScheme changes
+    private var buttonID: String {
+        "applePayButton-\(colorScheme == .dark ? "dark" : "light")"
+    }
+    
+    func makeUIView(context: Context) -> UIView {
+        let button = PKPaymentButton(
+            paymentButtonType: .buy,
+            paymentButtonStyle: colorScheme == .dark ? .white : .black
+        )
         button.addTarget(context.coordinator, action: #selector(Coordinator.buttonTapped), for: .touchUpInside)
         return button
     }
     
     func updateUIView(_ uiView: UIViewType, context: Context) {
-        // No updates needed - button style is set when created
-        // If we need to recreate with different style, SwiftUI will call makeUIView again
+        // We'll handle updates by forcing complete recreation via buttonID
     }
     
     func makeCoordinator() -> Coordinator {
@@ -402,10 +431,6 @@ struct ApplePayButton: UIViewRepresentable {
         @objc func buttonTapped() {
             parent.onPaymentMethodCreation()
         }
-    }
-    
-    private func colorScheme(for context: Context) -> PKPaymentButtonStyle {
-        return context.environment.colorScheme == .dark ? .white : .black
     }
 }
 
@@ -436,6 +461,8 @@ struct SectionCard<Content: View>: View {
         .background(cardBackgroundColor)
         .cornerRadius(12)
         .padding(.vertical, 6)
+        // Force the view to respond to environment changes
+        .onChange(of: colorScheme) { _, _ in }
     }
 }
 
@@ -445,6 +472,9 @@ struct SimulatedDataSettings: View {
     @StateObject private var activityManager = ActivityManager.shared
     @Environment(\.colorScheme) var colorScheme
     @ObservedObject private var developerSettings = DeveloperSettings.shared
+    
+    // Add state to track theme changes and force UI updates
+    @State private var themeVersion = 0
     
     private var backgroundColor: Color {
         colorScheme == .dark ? MendColors.darkBackground : MendColors.cardBackground
@@ -532,6 +562,7 @@ struct SimulatedDataSettings: View {
                         }
                         .padding(.horizontal, MendSpacing.medium)
                         .padding(.bottom, MendSpacing.medium)
+                        .id("info-section-\(themeVersion)") // Force update when theme changes
                     }
                 }
                 .background(cardBackgroundColor)
@@ -543,6 +574,7 @@ struct SimulatedDataSettings: View {
                         .font(MendFont.headline)
                         .foregroundColor(secondaryTextColor)
                         .padding(.horizontal)
+                        .id("dev-tools-header-\(themeVersion)") // Force update when theme changes
                     
                     VStack(spacing: MendSpacing.medium) {
                         // Developer mode status
@@ -577,6 +609,7 @@ struct SimulatedDataSettings: View {
                                 .foregroundColor(secondaryTextColor)
                                 .padding(.horizontal, MendSpacing.medium)
                                 .padding(.bottom, MendSpacing.small)
+                                .id("random-variations-info-\(themeVersion)") // Force update when theme changes
                             
                             // Button to regenerate history with current settings
                             Button(action: {
@@ -599,6 +632,7 @@ struct SimulatedDataSettings: View {
                                 .font(MendFont.footnote)
                                 .foregroundColor(secondaryTextColor)
                                 .padding(.horizontal, MendSpacing.medium)
+                                .id("dev-mode-info-\(themeVersion)") // Force update when theme changes
                         }
                         
                         Divider()
@@ -724,6 +758,10 @@ struct SimulatedDataSettings: View {
         }
         .background(backgroundColor.ignoresSafeArea())
         .navigationTitle("Simulated Data")
+        .onChange(of: colorScheme) { _, _ in
+            // Update themeVersion to force UI refresh on theme change
+            themeVersion += 1
+        }
     }
     
     private func simulateRecentActivity() {

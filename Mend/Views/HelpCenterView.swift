@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HelpCenterView: View {
     @Environment(\.colorScheme) var colorScheme
+    @State private var themeVersion = 0
     
     private var backgroundColor: Color {
         colorScheme == .dark ? MendColors.darkBackground : MendColors.background
@@ -51,14 +52,17 @@ struct HelpCenterView: View {
                     .font(MendFont.title3)
                     .foregroundColor(textColor)
                     .padding(.top)
+                    .id("faq-title-\(themeVersion)")
                 
                 ForEach(Array(faqs.enumerated()), id: \.offset) { index, faq in
                     faqCard(faq: faq, index: index)
+                        .id("faq-card-\(index)-\(themeVersion)")
                 }
                 
                 ContactSupportSection()
                     .padding(.top, MendSpacing.large)
                     .padding(.bottom, MendSpacing.extraLarge)
+                    .id("contact-section-\(themeVersion)")
             }
             .padding()
             .padding(.bottom, 50)
@@ -66,6 +70,10 @@ struct HelpCenterView: View {
         .background(backgroundColor.ignoresSafeArea())
         .navigationTitle("Help Center")
         .navigationBarTitleDisplayMode(.inline)
+        .onChange(of: colorScheme) { _, _ in
+            // Update themeVersion to force UI refresh on theme change
+            themeVersion += 1
+        }
     }
     
     private func faqCard(faq: FAQ, index: Int) -> some View {
@@ -118,6 +126,7 @@ struct HelpCenterView: View {
 
 struct ContactSupportSection: View {
     @Environment(\.colorScheme) var colorScheme
+    @State private var themeVersion = 0
     
     private var cardBackgroundColor: Color {
         colorScheme == .dark ? MendColors.darkCardBackground : MendColors.cardBackground
@@ -136,11 +145,13 @@ struct ContactSupportSection: View {
             Text("Still Need Help?")
                 .font(MendFont.title3)
                 .foregroundColor(textColor)
+                .id("help-title-\(themeVersion)")
             
             Text("Our support team is ready to assist you with any questions or issues you might have.")
                 .font(MendFont.body)
                 .foregroundColor(secondaryTextColor)
                 .multilineTextAlignment(.center)
+                .id("help-text-\(themeVersion)")
             
             Button(action: {
                 if let url = URL(string: "mailto:mendsupport@icloud.com") {
@@ -164,6 +175,10 @@ struct ContactSupportSection: View {
         .padding(MendSpacing.large)
         .background(cardBackgroundColor)
         .cornerRadius(MendCornerRadius.medium)
+        .onChange(of: colorScheme) { _, _ in
+            // Update themeVersion to force UI refresh on theme change
+            themeVersion += 1
+        }
     }
 }
 

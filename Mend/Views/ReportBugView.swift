@@ -6,6 +6,7 @@ import MessageUI
 struct ReportBugView: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.presentationMode) var presentationMode
+    @State private var themeVersion = 0
     
     // Add ObservedObject for the request service
     @ObservedObject private var requestService = RequestService.shared
@@ -113,20 +114,33 @@ struct ReportBugView: View {
         } message: {
             Text("Mail functionality is not available on this device. Please make sure the Mail app is configured or contact mendsupport@icloud.com directly.")
         }
+        .onChange(of: colorScheme) { _, _ in
+            // Update themeVersion to force UI refresh on theme change
+            themeVersion += 1
+        }
     }
     
     // Breaking up the complex body into smaller components
     private var mainContent: some View {
         VStack(alignment: .leading, spacing: MendSpacing.large) {
             introSection
+                .id("intro-section-\(themeVersion)")
             categorySection
+                .id("category-section-\(themeVersion)")
             descriptionSection
+                .id("description-section-\(themeVersion)")
             stepsToReproduceSection
+                .id("steps-section-\(themeVersion)")
             screenshotSection
+                .id("screenshot-section-\(themeVersion)")
             deviceInfoSection
+                .id("device-info-section-\(themeVersion)")
             systemLogsSection
+                .id("logs-section-\(themeVersion)")
             contactEmailSection
+                .id("contact-section-\(themeVersion)")
             submitButton
+                .id("submit-button-\(themeVersion)")
         }
         .padding()
         .padding(.bottom, 50)
