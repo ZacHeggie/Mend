@@ -34,6 +34,10 @@ struct MendApp: App {
         // Set the status bar style
         let statusBarStyle: UIStatusBarStyle = colorScheme == .dark ? .lightContent : .darkContent
         UIApplication.shared.statusBarStyle = statusBarStyle
+        
+        // Ensure developer mode is off and simulated data is disabled on launch
+        DeveloperSettings.shared.isDeveloperMode = false
+        RecoveryMetrics.shared.useSimulatedData = false
     }
     
     var body: some Scene {
