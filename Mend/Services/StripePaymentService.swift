@@ -10,7 +10,7 @@ class StripePaymentService: NSObject, PKPaymentAuthorizationControllerDelegate, 
     private let merchantIdentifier = "merchant.zacharyheggie"
     
     // Your Stripe publishable key
-    private let publishableKey = "pk_test_51RL0lnRxXxmdcCQQ9pMvbicL7kpTVDU37QEFrWyja1FiPcO1VkgrVyrmNO3VxYSnQd3tsv9Fn0CBHoVCKjLDd4F800tEZVrPnj"
+    private let publishableKey = "pk_live_51RL0leRo0uNNzSJeCELQyzcK287McJaedFLOsqMJN4ntPtEZaIui5d23ZUJMtZ0N4G8ni5acLHizL7rOXNkffprj00SgB7A4cF"
     
     // Backend URL
     private let backendURL = "https://mend-backend-render.onrender.com"
