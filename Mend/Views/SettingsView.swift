@@ -2,6 +2,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 import PassKit
 import UIKit
+import StoreKit
 
 // Add a minimal UserViewModel implementation
 class UserViewModel: ObservableObject {
@@ -195,6 +196,7 @@ struct TipJarView: View {
     @State private var errorMessage: String?
     @State private var showingError = false
     @State private var selectedTipIndex: Int = 0
+    @StateObject private var storeService = StoreKitService.shared
     
     // Add state to track theme changes and force UI updates
     @State private var themeVersion = 0
@@ -211,8 +213,8 @@ struct TipJarView: View {
         colorScheme == .dark ? MendColors.darkText : MendColors.text
     }
     
-    private let tipService = StripePaymentService.shared
     private let tipAmounts = ["£0.99", "£2.99", "£4.99", "£9.99"]
+    private let productIDs = ["mend_tip_099", "mend_tip_299", "mend_tip_499", "mend_tip_999"]
     
     var body: some View {
         ZStack {
@@ -231,51 +233,67 @@ struct TipJarView: View {
                     .foregroundColor(textColor)
                     .padding(.horizontal)
                 
-                // Tip amount selector
-                VStack(spacing: 12) {
-                    ForEach(0..<tipAmounts.count, id: \.self) { index in
-                        Button(action: {
-                            selectedTipIndex = index
-                        }) {
-                            HStack {
-                                Text(tipAmounts[index])
-                                    .font(.title3)
-                                    .bold()
-                                
-                                Spacer()
-                                
-                                if selectedTipIndex == index {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.accentColor)
-                                }
-                            }
-                            .padding()
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(cardBackgroundColor)
-                            )
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        .id("tip-option-\(index)-\(themeVersion)") // Force update when theme changes
-                    }
-                }
-                .padding(.horizontal)
-                
-                // Apple Pay button - Note the id forces recreation when theme changes
-                if StripePaymentService.shared.isApplePayAvailable() {
-                    ApplePayButton {
-                        processPayment()
-                    }
-                    .id("apple-pay-button-\(colorScheme == .dark ? "dark" : "light")")
-                    .frame(height: 45)
-                    .frame(maxWidth: .infinity)
-                    .padding(.horizontal)
-                    .opacity(processingPayment ? 0.5 : 1.0)
-                    .disabled(processingPayment)
-                } else {
-                    Text("Apple Pay is not available on this device")
+                if storeService.isLoading {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle())
+                        .padding()
+                } else if storeService.availableProducts.isEmpty {
+                    Text("Products not available")
                         .foregroundColor(.secondary)
                         .padding()
+                } else {
+                    // Tip amount selector
+                    VStack(spacing: 12) {
+                        ForEach(0..<tipAmounts.count, id: \.self) { index in
+                            if index < storeService.availableProducts.count {
+                                let product = storeService.availableProducts[index]
+                                Button(action: {
+                                    selectedTipIndex = index
+                                }) {
+                                    HStack {
+                                        Text(product.displayName)
+                                            .font(.title3)
+                                            .bold()
+                                        
+                                        Spacer()
+                                        
+                                        Text(product.displayPrice)
+                                            .font(.title3)
+                                        
+                                        if selectedTipIndex == index {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .foregroundColor(.accentColor)
+                                        }
+                                    }
+                                    .padding()
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(cardBackgroundColor)
+                                    )
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                                .id("tip-option-\(index)-\(themeVersion)") // Force update when theme changes
+                            }
+                        }
+                    }
+                    .padding(.horizontal)
+                    
+                    // Purchase button
+                    Button(action: {
+                        if selectedTipIndex < storeService.availableProducts.count {
+                            processPayment()
+                        }
+                    }) {
+                        Text("Support Mend")
+                            .frame(height: 45)
+                            .frame(maxWidth: .infinity)
+                            .foregroundColor(.white)
+                            .background(Color.accentColor)
+                            .cornerRadius(12)
+                    }
+                    .disabled(processingPayment || storeService.availableProducts.isEmpty)
+                    .padding(.horizontal)
+                    .opacity(processingPayment ? 0.5 : 1.0)
                 }
                 
                 Spacer()
@@ -359,19 +377,26 @@ struct TipJarView: View {
             themeVersion += 1
         }
         .onAppear {
-            // Set up payment callbacks
-            tipService.onPaymentSuccess = {
+            // Set up purchase callbacks
+            storeService.onPurchaseSuccess = {
                 DispatchQueue.main.async {
                     processingPayment = false
                     showingThankYou = true
                 }
             }
             
-            tipService.onPaymentFailure = { error in
+            storeService.onPurchaseFailure = { error in
                 DispatchQueue.main.async {
                     processingPayment = false
-                    errorMessage = error?.localizedDescription ?? "Payment was cancelled"
+                    errorMessage = error?.localizedDescription ?? "Purchase was cancelled"
                     showingError = true
+                }
+            }
+            
+            // Ensure products are loaded
+            if storeService.availableProducts.isEmpty && !storeService.isLoading {
+                Task {
+                    await storeService.loadProducts()
                 }
             }
         }
@@ -379,57 +404,17 @@ struct TipJarView: View {
     
     private func processPayment() {
         processingPayment = true
-        let amount = tipService.tipAmounts[selectedTipIndex]
         
-        tipService.presentApplePay(amount: amount) { success, error in
-            // Since the payment is now handled via callbacks, we don't need to handle it here
-            if !success {
-                DispatchQueue.main.async {
-                    self.processingPayment = false
-                    self.errorMessage = error?.localizedDescription ?? "Payment could not be processed"
-                    self.showingError = true
-                }
+        if selectedTipIndex < storeService.availableProducts.count {
+            let product = storeService.availableProducts[selectedTipIndex]
+            
+            Task {
+                await storeService.purchase(product)
             }
-        }
-    }
-}
-
-// Apple Pay Button using UIKit representable
-struct ApplePayButton: UIViewRepresentable {
-    var onPaymentMethodCreation: () -> Void
-    @Environment(\.colorScheme) var colorScheme
-    
-    // Add an ID to force recreation when colorScheme changes
-    private var buttonID: String {
-        "applePayButton-\(colorScheme == .dark ? "dark" : "light")"
-    }
-    
-    func makeUIView(context: Context) -> UIView {
-        let button = PKPaymentButton(
-            paymentButtonType: .buy,
-            paymentButtonStyle: colorScheme == .dark ? .white : .black
-        )
-        button.addTarget(context.coordinator, action: #selector(Coordinator.buttonTapped), for: .touchUpInside)
-        return button
-    }
-    
-    func updateUIView(_ uiView: UIViewType, context: Context) {
-        // We'll handle updates by forcing complete recreation via buttonID
-    }
-    
-    func makeCoordinator() -> Coordinator {
-        Coordinator(parent: self)
-    }
-    
-    class Coordinator: NSObject {
-        var parent: ApplePayButton
-        
-        init(parent: ApplePayButton) {
-            self.parent = parent
-        }
-        
-        @objc func buttonTapped() {
-            parent.onPaymentMethodCreation()
+        } else {
+            processingPayment = false
+            errorMessage = "Selected product is not available"
+            showingError = true
         }
     }
 }

@@ -19,7 +19,7 @@ struct MailView: UIViewControllerRepresentable {
         composer.setToRecipients(mailData.toRecipients)
         composer.setSubject(mailData.subject)
         composer.setMessageBody(mailData.messageBody, isHTML: false)
-        
+            
         // Add attachment if available
         if let data = mailData.attachment,
            let mimeType = mailData.attachmentMimeType,
