@@ -10,6 +10,7 @@ import HealthKit
 import PassKit
 import BackgroundTasks
 import UserNotifications
+import StoreKit
 
 class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     
@@ -22,8 +23,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         // Register for background refresh
         setupBackgroundRefresh()
         
-        // Initialize the payment service
-        StripePaymentService.shared.initialize()
+        // Initialize the StoreKit for in-app purchases
+        Task {
+            await StoreKitService.shared.loadProducts()
+        }
         
         // Set this class as the UNUserNotificationCenter delegate
         UNUserNotificationCenter.current().delegate = self

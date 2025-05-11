@@ -34,7 +34,7 @@
 		</dict>
 	</dict>
 	<key>NSApplicationCryptographyUsageDescription</key>
-	<string>Mend uses Apple Pay to process secure payments.</string>
+	<string>Mend uses secure payment processing.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

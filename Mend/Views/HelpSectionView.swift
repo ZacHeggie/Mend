@@ -96,7 +96,7 @@ struct PrivacyPolicyView: View {
             ## Contact Us
 
             If you have questions about your privacy, please contact us at:
-            privacy@mendapp.com
+            mendsupport@icloud.com
             """
         )
     }
