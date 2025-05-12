@@ -32,98 +32,112 @@ struct TodayView: View {
     
     var body: some View {
         NavigationStack {
-            ZStack(alignment: .bottomTrailing) {
-                ScrollView {
-                    VStack(spacing: MendSpacing.large) {
-                        if recoveryMetrics.isLoading {
-                            // Show loading view while data is being fetched
-                            loadingView
-                        } else if let score = recoveryMetrics.currentRecoveryScore {
-                            // Only show the score when we have valid data
-                            recoveryScoreView(score: score)
-                            
-                            // Recent activities from the last 24 hours
-                            if !recentActivities.isEmpty {
-                                recentActivitiesView
+            VStack(spacing: 0) {
+                // Sample data warning - positioned below navigation bar with improved visibility
+                if recoveryMetrics.isShowingSampleData() && !recoveryMetrics.isLoading {
+                    Text("No data available - showing sample data")
+                        .font(MendFont.footnote.bold())
+                        .foregroundColor(.white)
+                        .padding(.horizontal, MendSpacing.medium)
+                        .padding(.vertical, MendSpacing.small)
+                        .frame(maxWidth: .infinity)
+                        .background(MendColors.neutral)
+                }
+                
+                // Main content
+                ZStack(alignment: .bottomTrailing) {
+                    ScrollView {
+                        VStack(spacing: MendSpacing.large) {
+                            if recoveryMetrics.isLoading {
+                                // Show loading view while data is being fetched
+                                loadingView
+                            } else if let score = recoveryMetrics.currentRecoveryScore {
+                                // Only show the score when we have valid data
+                                recoveryScoreView(score: score)
+                                
+                                // Recent activities from the last 24 hours
+                                if !recentActivities.isEmpty {
+                                    recentActivitiesView
+                                }
+                                
+                                // Activity recommendations
+                                recommendationsSection
+                                
+                                // Recovery insights
+                                if !recoveryInsights.isEmpty {
+                                    insightsSection
+                                }
+                            } else {
+                                // Show no data view when loading is complete but no data is available
+                                noDataView
                             }
-                            
-                            // Activity recommendations
-                            recommendationsSection
-                            
-                            // Recovery insights
-                            if !recoveryInsights.isEmpty {
-                                insightsSection
-                            }
-                        } else {
-                            // Show no data view when loading is complete but no data is available
-                            noDataView
+                        }
+                        .padding(.vertical)
+                        .padding(.bottom, 100) // Add extra padding at the bottom to prevent content from being obscured by tab bar
+                    }
+                    
+                    // Only show the add activity button when we're not loading
+                    if !recoveryMetrics.isLoading {
+                        // Floating Action Button for adding activity
+                        Button(action: {
+                            showingAddActivity = true
+                        }) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 22, weight: .semibold))
+                                .foregroundColor(.white)
+                                .frame(width: 56, height: 56)
+                                .background(MendColors.primary)
+                                .clipShape(Circle())
+                                .shadow(color: colorScheme == .dark ? Color.black.opacity(0.4) : Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
+                        }
+                        .padding(.trailing, 20)
+                        .padding(.bottom, 70)
+                    }
+                }
+            }
+            .background(backgroundColor.ignoresSafeArea())
+            .navigationTitle("Today")
+            .navigationBarItems(trailing: notificationButton)
+            .toolbarColorScheme(colorScheme, for: .navigationBar)
+            .toolbarBackground(backgroundColor, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .onChange(of: colorScheme) { oldValue, newValue in
+                // Force UI to update when color scheme changes
+                let needsToRefreshUI = true
+                if needsToRefreshUI {
+                    Task {
+                        // Short delay to let system complete theme change
+                        try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+                        await MainActor.run {
+                            // This will trigger a UI refresh
+                            loadRecentActivities()
                         }
                     }
-                    .padding(.vertical)
-                    .padding(.bottom, 100) // Add extra padding at the bottom to prevent content from being obscured by tab bar
                 }
-                .background(backgroundColor.ignoresSafeArea())
-                .navigationTitle("Today")
-                .navigationBarItems(trailing: notificationButton)
-                .toolbarColorScheme(colorScheme, for: .navigationBar)
-                .toolbarBackground(backgroundColor, for: .navigationBar)
-                .toolbarBackground(.visible, for: .navigationBar)
-                .onChange(of: colorScheme) { oldValue, newValue in
-                    // Force UI to update when color scheme changes
-                    let needsToRefreshUI = true
-                    if needsToRefreshUI {
-                        Task {
-                            // Short delay to let system complete theme change
-                            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
-                            await MainActor.run {
-                                // This will trigger a UI refresh
+            }
+            .onAppear {
+                Task {
+                    await refreshData()
+                }
+            }
+            .refreshable {
+                await refreshData()
+            }
+            .sheet(isPresented: $showingAddActivity) {
+                NavigationView {
+                    AddActivityView(isPresented: $showingAddActivity)
+                        .navigationTitle("Add Activity")
+                        .navigationBarItems(leading: Button("Cancel") {
+                            showingAddActivity = false
+                        })
+                        .environmentObject(activityManager)
+                        .onDisappear {
+                            // Refresh data when activity sheet is dismissed
+                            Task {
+                                await recoveryMetrics.refreshWithReset()
                                 loadRecentActivities()
                             }
                         }
-                    }
-                }
-                .onAppear {
-                    Task {
-                        await refreshData()
-                    }
-                }
-                .refreshable {
-                    await refreshData()
-                }
-                
-                // Only show the add activity button when we're not loading
-                if !recoveryMetrics.isLoading {
-                    // Floating Action Button for adding activity
-                    Button(action: {
-                        showingAddActivity = true
-                    }) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 22, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(width: 56, height: 56)
-                            .background(MendColors.primary)
-                            .clipShape(Circle())
-                            .shadow(color: colorScheme == .dark ? Color.black.opacity(0.4) : Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
-                    }
-                    .padding(.trailing, 20)
-                    .padding(.bottom, 70)
-                    .sheet(isPresented: $showingAddActivity) {
-                        NavigationView {
-                            AddActivityView(isPresented: $showingAddActivity)
-                                .navigationTitle("Add Activity")
-                                .navigationBarItems(leading: Button("Cancel") {
-                                    showingAddActivity = false
-                                })
-                                .environmentObject(activityManager)
-                                .onDisappear {
-                                    // Refresh data when activity sheet is dismissed
-                                    Task {
-                                        await recoveryMetrics.refreshWithReset()
-                                        loadRecentActivities()
-                                    }
-                                }
-                        }
-                    }
                 }
             }
             

@@ -8,6 +8,7 @@ class ActivityManager: ObservableObject, Sendable {
     @Published private(set) var activities: [Activity] = []
     @Published private(set) var isLoading: Bool = false
     @Published var error: Error?
+    @Published private(set) var usingSampleData: Bool = false
     
     private let healthKitManager = HealthKitManager.shared
     
@@ -27,10 +28,12 @@ class ActivityManager: ObservableObject, Sendable {
                 // If no HealthKit data, load sample data
                 DispatchQueue.main.async {
                     self.activities = self.generateSampleActivities()
+                    self.usingSampleData = true
                     self.isLoading = false
                 }
             } else {
                 DispatchQueue.main.async {
+                    self.usingSampleData = false
                     self.isLoading = false
                 }
             }
@@ -204,6 +207,17 @@ class ActivityManager: ObservableObject, Sendable {
         activities.append(activity)
         // Sort activities by date - newest first
         activities.sort { $0.date > $1.date }
+    }
+    
+    // Check if the activities are from real health data or sample data
+    func hasRealActivities() -> Bool {
+        // Check if we're explicitly using sample data
+        if usingSampleData {
+            return false
+        }
+        
+        // If any activity has the source set to .healthKit, it's real data
+        return activities.contains { $0.source == .healthKit }
     }
     
     // Add a test activity for testing recovery score
