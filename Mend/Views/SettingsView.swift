@@ -759,7 +759,9 @@ struct SimulatedDataSettings: View {
             duration: 3600, // 1 hour
             distance: 10.0,
             intensity: .high,
-            source: .manual
+            source: .manual,
+            averageHeartRate: 172.0,
+            trainingLoadScore: 108.0
         )
         
         // Add to activity manager

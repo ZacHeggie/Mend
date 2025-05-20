@@ -79,8 +79,35 @@ class HealthKitManager {
             distance = totalDistance.doubleValue(for: .meter()) / 1000 // Convert to km
         }
         
+        // Extract heart rate data
+        var averageHeartRate: Double? = nil
+        if let heartRateStats = workout.statistics(for: HKQuantityType(.heartRate)) {
+            if let averageHR = heartRateStats.averageQuantity() {
+                averageHeartRate = averageHR.doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
+            }
+        }
+        
         // Determine intensity based on heart rate and duration
         let intensity = determineIntensityFromWorkout(workout)
+        
+        // Calculate training load score (simplified formula: duration in minutes * intensity factor)
+        let durationMinutes = duration / 60
+        let intensityFactor: Double
+        switch intensity {
+        case .low: intensityFactor = 1.0
+        case .moderate: intensityFactor = 2.0
+        case .high: intensityFactor = 3.0
+        }
+        // If we have heart rate data, use it to refine training load calculation
+        let trainingLoadScore: Double
+        if let hr = averageHeartRate {
+            // Enhanced formula that considers heart rate: duration * intensity * (hr factor)
+            let hrFactor = (hr / 100.0) // normalize around 100bpm
+            trainingLoadScore = durationMinutes * intensityFactor * hrFactor
+        } else {
+            // Basic formula without heart rate
+            trainingLoadScore = durationMinutes * intensityFactor
+        }
         
         return Activity(
             id: UUID(),
@@ -90,7 +117,9 @@ class HealthKitManager {
             duration: duration,
             distance: distance,
             intensity: intensity,
-            source: .healthKit
+            source: .healthKit,
+            averageHeartRate: averageHeartRate,
+            trainingLoadScore: trainingLoadScore
         )
     }
     
@@ -104,6 +133,8 @@ class HealthKitManager {
             return .swim
         case .walking:
             return .walk
+        case .rowing:
+            return .rowOutdoor
         case .traditionalStrengthTraining, .functionalStrengthTraining, .crossTraining:
             return .workout
         default:
@@ -121,6 +152,8 @@ class HealthKitManager {
             return "Swim"
         case .walking:
             return "Walk"
+        case .rowing:
+            return "Outdoor Row"
         case .traditionalStrengthTraining:
             return "Strength Training"
         case .functionalStrengthTraining:

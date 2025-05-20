@@ -26,6 +26,8 @@ enum ActivityType: String, Codable, CaseIterable {
     case swim = "Swim"
     case walk = "Walk"
     case workout = "Workout"
+    case rowIndoor = "Indoor Row"
+    case rowOutdoor = "Outdoor Row"
     case other = "Other"
     
     var icon: String {
@@ -35,6 +37,8 @@ enum ActivityType: String, Codable, CaseIterable {
         case .swim: return "figure.pool.swim"
         case .walk: return "figure.walk"
         case .workout: return "figure.strengthtraining.traditional"
+        case .rowIndoor: return "figure.rower"
+        case .rowOutdoor: return "figure.outdoor.rowing"
         case .other: return "figure.mixed.cardio"
         }
     }

@@ -140,6 +140,22 @@ struct ActivityView: View {
                 )
                 
                 ActivityTypeFilterButton(
+                    title: "Indoor Rows",
+                    icon: ActivityType.rowIndoor.icon,
+                    isSelected: selectedActivityType == .rowIndoor,
+                    action: { selectedActivityType = .rowIndoor },
+                    colorScheme: colorScheme
+                )
+                
+                ActivityTypeFilterButton(
+                    title: "Outdoor Rows",
+                    icon: ActivityType.rowOutdoor.icon,
+                    isSelected: selectedActivityType == .rowOutdoor,
+                    action: { selectedActivityType = .rowOutdoor },
+                    colorScheme: colorScheme
+                )
+                
+                ActivityTypeFilterButton(
                     title: "Workouts",
                     icon: ActivityType.workout.icon,
                     isSelected: selectedActivityType == .workout,
@@ -630,6 +646,7 @@ struct AddActivityView: View {
     @State private var durationHours: Int = 0
     @State private var durationMinutes: Int = 30
     @State private var date = Date()
+    @State private var heartRate: String = ""
     
     var body: some View {
         Form {
@@ -693,6 +710,11 @@ struct AddActivityView: View {
                 }
             }
             
+            Section(header: Text("Heart Rate")) {
+                TextField("Average Heart Rate", text: $heartRate)
+                    .keyboardType(.decimalPad)
+            }
+            
             Section(header: Text("Date & Time")) {
                 DatePicker("Date", selection: $date, displayedComponents: [.date, .hourAndMinute])
             }
@@ -712,6 +734,29 @@ struct AddActivityView: View {
         // Calculate duration in seconds
         let totalSeconds = (durationHours * 3600) + (durationMinutes * 60)
         
+        // Calculate average heart rate (use nil if no input)
+        let avgHeartRate = heartRate.isEmpty ? nil : Double(heartRate)
+        
+        // Calculate training load score based on duration and intensity
+        let durationMinutes = Double(totalSeconds) / 60
+        let intensityFactor: Double
+        switch selectedIntensity {
+        case .low: intensityFactor = 1.0
+        case .moderate: intensityFactor = 2.0
+        case .high: intensityFactor = 3.0
+        }
+        
+        // Calculate training load score
+        let trainingLoadScore: Double
+        if let hr = avgHeartRate {
+            // Enhanced formula with heart rate
+            let hrFactor = (hr / 100.0) // normalize around 100bpm
+            trainingLoadScore = durationMinutes * intensityFactor * hrFactor
+        } else {
+            // Basic formula without heart rate
+            trainingLoadScore = durationMinutes * intensityFactor
+        }
+        
         // Create new activity
         let newActivity = Activity(
             id: UUID(),
@@ -721,7 +766,9 @@ struct AddActivityView: View {
             duration: TimeInterval(totalSeconds),
             distance: Double(distance),
             intensity: selectedIntensity,
-            source: .manual
+            source: .manual,
+            averageHeartRate: avgHeartRate,
+            trainingLoadScore: trainingLoadScore
         )
         
         // Add to activity manager
@@ -768,6 +815,7 @@ struct ActivityTypeFilterButton: View {
 struct ActivityCard: View {
     let activity: Activity
     let colorScheme: ColorScheme
+    @State private var isExpanded: Bool = false
     
     private var cardBackgroundColor: Color {
         colorScheme == .dark ? MendColors.darkCardBackground : MendColors.cardBackground
@@ -783,6 +831,7 @@ struct ActivityCard: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: MendSpacing.medium) {
+            // Main header content - always visible
             HStack {
                 Image(systemName: activity.type.icon)
                     .font(.title2)
@@ -799,6 +848,7 @@ struct ActivityCard: View {
                     .foregroundColor(secondaryTextColor)
             }
             
+            // Basic metrics - always visible
             HStack(spacing: MendSpacing.large) {
                 if activity.distance != nil {
                     HStack(spacing: 4) {
@@ -826,6 +876,60 @@ struct ActivityCard: View {
                         .font(.subheadline)
                         .foregroundColor(secondaryTextColor)
                 }
+            }
+            
+            // Expanded content - only visible when expanded
+            if isExpanded {
+                VStack(alignment: .leading, spacing: MendSpacing.medium) {
+                    Divider()
+                        .background(secondaryTextColor.opacity(0.3))
+                    
+                    HStack(spacing: MendSpacing.large) {
+                        // Heart rate
+                        if let heartRateFormatted = activity.formattedHeartRate {
+                            HStack(spacing: 4) {
+                                Image(systemName: "heart.fill")
+                                    .font(.subheadline)
+                                    .foregroundColor(MendColors.negative.opacity(0.8))
+                                Text(heartRateFormatted)
+                                    .font(.subheadline)
+                            }
+                            .foregroundColor(secondaryTextColor)
+                        }
+                        
+                        // Training load
+                        if let trainingLoadFormatted = activity.formattedTrainingLoad {
+                            HStack(spacing: 4) {
+                                Image(systemName: "chart.bar.fill")
+                                    .font(.subheadline)
+                                Text(trainingLoadFormatted)
+                                    .font(.subheadline)
+                            }
+                            .foregroundColor(secondaryTextColor)
+                        }
+                    }
+                }
+            }
+            
+            // Expand/collapse button
+            Button {
+                withAnimation(.mendEaseInOut) {
+                    isExpanded.toggle()
+                }
+            } label: {
+                HStack {
+                    Text(isExpanded ? "Show less" : "Show more")
+                        .font(.caption)
+                        .foregroundColor(MendColors.secondary)
+                    
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.caption)
+                        .foregroundColor(MendColors.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, MendSpacing.small)
+                .background(MendColors.secondary.opacity(colorScheme == .dark ? 0.2 : 0.1))
+                .cornerRadius(MendCornerRadius.small)
             }
         }
         .padding()

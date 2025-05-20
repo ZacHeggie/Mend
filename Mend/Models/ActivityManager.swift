@@ -230,7 +230,9 @@ class ActivityManager: ObservableObject, Sendable {
             duration: 45 * 60, // 45 minutes
             distance: 5000 / 1000.0, // 5km converted to kilometers
             intensity: intensity,
-            source: .manual
+            source: .manual,
+            averageHeartRate: intensity == .high ? 165.0 : 140.0,
+            trainingLoadScore: intensity == .high ? 90.0 : 45.0
         )
         
         addActivity(testActivity)
@@ -250,7 +252,9 @@ class ActivityManager: ObservableObject, Sendable {
             duration: 1800, // 30 minutes
             distance: 5.2,
             intensity: .moderate,
-            source: .healthKit
+            source: .healthKit,
+            averageHeartRate: 142.0,
+            trainingLoadScore: 30.0
         )
         
         let yesterdayRide = Activity(
@@ -261,7 +265,9 @@ class ActivityManager: ObservableObject, Sendable {
             duration: 3600, // 60 minutes
             distance: 15.7,
             intensity: .high,
-            source: .manual
+            source: .manual,
+            averageHeartRate: 155.0,
+            trainingLoadScore: 120.0
         )
         
         let twoDaysAgoSwim = Activity(
@@ -272,7 +278,9 @@ class ActivityManager: ObservableObject, Sendable {
             duration: 2700, // 45 minutes
             distance: 1.5,
             intensity: .high,
-            source: .healthKit
+            source: .healthKit,
+            averageHeartRate: 135.0,
+            trainingLoadScore: 45.0
         )
         
         let threeDaysAgoWorkout = Activity(
@@ -283,7 +291,9 @@ class ActivityManager: ObservableObject, Sendable {
             duration: 3600, // 60 minutes
             distance: nil,
             intensity: .high,
-            source: .manual
+            source: .manual,
+            averageHeartRate: 140.0,
+            trainingLoadScore: 60.0
         )
         
         let fourDaysAgoWalk = Activity(
@@ -294,7 +304,9 @@ class ActivityManager: ObservableObject, Sendable {
             duration: 1800, // 30 minutes
             distance: 2.3,
             intensity: .low,
-            source: .healthKit
+            source: .healthKit,
+            averageHeartRate: 105.0,
+            trainingLoadScore: 15.0
         )
         
         let lastWeekRun = Activity(
@@ -305,9 +317,84 @@ class ActivityManager: ObservableObject, Sendable {
             duration: 5400, // 90 minutes
             distance: 12.5,
             intensity: .high,
-            source: .manual
+            source: .manual,
+            averageHeartRate: 160.0,
+            trainingLoadScore: 150.0
         )
         
         return [todayRun, yesterdayRide, twoDaysAgoSwim, threeDaysAgoWorkout, fourDaysAgoWalk, lastWeekRun].sorted(by: { $0.date > $1.date })
+    }
+    
+    private func loadSampleData() {
+        // Only load sample data if we don't have any activities
+        guard activities.isEmpty else { return }
+        
+        // Create a few sample activities to demonstrate the UI
+        let testActivity = Activity(
+            id: UUID(),
+            title: "Morning Jog",
+            type: .run,
+            date: Calendar.current.date(byAdding: .day, value: -10, to: Date())!,
+            duration: 1800, // 30 minutes
+            distance: 4.5,
+            intensity: .moderate,
+            source: .manual,
+            averageHeartRate: 142.0,
+            trainingLoadScore: 30.0
+        )
+        
+        // Today's run
+        let todayRun = Activity(
+            id: UUID(),
+            title: "Morning Run",
+            type: .run,
+            date: Date().addingTimeInterval(-10000),
+            duration: 2700, // 45 minutes
+            distance: 7.2,
+            intensity: .high,
+            source: .manual,
+            averageHeartRate: 165.0,
+            trainingLoadScore: 67.5
+        )
+        
+        // Yesterday's ride
+        let yesterdayRide = Activity(
+            id: UUID(),
+            title: "Evening Ride",
+            type: .ride,
+            date: Calendar.current.date(byAdding: .day, value: -1, to: Date())!,
+            duration: 3600, // 60 minutes
+            distance: 20.0,
+            intensity: .moderate,
+            source: .manual,
+            averageHeartRate: 148.0,
+            trainingLoadScore: 60.0
+        )
+        
+        // Two days ago walk
+        let twoDaysAgoWalk = Activity(
+            id: UUID(),
+            title: "Afternoon Walk",
+            type: .walk,
+            date: Calendar.current.date(byAdding: .day, value: -2, to: Date())!,
+            duration: 1800, // 30 minutes
+            distance: 2.5,
+            intensity: .low,
+            source: .manual,
+            averageHeartRate: 110.0,
+            trainingLoadScore: 15.0
+        )
+        
+        // Add activities to our list
+        activities = [todayRun, yesterdayRide, twoDaysAgoWalk, testActivity]
+        
+        // Save activities to disk (we're not actually persisting to disk in this implementation)
+    }
+    
+    // Function to save activities to persistent storage
+    // For now, this is a placeholder since we don't need to persist to disk
+    private func saveActivities() {
+        // In a real implementation, this would save to UserDefaults, CoreData, or a file
+        // print("Activities saved: \(activities.count)")
     }
 } 

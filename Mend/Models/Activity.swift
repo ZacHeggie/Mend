@@ -10,6 +10,8 @@ struct Activity: Identifiable, Codable {
     let distance: Double? // in kilometers
     let intensity: ActivityIntensity
     let source: ActivitySource
+    let averageHeartRate: Double? // in bpm
+    let trainingLoadScore: Double?
     
     var formattedDuration: String {
         let hours = Int(duration) / 3600
@@ -30,6 +32,16 @@ struct Activity: Identifiable, Codable {
         formatter.dateFormat = "dd/MM/yyyy"
         return formatter.string(from: date)
     }
+    
+    var formattedHeartRate: String? {
+        guard let heartRate = averageHeartRate else { return nil }
+        return String(format: "%.0f bpm", heartRate)
+    }
+    
+    var formattedTrainingLoad: String? {
+        guard let trainingLoad = trainingLoadScore else { return nil }
+        return String(format: "%.0f pts", trainingLoad)
+    }
 }
 
 // Sample data
@@ -43,7 +55,9 @@ extension Activity {
             duration: 1800, // 30 minutes
             distance: 5.0,
             intensity: .moderate,
-            source: .manual
+            source: .manual,
+            averageHeartRate: 145.0,
+            trainingLoadScore: 35.0
         ),
         Activity(
             id: UUID(),
@@ -53,7 +67,9 @@ extension Activity {
             duration: 3600, // 1 hour
             distance: 20.0,
             intensity: .high,
-            source: .healthKit
+            source: .healthKit,
+            averageHeartRate: 160.0,
+            trainingLoadScore: 58.0
         ),
         Activity(
             id: UUID(),
@@ -63,7 +79,9 @@ extension Activity {
             duration: 2700, // 45 minutes
             distance: nil,
             intensity: .moderate,
-            source: .manual
+            source: .manual,
+            averageHeartRate: 135.0,
+            trainingLoadScore: 42.0
         )
     ]
 } 

@@ -148,6 +148,27 @@ class HealthDataParserDelegate: NSObject, XMLParserDelegate {
         }
         
         let distance = workoutData["distance"] as? Double
+        let heartRate = workoutData["heartRate"] as? Double
+        let intensity = determineIntensity(duration: duration, distance: distance)
+        
+        // Calculate training load score (simplified formula: duration in minutes * intensity factor)
+        let durationMinutes = duration / 60
+        let intensityFactor: Double
+        switch intensity {
+        case .low: intensityFactor = 1.0
+        case .moderate: intensityFactor = 2.0
+        case .high: intensityFactor = 3.0
+        }
+        // If we have heart rate data, use it to refine training load calculation
+        let trainingLoadScore: Double
+        if let hr = heartRate {
+            // Enhanced formula that considers heart rate: duration * intensity * (hr factor)
+            let hrFactor = (hr / 100.0) // normalize around 100bpm
+            trainingLoadScore = durationMinutes * intensityFactor * hrFactor
+        } else {
+            // Basic formula without heart rate
+            trainingLoadScore = durationMinutes * intensityFactor
+        }
         
         let activity = Activity(
             id: UUID(),
@@ -156,8 +177,10 @@ class HealthDataParserDelegate: NSObject, XMLParserDelegate {
             date: date,
             duration: duration,
             distance: distance.map { $0 / 1000 }, // Convert to kilometers
-            intensity: determineIntensity(duration: duration, distance: distance),
-            source: .healthKit
+            intensity: intensity,
+            source: .healthKit,
+            averageHeartRate: heartRate,
+            trainingLoadScore: trainingLoadScore
         )
         
         activities.append(activity)
@@ -170,6 +193,8 @@ class HealthDataParserDelegate: NSObject, XMLParserDelegate {
         case "HKWorkoutActivityTypeSwimming": return .swim
         case "HKWorkoutActivityTypeWalking": return .walk
         case "HKWorkoutActivityTypeTraditionalStrengthTraining": return .workout
+        case "HKWorkoutActivityTypeRowing": return .rowOutdoor
+        case "HKWorkoutActivityTypeIndoorRowing", "HKWorkoutActivityTypeIndoorRower": return .rowIndoor
         default: return .other
         }
     }
