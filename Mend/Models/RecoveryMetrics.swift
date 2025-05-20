@@ -1345,6 +1345,31 @@ class RecoveryMetrics: ObservableObject {
             return "Well recovered. Ready for intense training."
         }
     }
+    
+    /// Checks if the app is currently showing sample/simulated data instead of real health data
+    func isShowingSampleData() -> Bool {
+        // Check if explicitly using simulated data
+        if useSimulatedData {
+            return true
+        }
+        
+        // Check if ActivityManager is explicitly using sample data
+        if activityManager.usingSampleData {
+            return true
+        }
+        
+        // Check if we have any real health data
+        let hasHeartRateData = heartRateMetric?.dailyData.isEmpty == false
+        let hasHRVData = hrvMetric?.dailyData.isEmpty == false
+        let hasSleepData = sleepMetric?.dailyData.isEmpty == false
+        let hasSleepQualityData = sleepQualityMetric?.dailyData.isEmpty == false
+        
+        // Check if activities are using sample data
+        let hasRealActivities = activityManager.hasRealActivities()
+        
+        // If we have no real health data in any category, we're showing sample data
+        return !(hasHeartRateData || hasHRVData || hasSleepData || hasSleepQualityData || hasRealActivities)
+    }
 }
 
 // Add Codable conformance to RecoveryScore

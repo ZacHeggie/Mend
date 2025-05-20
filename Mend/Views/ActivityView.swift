@@ -7,6 +7,7 @@ struct ActivityView: View {
     @State private var showingAddActivity = false
     @State private var isRefreshing = false
     @Environment(\.colorScheme) var colorScheme
+    @EnvironmentObject private var recoveryMetrics: RecoveryMetrics
     
     private var backgroundColor: Color {
         colorScheme == .dark ? MendColors.darkBackground : MendColors.background
@@ -25,13 +26,56 @@ struct ActivityView: View {
     }
     
     var body: some View {
-        ZStack {
-            activityListView
-            
-            // Floating Action Button
-            floatingActionButton
+        NavigationStack {
+            ZStack(alignment: .bottomTrailing) {
+                VStack(spacing: 0) {
+                    // Sample data warning - positioned below navigation bar with improved visibility
+                    if recoveryMetrics.isShowingSampleData() && !activityManager.isLoading {
+                        Text("No data available - showing sample data")
+                            .font(MendFont.footnote.bold())
+                            .foregroundColor(.white)
+                            .padding(.horizontal, MendSpacing.medium)
+                            .padding(.vertical, MendSpacing.small)
+                            .frame(maxWidth: .infinity)
+                            .background(MendColors.neutral)
+                    }
+                    
+                    // Main content
+                    activityListView
+                }
+                
+                // Floating Action Button
+                floatingActionButton
+            }
+            .background(backgroundColor.ignoresSafeArea())
+            .navigationTitle("Activities")
+            .toolbarColorScheme(colorScheme, for: .navigationBar)
+            .toolbarBackground(backgroundColor, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: refreshActivities) {
+                        Image(systemName: "arrow.clockwise")
+                            .foregroundColor(textColor)
+                    }
+                    .disabled(isRefreshing)
+                }
+            }
+            .onAppear(perform: loadActivities)
+            .onChange(of: selectedActivityType) { oldValue, newValue in
+                loadActivities()
+            }
+            .sheet(isPresented: $showingAddActivity) {
+                NavigationView {
+                    AddActivityView(isPresented: $showingAddActivity)
+                        .navigationTitle("Add Activity")
+                        .navigationBarItems(leading: Button("Cancel") {
+                            showingAddActivity = false
+                        })
+                        .environmentObject(activityManager)
+                }
+            }
         }
-        .background(backgroundColor.ignoresSafeArea())
     }
     
     private var activityListView: some View {
@@ -51,43 +95,6 @@ struct ActivityView: View {
             .padding(.bottom, 80)
         }
         .background(backgroundColor.ignoresSafeArea())
-        .navigationTitle("Activities")
-        .toolbarColorScheme(colorScheme, for: .navigationBar)
-        .toolbarBackground(backgroundColor, for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
-        .onChange(of: colorScheme) { oldValue, newValue in
-            // Force UI to update when color scheme changes
-            let needsToRefreshUI = true
-            if needsToRefreshUI {
-                Task {
-                    // Short delay to let system complete theme change
-                    try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
-                }
-            }
-        }
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: refreshActivities) {
-                    Image(systemName: "arrow.clockwise")
-                        .foregroundColor(textColor)
-                }
-                .disabled(isRefreshing)
-            }
-        }
-        .onAppear(perform: loadActivities)
-        .onChange(of: selectedActivityType) { oldValue, newValue in
-            loadActivities()
-        }
-        .sheet(isPresented: $showingAddActivity) {
-            NavigationView {
-                AddActivityView(isPresented: $showingAddActivity)
-                    .navigationTitle("Add Activity")
-                    .navigationBarItems(leading: Button("Cancel") {
-                        showingAddActivity = false
-                    })
-                    .environmentObject(activityManager)
-            }
-        }
     }
     
     private var activityTypeFilter: some View {
