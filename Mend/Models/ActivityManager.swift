@@ -220,25 +220,6 @@ class ActivityManager: ObservableObject, Sendable {
         return activities.contains { $0.source == .healthKit }
     }
     
-    // Add a test activity for testing recovery score
-    func addTestActivity(intensity: ActivityIntensity = .moderate) -> Activity {
-        let testActivity = Activity(
-            id: UUID(),
-            title: "Test Run",
-            type: .run,
-            date: Date(),
-            duration: 45 * 60, // 45 minutes
-            distance: 5000 / 1000.0, // 5km converted to kilometers
-            intensity: intensity,
-            source: .manual,
-            averageHeartRate: intensity == .high ? 165.0 : 140.0,
-            trainingLoadScore: intensity == .high ? 90.0 : 45.0
-        )
-        
-        addActivity(testActivity)
-        return testActivity
-    }
-    
     // Generate sample data if needed (fallback when no HealthKit data)
     private func generateSampleActivities() -> [Activity] {
         let calendar = Calendar.current
@@ -254,7 +235,8 @@ class ActivityManager: ObservableObject, Sendable {
             intensity: .moderate,
             source: .healthKit,
             averageHeartRate: 142.0,
-            trainingLoadScore: 30.0
+            trainingLoadScore: 30.0,
+            elevation: 85.0
         )
         
         let yesterdayRide = Activity(
@@ -267,7 +249,8 @@ class ActivityManager: ObservableObject, Sendable {
             intensity: .high,
             source: .manual,
             averageHeartRate: 155.0,
-            trainingLoadScore: 120.0
+            trainingLoadScore: 120.0,
+            elevation: 245.0
         )
         
         let twoDaysAgoSwim = Activity(
@@ -280,7 +263,8 @@ class ActivityManager: ObservableObject, Sendable {
             intensity: .high,
             source: .healthKit,
             averageHeartRate: 135.0,
-            trainingLoadScore: 45.0
+            trainingLoadScore: 45.0,
+            elevation: nil
         )
         
         let threeDaysAgoWorkout = Activity(
@@ -293,7 +277,8 @@ class ActivityManager: ObservableObject, Sendable {
             intensity: .high,
             source: .manual,
             averageHeartRate: 140.0,
-            trainingLoadScore: 60.0
+            trainingLoadScore: 60.0,
+            elevation: nil
         )
         
         let fourDaysAgoWalk = Activity(
@@ -306,7 +291,8 @@ class ActivityManager: ObservableObject, Sendable {
             intensity: .low,
             source: .healthKit,
             averageHeartRate: 105.0,
-            trainingLoadScore: 15.0
+            trainingLoadScore: 15.0,
+            elevation: 32.0
         )
         
         let lastWeekRun = Activity(
@@ -319,7 +305,8 @@ class ActivityManager: ObservableObject, Sendable {
             intensity: .high,
             source: .manual,
             averageHeartRate: 160.0,
-            trainingLoadScore: 150.0
+            trainingLoadScore: 150.0,
+            elevation: 420.0
         )
         
         return [todayRun, yesterdayRide, twoDaysAgoSwim, threeDaysAgoWorkout, fourDaysAgoWalk, lastWeekRun].sorted(by: { $0.date > $1.date })
@@ -340,7 +327,8 @@ class ActivityManager: ObservableObject, Sendable {
             intensity: .moderate,
             source: .manual,
             averageHeartRate: 142.0,
-            trainingLoadScore: 30.0
+            trainingLoadScore: 30.0,
+            elevation: 65.0
         )
         
         // Today's run
@@ -354,7 +342,8 @@ class ActivityManager: ObservableObject, Sendable {
             intensity: .high,
             source: .manual,
             averageHeartRate: 165.0,
-            trainingLoadScore: 67.5
+            trainingLoadScore: 67.5,
+            elevation: 125.0
         )
         
         // Yesterday's ride
@@ -368,7 +357,8 @@ class ActivityManager: ObservableObject, Sendable {
             intensity: .moderate,
             source: .manual,
             averageHeartRate: 148.0,
-            trainingLoadScore: 60.0
+            trainingLoadScore: 60.0,
+            elevation: 180.0
         )
         
         // Two days ago walk
@@ -382,13 +372,13 @@ class ActivityManager: ObservableObject, Sendable {
             intensity: .low,
             source: .manual,
             averageHeartRate: 110.0,
-            trainingLoadScore: 15.0
+            trainingLoadScore: 15.0,
+            elevation: 25.0
         )
         
-        // Add activities to our list
-        activities = [todayRun, yesterdayRide, twoDaysAgoWalk, testActivity]
-        
-        // Save activities to disk (we're not actually persisting to disk in this implementation)
+        activities = [testActivity, todayRun, yesterdayRide, twoDaysAgoWalk]
+        usingSampleData = true
+        saveActivities()
     }
     
     // Function to save activities to persistent storage
@@ -396,5 +386,25 @@ class ActivityManager: ObservableObject, Sendable {
     private func saveActivities() {
         // In a real implementation, this would save to UserDefaults, CoreData, or a file
         // print("Activities saved: \(activities.count)")
+    }
+    
+    // Add a test activity for testing recovery score
+    func addTestActivity(intensity: ActivityIntensity = .moderate) -> Activity {
+        let testActivity = Activity(
+            id: UUID(),
+            title: "Test Run",
+            type: .run,
+            date: Date(),
+            duration: 45 * 60, // 45 minutes
+            distance: 5000 / 1000.0, // 5km converted to kilometers
+            intensity: intensity,
+            source: .manual,
+            averageHeartRate: intensity == .high ? 165.0 : 140.0,
+            trainingLoadScore: intensity == .high ? 90.0 : 45.0,
+            elevation: 95.0
+        )
+        
+        addActivity(testActivity)
+        return testActivity
     }
 } 

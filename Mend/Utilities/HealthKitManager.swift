@@ -79,6 +79,14 @@ class HealthKitManager {
             distance = totalDistance.doubleValue(for: .meter()) / 1000 // Convert to km
         }
         
+        // Extract elevation
+        var elevation: Double? = nil
+        // Note: HealthKit doesn't have a direct elevation identifier in older versions
+        // We'll set elevation to nil for now and can add this in future updates
+        // if let elevationStats = workout.statistics(for: HKQuantityType(.distanceElevationAscended)) {
+        //     elevation = elevationStats.sumQuantity()?.doubleValue(for: HKUnit.meter())
+        // }
+        
         // Extract heart rate data
         var averageHeartRate: Double? = nil
         if let heartRateStats = workout.statistics(for: HKQuantityType(.heartRate)) {
@@ -119,7 +127,8 @@ class HealthKitManager {
             intensity: intensity,
             source: .healthKit,
             averageHeartRate: averageHeartRate,
-            trainingLoadScore: trainingLoadScore
+            trainingLoadScore: trainingLoadScore,
+            elevation: elevation
         )
     }
     

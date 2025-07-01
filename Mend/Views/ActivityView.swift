@@ -647,6 +647,7 @@ struct AddActivityView: View {
     @State private var durationMinutes: Int = 30
     @State private var date = Date()
     @State private var heartRate: String = ""
+    @State private var elevation: String = ""
     
     var body: some View {
         Form {
@@ -655,19 +656,13 @@ struct AddActivityView: View {
                 
                 Picker("Type", selection: $selectedType) {
                     ForEach(ActivityType.allCases, id: \.self) { type in
-                        HStack {
-                            Image(systemName: type.icon)
-                            Text(type.rawValue.capitalized)
-                        }
-                        .tag(type)
+                        Text(type.rawValue).tag(type)
                     }
                 }
                 
                 Picker("Intensity", selection: $selectedIntensity) {
                     ForEach(ActivityIntensity.allCases, id: \.self) { intensity in
-                        Text(intensity.rawValue.capitalized)
-                            .foregroundColor(intensity.color)
-                            .tag(intensity)
+                        Text(intensity.rawValue).tag(intensity)
                     }
                 }
             }
@@ -708,6 +703,15 @@ struct AddActivityView: View {
                     
                     Text("m")
                 }
+                
+                HStack {
+                    Text("Elevation")
+                    Spacer()
+                    TextField("0", text: $elevation)
+                        .keyboardType(.numberPad)
+                        .multilineTextAlignment(.trailing)
+                    Text("m")
+                }
             }
             
             Section(header: Text("Heart Rate")) {
@@ -736,6 +740,9 @@ struct AddActivityView: View {
         
         // Calculate average heart rate (use nil if no input)
         let avgHeartRate = heartRate.isEmpty ? nil : Double(heartRate)
+        
+        // Calculate elevation (use nil if no input)
+        let activityElevation = elevation.isEmpty ? nil : Double(elevation)
         
         // Calculate training load score based on duration and intensity
         let durationMinutes = Double(totalSeconds) / 60
@@ -768,7 +775,8 @@ struct AddActivityView: View {
             intensity: selectedIntensity,
             source: .manual,
             averageHeartRate: avgHeartRate,
-            trainingLoadScore: trainingLoadScore
+            trainingLoadScore: trainingLoadScore,
+            elevation: activityElevation
         )
         
         // Add to activity manager
@@ -843,9 +851,17 @@ struct ActivityCard: View {
                 
                 Spacer()
                 
-                Text(formatActivityDate(activity.date))
-                    .font(.caption)
-                    .foregroundColor(secondaryTextColor)
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(formatActivityDate(activity.date))
+                        .font(.caption)
+                        .foregroundColor(secondaryTextColor)
+                    
+                    // Small chevron indicator
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.caption)
+                        .foregroundColor(secondaryTextColor)
+                        .animation(.mendEaseInOut, value: isExpanded)
+                }
             }
             
             // Basic metrics - always visible
@@ -884,6 +900,7 @@ struct ActivityCard: View {
                     Divider()
                         .background(secondaryTextColor.opacity(0.3))
                     
+                    // First row - Heart rate and Training load
                     HStack(spacing: MendSpacing.large) {
                         // Heart rate
                         if let heartRateFormatted = activity.formattedHeartRate {
@@ -907,35 +924,69 @@ struct ActivityCard: View {
                             }
                             .foregroundColor(secondaryTextColor)
                         }
+                        
+                        Spacer()
+                    }
+                    
+                    // Second row - Speed/Pace and Elevation
+                    HStack(spacing: MendSpacing.large) {
+                        // Speed for rides/walks or pace for runs/rows
+                        if let speedFormatted = activity.formattedAverageSpeed {
+                            HStack(spacing: 4) {
+                                Image(systemName: "speedometer")
+                                    .font(.subheadline)
+                                    .foregroundColor(MendColors.primary)
+                                Text(speedFormatted)
+                                    .font(.subheadline)
+                            }
+                            .foregroundColor(secondaryTextColor)
+                        } else if let paceFormatted = activity.formattedAverageKmPace {
+                            HStack(spacing: 4) {
+                                Image(systemName: "timer")
+                                    .font(.subheadline)
+                                    .foregroundColor(MendColors.primary)
+                                Text(paceFormatted)
+                                    .font(.subheadline)
+                            }
+                            .foregroundColor(secondaryTextColor)
+                        } else if let pace500mFormatted = activity.formattedAverage500mPace {
+                            HStack(spacing: 4) {
+                                Image(systemName: "timer")
+                                    .font(.subheadline)
+                                    .foregroundColor(MendColors.primary)
+                                Text(pace500mFormatted)
+                                    .font(.subheadline)
+                            }
+                            .foregroundColor(secondaryTextColor)
+                        }
+                        
+                        // Elevation
+                        if let elevationFormatted = activity.formattedElevation {
+                            HStack(spacing: 4) {
+                                Image(systemName: "mountain.2.fill")
+                                    .font(.subheadline)
+                                    .foregroundColor(MendColors.secondary)
+                                Text(elevationFormatted)
+                                    .font(.subheadline)
+                            }
+                            .foregroundColor(secondaryTextColor)
+                        }
+                        
+                        Spacer()
                     }
                 }
-            }
-            
-            // Expand/collapse button
-            Button {
-                withAnimation(.mendEaseInOut) {
-                    isExpanded.toggle()
-                }
-            } label: {
-                HStack {
-                    Text(isExpanded ? "Show less" : "Show more")
-                        .font(.caption)
-                        .foregroundColor(MendColors.secondary)
-                    
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.caption)
-                        .foregroundColor(MendColors.secondary)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, MendSpacing.small)
-                .background(MendColors.secondary.opacity(colorScheme == .dark ? 0.2 : 0.1))
-                .cornerRadius(MendCornerRadius.small)
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
         .padding()
         .background(cardBackgroundColor)
         .cornerRadius(10)
         .shadow(color: colorScheme == .dark ? Color.black.opacity(0.3) : Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
+        .onTapGesture {
+            withAnimation(.mendEaseInOut) {
+                isExpanded.toggle()
+            }
+        }
     }
     
     // Helper method to format date as dd/MM/yyyy

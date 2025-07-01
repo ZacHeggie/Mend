@@ -149,6 +149,7 @@ class HealthDataParserDelegate: NSObject, XMLParserDelegate {
         
         let distance = workoutData["distance"] as? Double
         let heartRate = workoutData["heartRate"] as? Double
+        let elevation = workoutData["elevation"] as? Double
         let intensity = determineIntensity(duration: duration, distance: distance)
         
         // Calculate training load score (simplified formula: duration in minutes * intensity factor)
@@ -180,7 +181,8 @@ class HealthDataParserDelegate: NSObject, XMLParserDelegate {
             intensity: intensity,
             source: .healthKit,
             averageHeartRate: heartRate,
-            trainingLoadScore: trainingLoadScore
+            trainingLoadScore: trainingLoadScore,
+            elevation: elevation
         )
         
         activities.append(activity)

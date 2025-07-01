@@ -12,6 +12,7 @@ struct Activity: Identifiable, Codable {
     let source: ActivitySource
     let averageHeartRate: Double? // in bpm
     let trainingLoadScore: Double?
+    let elevation: Double? // in meters
     
     var formattedDuration: String {
         let hours = Int(duration) / 3600
@@ -42,6 +43,55 @@ struct Activity: Identifiable, Codable {
         guard let trainingLoad = trainingLoadScore else { return nil }
         return String(format: "%.0f pts", trainingLoad)
     }
+    
+    var formattedElevation: String? {
+        guard let elevation = elevation else { return nil }
+        return String(format: "%.0f m", elevation)
+    }
+    
+    // Average speed in km/hr for ride or walk activities
+    var averageSpeed: Double? {
+        guard let distance = distance, duration > 0,
+              type == .ride || type == .walk else { return nil }
+        let durationHours = duration / 3600
+        return distance / durationHours
+    }
+    
+    var formattedAverageSpeed: String? {
+        guard let speed = averageSpeed else { return nil }
+        return String(format: "%.1f km/h", speed)
+    }
+    
+    // Average km pace for run activities (minutes per km)
+    var averageKmPace: Double? {
+        guard let distance = distance, duration > 0, distance > 0,
+              type == .run else { return nil }
+        let durationMinutes = duration / 60
+        return durationMinutes / distance
+    }
+    
+    var formattedAverageKmPace: String? {
+        guard let pace = averageKmPace else { return nil }
+        let minutes = Int(pace)
+        let seconds = Int((pace - Double(minutes)) * 60)
+        return String(format: "%d:%02d /km", minutes, seconds)
+    }
+    
+    // Average 500m pace for row activities (minutes per 500m)
+    var average500mPace: Double? {
+        guard let distance = distance, duration > 0, distance > 0,
+              type == .rowIndoor || type == .rowOutdoor else { return nil }
+        let durationMinutes = duration / 60
+        let distance500m = distance * 2 // Convert km to 500m segments (1km = 2 x 500m)
+        return durationMinutes / distance500m
+    }
+    
+    var formattedAverage500mPace: String? {
+        guard let pace = average500mPace else { return nil }
+        let minutes = Int(pace)
+        let seconds = Int((pace - Double(minutes)) * 60)
+        return String(format: "%d:%02d /500m", minutes, seconds)
+    }
 }
 
 // Sample data
@@ -57,7 +107,8 @@ extension Activity {
             intensity: .moderate,
             source: .manual,
             averageHeartRate: 145.0,
-            trainingLoadScore: 35.0
+            trainingLoadScore: 35.0,
+            elevation: 120.0
         ),
         Activity(
             id: UUID(),
@@ -69,7 +120,8 @@ extension Activity {
             intensity: .high,
             source: .healthKit,
             averageHeartRate: 160.0,
-            trainingLoadScore: 58.0
+            trainingLoadScore: 58.0,
+            elevation: 350.0
         ),
         Activity(
             id: UUID(),
@@ -81,7 +133,8 @@ extension Activity {
             intensity: .moderate,
             source: .manual,
             averageHeartRate: 135.0,
-            trainingLoadScore: 42.0
+            trainingLoadScore: 42.0,
+            elevation: nil
         )
     ]
 } 
