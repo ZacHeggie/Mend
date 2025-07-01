@@ -236,7 +236,8 @@ class ActivityManager: ObservableObject, Sendable {
             source: .healthKit,
             averageHeartRate: 142.0,
             trainingLoadScore: 30.0,
-            elevation: 85.0
+            elevation: 85.0,
+            lengths: nil
         )
         
         let yesterdayRide = Activity(
@@ -250,7 +251,8 @@ class ActivityManager: ObservableObject, Sendable {
             source: .manual,
             averageHeartRate: 155.0,
             trainingLoadScore: 120.0,
-            elevation: 245.0
+            elevation: 245.0,
+            lengths: nil
         )
         
         let twoDaysAgoSwim = Activity(
@@ -264,7 +266,8 @@ class ActivityManager: ObservableObject, Sendable {
             source: .healthKit,
             averageHeartRate: 135.0,
             trainingLoadScore: 45.0,
-            elevation: nil
+            elevation: nil,
+            lengths: 60
         )
         
         let threeDaysAgoWorkout = Activity(
@@ -278,7 +281,8 @@ class ActivityManager: ObservableObject, Sendable {
             source: .manual,
             averageHeartRate: 140.0,
             trainingLoadScore: 60.0,
-            elevation: nil
+            elevation: nil,
+            lengths: nil
         )
         
         let fourDaysAgoWalk = Activity(
@@ -292,7 +296,8 @@ class ActivityManager: ObservableObject, Sendable {
             source: .healthKit,
             averageHeartRate: 105.0,
             trainingLoadScore: 15.0,
-            elevation: 32.0
+            elevation: 32.0,
+            lengths: nil
         )
         
         let lastWeekRun = Activity(
@@ -306,7 +311,8 @@ class ActivityManager: ObservableObject, Sendable {
             source: .manual,
             averageHeartRate: 160.0,
             trainingLoadScore: 150.0,
-            elevation: 420.0
+            elevation: 420.0,
+            lengths: nil
         )
         
         return [todayRun, yesterdayRide, twoDaysAgoSwim, threeDaysAgoWorkout, fourDaysAgoWalk, lastWeekRun].sorted(by: { $0.date > $1.date })
@@ -328,7 +334,8 @@ class ActivityManager: ObservableObject, Sendable {
             source: .manual,
             averageHeartRate: 142.0,
             trainingLoadScore: 30.0,
-            elevation: 65.0
+            elevation: 65.0,
+            lengths: nil
         )
         
         // Today's run
@@ -343,7 +350,8 @@ class ActivityManager: ObservableObject, Sendable {
             source: .manual,
             averageHeartRate: 165.0,
             trainingLoadScore: 67.5,
-            elevation: 125.0
+            elevation: 125.0,
+            lengths: nil
         )
         
         // Yesterday's ride
@@ -358,7 +366,8 @@ class ActivityManager: ObservableObject, Sendable {
             source: .manual,
             averageHeartRate: 148.0,
             trainingLoadScore: 60.0,
-            elevation: 180.0
+            elevation: 180.0,
+            lengths: nil
         )
         
         // Two days ago walk
@@ -373,7 +382,8 @@ class ActivityManager: ObservableObject, Sendable {
             source: .manual,
             averageHeartRate: 110.0,
             trainingLoadScore: 15.0,
-            elevation: 25.0
+            elevation: 25.0,
+            lengths: nil
         )
         
         activities = [testActivity, todayRun, yesterdayRide, twoDaysAgoWalk]
@@ -401,7 +411,8 @@ class ActivityManager: ObservableObject, Sendable {
             source: .manual,
             averageHeartRate: intensity == .high ? 165.0 : 140.0,
             trainingLoadScore: intensity == .high ? 90.0 : 45.0,
-            elevation: 95.0
+            elevation: 95.0,
+            lengths: nil
         )
         
         addActivity(testActivity)

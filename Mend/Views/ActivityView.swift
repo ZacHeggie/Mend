@@ -648,6 +648,7 @@ struct AddActivityView: View {
     @State private var date = Date()
     @State private var heartRate: String = ""
     @State private var elevation: String = ""
+    @State private var lengths: String = ""
     
     var body: some View {
         Form {
@@ -704,13 +705,24 @@ struct AddActivityView: View {
                     Text("m")
                 }
                 
-                HStack {
-                    Text("Elevation")
-                    Spacer()
-                    TextField("0", text: $elevation)
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                    Text("m")
+                if selectedType != .swim {
+                    HStack {
+                        Text("Elevation")
+                        Spacer()
+                        TextField("0", text: $elevation)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                        Text("m")
+                    }
+                } else {
+                    HStack {
+                        Text("Lengths")
+                        Spacer()
+                        TextField("0", text: $lengths)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                        Text("lengths")
+                    }
                 }
             }
             
@@ -741,8 +753,17 @@ struct AddActivityView: View {
         // Calculate average heart rate (use nil if no input)
         let avgHeartRate = heartRate.isEmpty ? nil : Double(heartRate)
         
-        // Calculate elevation (use nil if no input)
-        let activityElevation = elevation.isEmpty ? nil : Double(elevation)
+        // Calculate elevation/lengths based on activity type
+        let activityElevation: Double?
+        let activityLengths: Int?
+        
+        if selectedType == .swim {
+            activityElevation = nil
+            activityLengths = lengths.isEmpty ? nil : Int(lengths)
+        } else {
+            activityElevation = elevation.isEmpty ? nil : Double(elevation)
+            activityLengths = nil
+        }
         
         // Calculate training load score based on duration and intensity
         let durationMinutes = Double(totalSeconds) / 60
@@ -776,7 +797,8 @@ struct AddActivityView: View {
             source: .manual,
             averageHeartRate: avgHeartRate,
             trainingLoadScore: trainingLoadScore,
-            elevation: activityElevation
+            elevation: activityElevation,
+            lengths: activityLengths
         )
         
         // Add to activity manager
@@ -928,9 +950,9 @@ struct ActivityCard: View {
                         Spacer()
                     }
                     
-                    // Second row - Speed/Pace and Elevation
+                    // Second row - Speed/Pace and Elevation/Lengths
                     HStack(spacing: MendSpacing.large) {
-                        // Speed for rides/walks or pace for runs/rows
+                        // Speed for rides/walks or pace for runs/rows/swims
                         if let speedFormatted = activity.formattedAverageSpeed {
                             HStack(spacing: 4) {
                                 Image(systemName: "speedometer")
@@ -958,15 +980,33 @@ struct ActivityCard: View {
                                     .font(.subheadline)
                             }
                             .foregroundColor(secondaryTextColor)
+                        } else if let pace100mFormatted = activity.formattedAverage100mPace {
+                            HStack(spacing: 4) {
+                                Image(systemName: "timer")
+                                    .font(.subheadline)
+                                    .foregroundColor(MendColors.primary)
+                                Text(pace100mFormatted)
+                                    .font(.subheadline)
+                            }
+                            .foregroundColor(secondaryTextColor)
                         }
                         
-                        // Elevation
+                        // Elevation for most activities or lengths for swimming
                         if let elevationFormatted = activity.formattedElevation {
                             HStack(spacing: 4) {
                                 Image(systemName: "mountain.2.fill")
                                     .font(.subheadline)
                                     .foregroundColor(MendColors.secondary)
                                 Text(elevationFormatted)
+                                    .font(.subheadline)
+                            }
+                            .foregroundColor(secondaryTextColor)
+                        } else if let lengthsFormatted = activity.formattedLengths {
+                            HStack(spacing: 4) {
+                                Image(systemName: "figure.pool.swim")
+                                    .font(.subheadline)
+                                    .foregroundColor(MendColors.secondary)
+                                Text(lengthsFormatted)
                                     .font(.subheadline)
                             }
                             .foregroundColor(secondaryTextColor)

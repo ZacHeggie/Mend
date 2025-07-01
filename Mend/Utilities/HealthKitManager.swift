@@ -128,7 +128,8 @@ class HealthKitManager {
             source: .healthKit,
             averageHeartRate: averageHeartRate,
             trainingLoadScore: trainingLoadScore,
-            elevation: elevation
+            elevation: elevation,
+            lengths: nil // HealthKit doesn't typically provide lap/length data directly
         )
     }
     

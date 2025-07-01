@@ -182,7 +182,8 @@ class HealthDataParserDelegate: NSObject, XMLParserDelegate {
             source: .healthKit,
             averageHeartRate: heartRate,
             trainingLoadScore: trainingLoadScore,
-            elevation: elevation
+            elevation: elevation,
+            lengths: nil // XML data doesn't typically include length information
         )
         
         activities.append(activity)

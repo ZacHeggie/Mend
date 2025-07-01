@@ -13,6 +13,7 @@ struct Activity: Identifiable, Codable {
     let averageHeartRate: Double? // in bpm
     let trainingLoadScore: Double?
     let elevation: Double? // in meters
+    let lengths: Int? // number of pool lengths for swimming
     
     var formattedDuration: String {
         let hours = Int(duration) / 3600
@@ -47,6 +48,11 @@ struct Activity: Identifiable, Codable {
     var formattedElevation: String? {
         guard let elevation = elevation else { return nil }
         return String(format: "%.0f m", elevation)
+    }
+    
+    var formattedLengths: String? {
+        guard let lengths = lengths else { return nil }
+        return "\(lengths) lengths"
     }
     
     // Average speed in km/hr for ride or walk activities
@@ -92,6 +98,22 @@ struct Activity: Identifiable, Codable {
         let seconds = Int((pace - Double(minutes)) * 60)
         return String(format: "%d:%02d /500m", minutes, seconds)
     }
+    
+    // Average 100m pace for swim activities (minutes per 100m)
+    var average100mPace: Double? {
+        guard let distance = distance, duration > 0, distance > 0,
+              type == .swim else { return nil }
+        let durationMinutes = duration / 60
+        let distance100m = distance * 10 // Convert km to 100m segments (1km = 10 x 100m)
+        return durationMinutes / distance100m
+    }
+    
+    var formattedAverage100mPace: String? {
+        guard let pace = average100mPace else { return nil }
+        let minutes = Int(pace)
+        let seconds = Int((pace - Double(minutes)) * 60)
+        return String(format: "%d:%02d /100m", minutes, seconds)
+    }
 }
 
 // Sample data
@@ -108,7 +130,8 @@ extension Activity {
             source: .manual,
             averageHeartRate: 145.0,
             trainingLoadScore: 35.0,
-            elevation: 120.0
+            elevation: 120.0,
+            lengths: nil
         ),
         Activity(
             id: UUID(),
@@ -121,7 +144,8 @@ extension Activity {
             source: .healthKit,
             averageHeartRate: 160.0,
             trainingLoadScore: 58.0,
-            elevation: 350.0
+            elevation: 350.0,
+            lengths: nil
         ),
         Activity(
             id: UUID(),
@@ -134,7 +158,8 @@ extension Activity {
             source: .manual,
             averageHeartRate: 135.0,
             trainingLoadScore: 42.0,
-            elevation: nil
+            elevation: nil,
+            lengths: nil
         )
     ]
 } 

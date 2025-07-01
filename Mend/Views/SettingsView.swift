@@ -762,7 +762,8 @@ struct SimulatedDataSettings: View {
             source: .manual,
             averageHeartRate: 172.0,
             trainingLoadScore: 108.0,
-            elevation: 150.0
+            elevation: 150.0,
+            lengths: nil
         )
         
         // Add to activity manager
