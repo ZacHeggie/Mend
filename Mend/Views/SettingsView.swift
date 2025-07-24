@@ -134,7 +134,7 @@ struct SettingsView: View {
                 #endif
                 
                 // Version at the bottom
-                Text("Mend for iOS - 1.1.2")
+                Text("Mend for iOS - 1.1.3")
                     .font(MendFont.footnote)
                     .foregroundColor(secondaryTextColor)
                     .padding(.top, 40)
