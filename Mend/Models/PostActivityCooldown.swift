@@ -36,8 +36,8 @@ class PostActivityCooldown {
     
     private init() {
         // Private initializer for singleton
-        Task {
-            await analyzeHistoricalRecoveryData()
+        Task { @MainActor in
+            analyzeHistoricalRecoveryData()
             
             // Load processed activities from UserDefaults if available
             loadProcessedActivities()
@@ -169,11 +169,11 @@ class PostActivityCooldown {
     /// Analyzes historical activity data to determine typical recovery times
     /// This examines the past month of activities and how they affected recovery
     @MainActor
-    private func analyzeHistoricalRecoveryData() async {
+    private func analyzeHistoricalRecoveryData() {
         let activityManager = ActivityManager.shared
         
         // Get activities from the past month
-        let activities = await activityManager.getRecentActivities(days: 30)
+        let activities = activityManager.getRecentActivities(days: 30)
         
         // Group activities by type
         let typeGroups = Dictionary(grouping: activities) { $0.type.rawValue }

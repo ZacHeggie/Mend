@@ -34,6 +34,7 @@ struct MailData: Equatable {
     }
 }
 
+@MainActor
 class RequestService: ObservableObject {
     // Shared singleton instance
     static let shared = RequestService()
@@ -70,10 +71,8 @@ class RequestService: ObservableObject {
     
     func submitFeatureRequest(_ request: FeatureRequestModel) async -> Result<Bool, RequestError> {
         // Update UI state
-        DispatchQueue.main.async {
-            self.isSubmitting = true
-            self.lastSubmissionError = nil
-        }
+        isSubmitting = true
+        lastSubmissionError = nil
         
         do {
             // Encode the request as JSON
@@ -82,7 +81,7 @@ class RequestService: ObservableObject {
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             let requestData = try encoder.encode(request)
             
-            guard let jsonString = String(data: requestData, encoding: .utf8) else {
+            guard String(data: requestData, encoding: .utf8) != nil else {
                 throw RequestError.invalidRequest
             }
             
@@ -125,18 +124,14 @@ class RequestService: ObservableObject {
             // Check if mail can be sent from device
             if canSendMail {
                 // Update UI to present mail composer
-                DispatchQueue.main.async {
-                    self.isSubmitting = false
-                    self.mailData = mailData
-                }
+                isSubmitting = false
+                self.mailData = mailData
                 return .success(true)
             } else {
                 // No mail capability - try fallback options
                 #if DEBUG
                 saveRequestLocally(requestData, type: "feature")
-                DispatchQueue.main.async {
-                    self.isSubmitting = false
-                }
+                isSubmitting = false
                 return .success(true)
                 #else
                 let mailtoURL = getMailtoURL(
@@ -146,10 +141,8 @@ class RequestService: ObservableObject {
                 
                 // If we can create a mailto URL, update UI to use it
                 if let mailtoURL = mailtoURL {
-                    DispatchQueue.main.async {
-                        self.isSubmitting = false
-                        UIApplication.shared.open(mailtoURL)
-                    }
+                    isSubmitting = false
+                    UIApplication.shared.open(mailtoURL)
                     return .success(true)
                 } else {
                     throw RequestError.mailUnavailable
@@ -158,18 +151,14 @@ class RequestService: ObservableObject {
             }
         } catch let error as RequestError {
             // Handle known request errors
-            DispatchQueue.main.async {
-                self.isSubmitting = false
-                self.lastSubmissionError = error.localizedDescription
-            }
+            isSubmitting = false
+            lastSubmissionError = error.localizedDescription
             return .failure(error)
         } catch {
             // Handle unknown errors
             let requestError = RequestError.unknown(error.localizedDescription)
-            DispatchQueue.main.async {
-                self.isSubmitting = false
-                self.lastSubmissionError = requestError.localizedDescription
-            }
+            isSubmitting = false
+            lastSubmissionError = requestError.localizedDescription
             return .failure(requestError)
         }
     }
@@ -178,10 +167,8 @@ class RequestService: ObservableObject {
     
     func submitBugReport(_ report: BugReportModel) async -> Result<Bool, RequestError> {
         // Update UI state
-        DispatchQueue.main.async {
-            self.isSubmitting = true
-            self.lastSubmissionError = nil
-        }
+        isSubmitting = true
+        lastSubmissionError = nil
         
         do {
             // Encode the report as JSON
@@ -203,7 +190,7 @@ class RequestService: ObservableObject {
             
             let reportData = try encoder.encode(reportForJson)
             
-            guard let jsonString = String(data: reportData, encoding: .utf8) else {
+            guard String(data: reportData, encoding: .utf8) != nil else {
                 throw RequestError.invalidRequest
             }
             
@@ -250,18 +237,14 @@ class RequestService: ObservableObject {
             // Check if mail can be sent from device
             if canSendMail {
                 // Update UI to present mail composer
-                DispatchQueue.main.async {
-                    self.isSubmitting = false
-                    self.mailData = mailData
-                }
+                isSubmitting = false
+                self.mailData = mailData
                 return .success(true)
             } else {
                 // No mail capability - try fallback options
                 #if DEBUG
                 saveRequestLocally(reportData, type: "bug")
-                DispatchQueue.main.async {
-                    self.isSubmitting = false
-                }
+                isSubmitting = false
                 return .success(true)
                 #else
                 let mailtoURL = getMailtoURL(
@@ -271,10 +254,8 @@ class RequestService: ObservableObject {
                 
                 // If we can create a mailto URL, update UI to use it
                 if let mailtoURL = mailtoURL {
-                    DispatchQueue.main.async {
-                        self.isSubmitting = false
-                        UIApplication.shared.open(mailtoURL)
-                    }
+                    isSubmitting = false
+                    UIApplication.shared.open(mailtoURL)
                     return .success(true)
                 } else {
                     throw RequestError.mailUnavailable
@@ -283,18 +264,14 @@ class RequestService: ObservableObject {
             }
         } catch let error as RequestError {
             // Handle known request errors
-            DispatchQueue.main.async {
-                self.isSubmitting = false
-                self.lastSubmissionError = error.localizedDescription
-            }
+            isSubmitting = false
+            lastSubmissionError = error.localizedDescription
             return .failure(error)
         } catch {
             // Handle unknown errors
             let requestError = RequestError.unknown(error.localizedDescription)
-            DispatchQueue.main.async {
-                self.isSubmitting = false
-                self.lastSubmissionError = requestError.localizedDescription
-            }
+            isSubmitting = false
+            lastSubmissionError = requestError.localizedDescription
             return .failure(requestError)
         }
     }

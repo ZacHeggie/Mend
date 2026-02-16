@@ -73,16 +73,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         
         // Create a task to refresh health data
         let refreshTask = Task {
-            do {
-                // Perform the actual refresh operation
-                await RecoveryMetrics.shared.refreshData()
-                
-                // Mark the task as completed
-                task.setTaskCompleted(success: true)
-            } catch {
-                print("Error refreshing data in background: \(error)")
-                task.setTaskCompleted(success: false)
-            }
+            // Perform the actual refresh operation (refreshData does not throw)
+            await RecoveryMetrics.shared.refreshData()
+            task.setTaskCompleted(success: true)
         }
         
         // If the system needs to cancel the task, cancel our operation
@@ -184,7 +177,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         )
         
         // Remove the old notification and add the updated one
-        await center.removePendingNotificationRequests(withIdentifiers: [notificationIdentifier])
+        center.removePendingNotificationRequests(withIdentifiers: [notificationIdentifier])
         try? await center.add(updatedRequest)
     }
     
@@ -221,15 +214,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     // MARK: - Background Fetch
     
     func application(_ application: UIApplication, performFetchWithCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
-        // Refresh data in the background
+        // Refresh data in the background (refreshData does not throw)
         Task {
-            do {
-                await RecoveryMetrics.shared.refreshData()
-                completionHandler(.newData)
-            } catch {
-                print("Error refreshing data in background: \(error.localizedDescription)")
-                completionHandler(.failed)
-            }
+            await RecoveryMetrics.shared.refreshData()
+            completionHandler(.newData)
         }
     }
 } 
