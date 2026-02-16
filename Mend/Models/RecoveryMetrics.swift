@@ -7,6 +7,12 @@ private let kRecoveryScore = "recoveryScore"
 private let kNotificationPreference = "notificationPreference"
 private let kRecoveryScoreHistory = "recoveryScoreHistory"
 
+/// Chronological order of time-of-day buckets for sorting same-day recovery scores (earlyMorning first, lateNight last).
+private let kTimeOfDaySortOrder: [RecoveryScoreData.TimeOfDay] = [
+    .earlyMorning, .dawn, .sunrise, .morning, .lateMorning, .noon,
+    .earlyAfternoon, .midAfternoon, .lateAfternoon, .evening, .night, .lateNight
+]
+
 // MARK: - Models
 
 @MainActor
@@ -182,89 +188,50 @@ class RecoveryMetrics: ObservableObject {
                     
                     let timePoint = calendar.date(from: dateComponents) ?? dayStart
                     
-                    // Get developer settings to determine if we should use random variations
                     let useRandomVariation = DeveloperSettings.shared.useRandomVariation
                     
-                    // Calculate the overall score based on available metrics
-                    var weightedTotal = 0
-                    var totalWeight = 0
-                    
-                    // Add heart rate score (inverted since lower is better)
+                    // Align with live score: fixed weights (5,4,3,2,2 = 16), missing = 75, use sleepDurationScore for sleep
+                    let hrContrib: Int
                     if let hr = heartRateValue, hr > 0 {
-                        // Heart rate variations by time of day (only if random variation is enabled)
                         let hrVariation: Double = useRandomVariation ? {
                             switch timeOfDay {
-                            case .earlyMorning, .dawn, .sunrise:
-                                return Double.random(in: -3...1)  // Lower in early hours
-                            case .morning, .lateMorning:
-                                return Double.random(in: 0...4)   // Rising in morning
-                            case .noon, .earlyAfternoon:
-                                return Double.random(in: 2...6)   // Higher during midday
-                            case .midAfternoon, .lateAfternoon:
-                                return Double.random(in: 1...5)   // Staying higher
-                            case .evening:
-                                return Double.random(in: -1...3)  // Starting to drop
-                            case .night, .lateNight:
-                                return Double.random(in: -4...0)  // Lowest at night
+                            case .earlyMorning, .dawn, .sunrise: return Double.random(in: -3...1)
+                            case .morning, .lateMorning: return Double.random(in: 0...4)
+                            case .noon, .earlyAfternoon: return Double.random(in: 2...6)
+                            case .midAfternoon, .lateAfternoon: return Double.random(in: 1...5)
+                            case .evening: return Double.random(in: -1...3)
+                            case .night, .lateNight: return Double.random(in: -4...0)
                             }
                         }() : 0.0
-                        
-                        let adjustedHr = hr + hrVariation
-                        let invertedScore = max(40, 100 - Int(adjustedHr))
-                        weightedTotal += invertedScore * 4 // Heart rate weight
-                        totalWeight += 4
+                        hrContrib = max(40, 100 - Int(hr + hrVariation))
+                    } else {
+                        hrContrib = 75
                     }
                     
-                    // Add HRV score
+                    let hrvContrib: Int
                     if let hrv = hrvValue, hrv > 0 {
-                        // HRV variations by time of day (only if random variation is enabled)
                         let hrvVariation: Double = useRandomVariation ? {
                             switch timeOfDay {
-                            case .earlyMorning, .dawn, .sunrise:
-                                return Double.random(in: 3...8)  // Higher during sleep
-                            case .morning, .lateMorning:
-                                return Double.random(in: 0...5)  // Decreasing in morning
-                            case .noon, .earlyAfternoon:
-                                return Double.random(in: -5...0) // Lower during activity
-                            case .midAfternoon, .lateAfternoon:
-                                return Double.random(in: -3...2) // Mixed in afternoon
-                            case .evening:
-                                return Double.random(in: -2...3) // Starting to recover
-                            case .night, .lateNight:
-                                return Double.random(in: 0...6)  // Rising for nighttime recovery
+                            case .earlyMorning, .dawn, .sunrise: return Double.random(in: 3...8)
+                            case .morning, .lateMorning: return Double.random(in: 0...5)
+                            case .noon, .earlyAfternoon: return Double.random(in: -5...0)
+                            case .midAfternoon, .lateAfternoon: return Double.random(in: -3...2)
+                            case .evening: return Double.random(in: -2...3)
+                            case .night, .lateNight: return Double.random(in: 0...6)
                             }
                         }() : 0.0
-                        
-                        let adjustedHrv = hrv + hrvVariation
-                        // Normalize HRV to 0-100 scale using reasonable min/max values
-                        let normalizedHrv = min(100, max(30, Int(adjustedHrv * 100 / 80)))
-                        weightedTotal += normalizedHrv * 5 // HRV weight
-                        totalWeight += 5
+                        hrvContrib = min(100, max(30, Int((hrv + hrvVariation) * 100 / 80)))
+                    } else {
+                        hrvContrib = 75
                     }
                     
-                    // Add sleep duration score
-                    if let sleep = sleepValue, sleep > 0 {
-                        // Convert sleep hours to 0-100 scale (8 hours = 100)
-                        let sleepScore = min(100, Int(sleep * 100 / 8))
-                        weightedTotal += sleepScore * 2 // Sleep weight
-                        totalWeight += 2
-                    }
+                    let sleepContrib = (sleepValue.map { sleepDurationScore(hours: $0) }) ?? 75
+                    let sleepQualityContrib = sleepQualityValue.map { Int($0) } ?? 75
+                    let trainingLoadContrib = 75
                     
-                    // Add sleep quality score
-                    if let quality = sleepQualityValue, quality > 0 {
-                        weightedTotal += Int(quality) * 3 // Sleep quality weight
-                        totalWeight += 3
-                    }
+                    let weightedTotal = hrContrib * 4 + hrvContrib * 5 + sleepContrib * 2 + sleepQualityContrib * 3 + trainingLoadContrib * 2
+                    let baseScore = weightedTotal / 16
                     
-                    // Add a reasonable training load score as a fallback
-                    let trainingLoadScore = 75 // Default neutral score
-                    weightedTotal += trainingLoadScore * 2 // Training load weight
-                    totalWeight += 2
-                    
-                    // Calculate final score with variations only if random variation is enabled
-                    let baseScore = totalWeight > 0 ? weightedTotal / totalWeight : 0
-                    
-                    // Apply random variations only if enabled in developer settings
                     let timeVariation = useRandomVariation ? {
                         switch timeOfDay {
                         case .earlyMorning, .dawn, .sunrise:
@@ -294,15 +261,15 @@ class RecoveryMetrics: ObservableObject {
                     
                     let overallScore = max(0, min(100, baseScore + Int(timeVariation) + dailyVariation))
                     
-                    // Create a recovery score for this date and time of day
+                    let historicalSleepScore = sleepValue.map { sleepDurationScore(hours: $0) } ?? 0
                     let historicalScore = RecoveryScore(
                         date: timePoint,
                         overallScore: overallScore,
-                        heartRateScore: MetricScore.sampleHeartRate, // Placeholder
-                        hrvScore: hrvValue != nil ? Int(hrvValue!) : 0,
-                        sleepScore: sleepValue != nil ? Int(sleepValue! * 100 / 8) : 0,
-                        trainingLoadScore: MetricScore.sampleTrainingLoad, // Placeholder
-                        stressScore: 75, // Default neutral value
+                        heartRateScore: MetricScore.sampleHeartRate,
+                        hrvScore: hrvContrib,
+                        sleepScore: historicalSleepScore,
+                        trainingLoadScore: MetricScore.sampleTrainingLoad,
+                        stressScore: 75,
                         timeOfDay: timeOfDay
                     )
                     
@@ -313,17 +280,14 @@ class RecoveryMetrics: ObservableObject {
         
         // If we generated any scores, save them to history
         if !generatedScores.isEmpty {
-            // Sort by date (newest first) and time of day
+            // Sort by date (newest first) and time of day (chronological within same day)
             let calendar = Calendar.current
             recoveryScoreHistory = generatedScores.sorted { (score1, score2) in
                 if calendar.isDate(score1.date, inSameDayAs: score2.date) {
-                    // Same day, sort by time of day (evening is "latest")
-                    let timeOrder: [RecoveryScoreData.TimeOfDay] = [.evening, .noon, .morning]
-                    let index1 = timeOrder.firstIndex(of: score1.timeOfDay) ?? 0
-                    let index2 = timeOrder.firstIndex(of: score2.timeOfDay) ?? 0
+                    let index1 = kTimeOfDaySortOrder.firstIndex(of: score1.timeOfDay) ?? 0
+                    let index2 = kTimeOfDaySortOrder.firstIndex(of: score2.timeOfDay) ?? 0
                     return index1 < index2
                 } else {
-                    // Different days, sort by date (newest first)
                     return score1.date > score2.date
                 }
             }
@@ -385,16 +349,13 @@ class RecoveryMetrics: ObservableObject {
         // Add the current score to history
         recoveryScoreHistory.append(currentScore)
         
-        // Sort by date (newest first) and then by time of day (evening, noon, morning)
+        // Sort by date (newest first) and then by time of day (chronological within same day)
         recoveryScoreHistory.sort { (score1, score2) in
             if calendar.isDate(score1.date, inSameDayAs: score2.date) {
-                // Same day, sort by time of day (evening is "latest")
-                let timeOrder: [RecoveryScoreData.TimeOfDay] = [.evening, .noon, .morning]
-                let index1 = timeOrder.firstIndex(of: score1.timeOfDay) ?? 0
-                let index2 = timeOrder.firstIndex(of: score2.timeOfDay) ?? 0
+                let index1 = kTimeOfDaySortOrder.firstIndex(of: score1.timeOfDay) ?? 0
+                let index2 = kTimeOfDaySortOrder.firstIndex(of: score2.timeOfDay) ?? 0
                 return index1 < index2
             } else {
-                // Different days, sort by date (newest first)
                 return score1.date > score2.date
             }
         }
@@ -559,7 +520,7 @@ class RecoveryMetrics: ObservableObject {
             }
             
             self._sleepMetric = MetricScore(
-                score: Int(sleepValue * 100 / 8), // Convert to score out of 100 (8 hours = 100)
+                score: sleepDurationScore(hours: sleepValue),
                 title: "Sleep Duration",
                 description: description,
                 dailyData: sleepMetrics,
@@ -567,13 +528,12 @@ class RecoveryMetrics: ObservableObject {
                 isPositiveDelta: sleepDelta.isPositive
             )
         } else if !sleepMetrics.isEmpty {
-            // If we have daily data but no current value, use the most recent value as current
             let mostRecentValue = sleepMetrics.sorted(by: { $0.date > $1.date }).first?.value ?? 7.0
             let avgValue = sleepMetrics.map { $0.value }.reduce(0, +) / Double(sleepMetrics.count)
             let delta = mostRecentValue - avgValue
             
             self._sleepMetric = MetricScore(
-                score: Int(mostRecentValue * 100 / 8), // Convert to score out of 100 (8 hours = 100)
+                score: sleepDurationScore(hours: mostRecentValue),
                 title: "Sleep Duration",
                 description: getSleepDescription(currentSleep: mostRecentValue, delta: delta),
                 dailyData: sleepMetrics,
@@ -841,52 +801,61 @@ class RecoveryMetrics: ObservableObject {
         )
     }
     
+    /// Returns a 0–100 recovery score from a heart rate metric. Note: heartRateMetric.score is stored in BPM for display; this helper inverts for weighting (lower HR = better).
+    private func heartRateRecoveryScore(from metric: MetricScore) -> Int {
+        return max(40, 100 - metric.score)
+    }
+    
+    /// Non-linear sleep duration score (0–100). Best at 7–9 hours; slight penalty for >9 hours.
+    private func sleepDurationScore(hours: Double) -> Int {
+        switch hours {
+        case ..<4:
+            return max(0, Int(50 * hours / 4))
+        case 4..<7:
+            return 50 + Int(50 * (hours - 4) / 3) // 50 at 4h -> 100 at 7h
+        case 7..<9:
+            return 100
+        case 9..<10:
+            return 95
+        case 10..<11:
+            return 90
+        default:
+            return max(80, 90 - Int(hours - 10))
+        }
+    }
+    
     @MainActor
     private func updateRecoveryScore() {
-        // Calculate overall score based on available metrics with weighted importance
-        var weightedTotal = 0
-        var totalWeight = 0
+        // Fixed weights (Phase 2): always use all five components so score meaning is consistent when data is missing (missing = neutral 75).
+        let hrvWeight = 5
+        let heartRateWeight = 4
+        let sleepQualityWeight = 3
+        let sleepWeight = 2
+        let trainingLoadWeight = 2
+        let totalWeight = 16
         
-        // Constants for weighting different metrics based on order of importance
-        let hrvWeight = 5        // HRV is most important
-        let heartRateWeight = 4  // Resting heart rate is second most important
-        let sleepWeight = 2      // Sleep duration is fourth most important
-        let sleepQualityWeight = 3 // Sleep quality is third most important
-        let trainingLoadWeight = 2 // Training load is fifth most important
+        let (trainingLoadScore, trainingLoadInsufficientData) = calculateTrainingLoadScore()
         
-        // Get training load data for past week compared to 28-day average
-        let trainingLoadScore = calculateTrainingLoadScore()
+        // Heart rate: metric.score is BPM (for display); use inverted 0–100 for weighting
+        let heartRateContrib = _heartRateMetric.map { heartRateRecoveryScore(from: $0) } ?? 75
+        let hrvContrib = _hrvMetric?.score ?? 75
+        let sleepContrib = _sleepMetric?.score ?? 75
+        let sleepQualityContrib = _sleepQualityMetric?.score ?? 75
         
-        if let heartRateMetric = self._heartRateMetric {
-            // For heart rate, we need to invert the score because a higher heart rate 
-            // is actually worse for recovery (lower = better)
-            let invertedScore = max(40, 100 - heartRateMetric.score)
-            weightedTotal += invertedScore * heartRateWeight
-            totalWeight += heartRateWeight
-        }
-        
-        if let hrvMetric = self._hrvMetric {
-            weightedTotal += hrvMetric.score * hrvWeight
-            totalWeight += hrvWeight
-        }
-        
-        if let sleepMetric = self._sleepMetric {
-            weightedTotal += sleepMetric.score * sleepWeight
-            totalWeight += sleepWeight
-        }
-        
-        if let sleepQualityMetric = self._sleepQualityMetric {
-            weightedTotal += sleepQualityMetric.score * sleepQualityWeight
-            totalWeight += sleepQualityWeight
-        }
-        
-        // Add training load score
+        var weightedTotal = heartRateContrib * heartRateWeight
+        weightedTotal += hrvContrib * hrvWeight
+        weightedTotal += sleepContrib * sleepWeight
+        weightedTotal += sleepQualityContrib * sleepQualityWeight
         weightedTotal += trainingLoadScore * trainingLoadWeight
-        totalWeight += trainingLoadWeight
         
-        let overallScore = totalWeight > 0 ? weightedTotal / totalWeight : 0
+        var overallScore = weightedTotal / totalWeight
         
-        // Create recovery score object
+        // Post-activity cooldown: reduce score when user has a recent workout (Phase 5)
+        let cooldownAdjustment = PostActivityCooldown.shared.updateCooldownAdjustment()
+        overallScore = (overallScore * cooldownAdjustment) / 100
+        overallScore = max(0, min(100, overallScore))
+        
+        // stressScore is not used in the weighted overall score; it is stored for recommendations and future use.
         currentRecoveryScore = RecoveryScore(
             date: Date(),
             overallScore: overallScore,
@@ -896,7 +865,7 @@ class RecoveryMetrics: ObservableObject {
             trainingLoadScore: MetricScore(
                 score: trainingLoadScore,
                 title: "Training Load",
-                description: getTrainingLoadDescription(score: trainingLoadScore),
+                description: getTrainingLoadDescription(score: trainingLoadScore, insufficientData: trainingLoadInsufficientData),
                 dailyData: [],
                 deltaFromAverage: 0,
                 isPositiveDelta: true
@@ -905,58 +874,45 @@ class RecoveryMetrics: ObservableObject {
             timeOfDay: RecoveryScoreData.TimeOfDay.current()
         )
         
-        // After setting currentRecoveryScore, save it to history
         saveCurrentScoreToHistory()
     }
     
-    /// Calculates training load score by comparing past week to 28-day average
-    private func calculateTrainingLoadScore() -> Int {
+    /// Calculates training load score by comparing past week to 28-day average. Returns (score, insufficientData) where insufficientData is true when there are no activities in the last 28 days.
+    private func calculateTrainingLoadScore() -> (score: Int, insufficientData: Bool) {
         let activityManager = ActivityManager.shared
         
-        // Get 7-day training load
         let weekLoad = activityManager.calculateTrainingLoad(forDays: 7)
-        
-        // Get 28-day training load and calculate the average weekly load
         let monthLoad = activityManager.calculateTrainingLoad(forDays: 28)
-        
-        // Use actual available weeks for a more accurate average
         let availableWeeks = min(4, max(1, 28 / 7))
         let avgWeeklyLoad = monthLoad / availableWeeks
         
-        // If there's no historical training load, return a default score
         if avgWeeklyLoad == 0 {
-            return 75 // Default neutral score
+            return (75, true) // Neutral score; no activity data to assess
         }
         
-        // Calculate ratio of current week to average (1.0 means equal)
         let loadRatio = Double(weekLoad) / Double(max(1, avgWeeklyLoad))
-        
-        // Optimal range is 0.8-1.2 of average weekly load
-        // Too little training (< 0.5) or too much (> 1.5) both reduce score
         let score: Int
         
         if loadRatio < 0.5 {
-            // Too little training
-            score = 60 + Int(min(30, loadRatio * 60)) // 60-90 range for very low training
+            score = 60 + Int(min(30, loadRatio * 60))
         } else if loadRatio <= 0.8 {
-            // Slightly below optimal but still good
-            score = 90 + Int(min(5, (loadRatio - 0.5) * 50)) // 90-95 range
+            score = 90 + Int(min(5, (loadRatio - 0.5) * 50))
         } else if loadRatio <= 1.2 {
-            // Optimal training load
-            score = 95 + Int(min(5, (1.0 - abs(loadRatio - 1.0)) * 10)) // 95-100 range, 100 at perfect 1.0
+            score = 95 + Int(min(5, (1.0 - abs(loadRatio - 1.0)) * 10))
         } else if loadRatio <= 1.5 {
-            // Slightly above optimal
-            score = 80 + Int(min(15, (1.5 - loadRatio) * 50)) // 80-95 range
+            score = 80 + Int(min(15, (1.5 - loadRatio) * 50))
         } else {
-            // Too much training (overtraining)
-            score = 60 + Int(min(20, (2.0 - loadRatio) * 50)) // 60-80 range for high load
+            score = 60 + Int(min(20, (2.0 - loadRatio) * 50))
         }
         
-        return score
+        return (score, false)
     }
     
-    /// Gets description for training load based on score
-    private func getTrainingLoadDescription(score: Int) -> String {
+    /// Gets description for training load based on score. When insufficientData is true (no activities in 28 days), returns a message indicating insufficient data.
+    private func getTrainingLoadDescription(score: Int, insufficientData: Bool = false) -> String {
+        if insufficientData {
+            return "Insufficient activity data to assess training load. Add activities to get a more accurate recovery score."
+        }
         if score >= 95 {
             return "Your training load is optimal relative to your 28-day average. This balanced approach promotes recovery and adaptation."
         } else if score >= 80 {
@@ -1126,7 +1082,7 @@ class RecoveryMetrics: ObservableObject {
         )
         
         self._sleepMetric = MetricScore(
-            score: Int(sleepValue * 100 / 8), // Convert to score out of 100 (8 hours = 100)
+            score: sleepDurationScore(hours: sleepValue),
             title: "Sleep Duration",
             description: getSleepDescription(currentSleep: sleepValue, delta: sleepDelta),
             dailyData: sleepData.sorted { $0.date < $1.date },
@@ -1232,16 +1188,16 @@ class RecoveryMetrics: ObservableObject {
         )
         
         self._sleepMetric = MetricScore(
-            score: Int(sleepValue * 100 / 8), // Around 65%
+            score: sleepDurationScore(hours: sleepValue),
             title: "Sleep Duration",
             description: "You slept \(String(format: "%.1f", abs(sleepDelta))) hours less than your average, which may impact your recovery.",
             dailyData: sleepData.sorted { $0.date < $1.date },
             deltaFromAverage: sleepDelta,
-            isPositiveDelta: sleepDelta > 0 // For sleep, more is better
+            isPositiveDelta: sleepDelta > 0
         )
         
         self._sleepQualityMetric = MetricScore(
-            score: Int(sleepQualityValue), // Around 55
+            score: Int(sleepQualityValue),
             title: "Sleep Quality",
             description: "Your sleep quality is \(String(format: "%.0f", abs(sleepQualityDelta))) points lower than your average, suggesting disrupted sleep patterns.",
             dailyData: sleepQualityData.sorted { $0.date < $1.date },

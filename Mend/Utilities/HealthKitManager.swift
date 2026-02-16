@@ -80,7 +80,7 @@ class HealthKitManager {
         }
         
         // Extract elevation
-        var elevation: Double? = nil
+        let elevation: Double? = nil
         // Note: HealthKit doesn't have a direct elevation identifier in older versions
         // We'll set elevation to nil for now and can add this in future updates
         // if let elevationStats = workout.statistics(for: HKQuantityType(.distanceElevationAscended)) {
