@@ -31,6 +31,7 @@ struct SettingsView: View {
     @State private var showTipJar = false
     @State private var devModeClickCount = 0  // Track clicks to enable dev mode
     @ObservedObject private var developerSettings = DeveloperSettings.shared
+    private var appVersion: String { Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown" }
     
     // Add state to track theme changes and force UI updates
     @State private var themeVersion = 0
@@ -134,7 +135,8 @@ struct SettingsView: View {
                 #endif
                 
                 // Version at the bottom
-                Text("Mend for iOS - 1.1.3")
+                //Text("Mend for iOS - 1.1.3")
+                Text("Mend for iOS - " + appVersion)
                     .font(MendFont.footnote)
                     .foregroundColor(secondaryTextColor)
                     .padding(.top, 40)
